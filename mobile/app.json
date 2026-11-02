@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "NEXCRM",
+    "slug": "nexcrm-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "nexcrm",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#f4f1ec"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "net.snowypride.nexcrm"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1f4b3a",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "net.snowypride.nexcrm",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

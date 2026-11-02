@@ -3,3 +3,9 @@ node_modules/
 .admin-password
 deploy/lan-root.crt
 dist/
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+mobile/expo-env.d.ts
+mobile/ios/
+mobile/android/

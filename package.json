@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "start": "node --experimental-strip-types app/server.ts",
-    "check": "node --experimental-strip-types tests/health.test.ts && node --experimental-strip-types tests/companies.test.ts && node --experimental-strip-types tests/projects.test.ts && node --experimental-strip-types tests/work-permits.test.ts && node --experimental-strip-types tests/access.test.ts && node --experimental-strip-types tests/letters.test.ts"
+    "check": "node --experimental-strip-types tests/health.test.ts && node --experimental-strip-types tests/companies.test.ts && node --experimental-strip-types tests/projects.test.ts && node --experimental-strip-types tests/work-permits.test.ts && node --experimental-strip-types tests/access.test.ts && node --experimental-strip-types tests/letters.test.ts",
+    "mobile": "npm --prefix mobile start",
+    "mobile:install": "npm --prefix mobile install"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.4",
