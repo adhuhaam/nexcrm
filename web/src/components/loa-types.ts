@@ -1,0 +1,45 @@
+export type LetterSnapshot = {
+  company: {
+    companyId: string;
+    legalName: string;
+    registrationNumber: string | null;
+    registeredAddress: string | null;
+    country: string | null;
+    businessActivity: string | null;
+    phone: string | null;
+    email: string | null;
+    documentPrefix: string | null;
+    signatoryName: string | null;
+    signatoryTitle: string | null;
+  };
+  employee: {
+    id: string | null;
+    legalName: string;
+    preferredName: string | null;
+    passportNumber: string | null;
+    nationality: string | null;
+    dateOfBirth: string | null;
+    gender: string | null;
+    permanentAddress: string | null;
+    emergencyContact: string | null;
+    occupation: string | null;
+    employmentStatus: string | null;
+  };
+  terms: {
+    workSite: string | null;
+    siteCode: string | null;
+    basicSalary: string | null;
+    benefits: string | null;
+    paidVacation: string | null;
+    workingHours: string | null;
+    contractDuration: string | null;
+    employmentStatus: string | null;
+  };
+  documentNumber: string;
+  letterDate: string;
+  signatoryName: string | null;
+  signatoryTitle: string | null;
+  letterheadAddress: string | null;
+  phone: string | null;
+  email: string | null;
+};

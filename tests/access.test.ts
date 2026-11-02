@@ -1,0 +1,49 @@
+import assert from "node:assert/strict";
+import { pool } from "../lib/db.ts";
+import {
+  authorize,
+  createRole,
+  deleteRole,
+  hashPassword,
+  seedRoles,
+  verifyPassword,
+  type OfficeUser,
+} from "../modules/access/access.ts";
+
+function person(slug: string, canPreview: boolean, canEdit: boolean, canDelete: boolean): OfficeUser {
+  return {
+    id: "00000000-0000-4000-8000-000000000001",
+    name: "Test",
+    email: "test@nexcrm.local",
+    active: true,
+    role: { id: "00000000-0000-4000-8000-000000000002", slug, name: slug, canPreview, canEdit, canDelete, systemRole: slug === "system_admin" },
+  };
+}
+
+await seedRoles();
+await pool.query(`delete from roles where slug = 'site_reader'`);
+const stored = await hashPassword("correct-horse");
+assert.equal(await verifyPassword("correct-horse", stored), true);
+assert.equal(await verifyPassword("wrong-password", stored), false);
+
+const guest = person("investor_guest", true, false, false);
+assert.equal(authorize("GET", "/api/v1/hr", guest), null);
+assert.match(authorize("POST", "/companies", guest) ?? "", /cannot edit/);
+assert.match(authorize("GET", "/api/v1/admin/access", guest) ?? "", /system admin/);
+
+const admin = person("system_admin", true, true, true);
+assert.equal(authorize("POST", "/api/v1/admin/roles", admin), null);
+assert.equal(authorize("DELETE", "/projects/00000000-0000-4000-8000-000000000003", admin), null);
+
+const created = await createRole({ name: "Site reader", canPreview: true, canEdit: false, canDelete: false });
+assert.equal(created.slug, "site_reader");
+assert.equal(created.systemRole, false);
+await deleteRole(created.id);
+
+const locked = await pool.query<{ id: string }>(`select id from roles where slug = 'system_admin'`);
+const adminRoleId = locked.rows[0]?.id;
+assert.ok(adminRoleId);
+await assert.rejects(() => deleteRole(adminRoleId), /Built-in/);
+
+await pool.end();
+console.log("access ok");

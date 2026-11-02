@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=NEXCRM
+Comment=NEXCRM HR · agency secondment, LOAs, and payroll
+Exec=xdg-open http://127.0.0.1:3000/
+Icon=office-calendar
+Terminal=false
+Categories=Office;Finance;
+StartupNotify=true

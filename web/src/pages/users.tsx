@@ -1,0 +1,338 @@
+import { useEffect, useMemo, useState } from "react";
+import { UsersIcon } from "lucide-react";
+import { Banner, Loading, Shell, useOffice } from "@/components/shell";
+import { SelectField, TextField } from "@/components/field";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getJson, postJson } from "@/lib/api";
+
+type Role = {
+  id: string;
+  slug: string;
+  name: string;
+  canPreview: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  systemRole: boolean;
+};
+
+type Person = {
+  id: string;
+  name: string;
+  email: string;
+  active: boolean;
+  role: Role;
+};
+
+type AccessModel = { roles: Role[]; users: Person[]; actorId: string };
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
+export function UsersPage() {
+  return (
+    <Shell
+      title="NEXCRM · Users"
+      eyebrow="Access"
+      description="Create office accounts, assign roles, and reset passwords."
+    >
+      <UsersBody />
+    </Shell>
+  );
+}
+
+function UsersBody() {
+  const office = useOffice();
+  const [model, setModel] = useState<AccessModel | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const [pending, setPending] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<Person | null>(null);
+
+  function reload() {
+    getJson<AccessModel>("/api/v1/admin/access")
+      .then(setModel)
+      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not load users."));
+  }
+
+  useEffect(() => {
+    if (office.role?.slug !== "system_admin") return;
+    reload();
+  }, [office.role?.slug]);
+
+  const filtered = useMemo(() => {
+    if (!model) return [];
+    const needle = q.trim().toLowerCase();
+    if (!needle) return model.users;
+    return model.users.filter(
+      (person) =>
+        person.name.toLowerCase().includes(needle) ||
+        person.email.toLowerCase().includes(needle) ||
+        person.role.name.toLowerCase().includes(needle),
+    );
+  }, [model, q]);
+
+  if (office.role?.slug !== "system_admin") {
+    return <Banner message="Only a system admin can manage users." error />;
+  }
+  if (!model) return error ? <Banner message={error} error /> : <Loading />;
+
+  function save(url: string, body: Record<string, string>) {
+    setPending(true);
+    setError(null);
+    void postJson(url, { ...body, returnTo: "/users" }).catch((reason: unknown) => {
+      setError(reason instanceof Error ? reason.message : "Could not save.");
+      setPending(false);
+    });
+  }
+
+  return (
+    <>
+      <Banner message={error} error />
+      <Card>
+        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
+          <div className="grid gap-1">
+            <CardTitle className="flex items-center gap-2">
+              <UsersIcon className="size-4" />
+              Office users
+            </CardTitle>
+            <CardDescription>
+              {model.users.length} account{model.users.length === 1 ? "" : "s"} · {model.users.filter((u) => u.active).length} active
+            </CardDescription>
+          </div>
+          <Button type="button" onClick={() => setCreateOpen(true)}>
+            Add user
+          </Button>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <Input value={q} onChange={(event) => setQ(event.target.value)} placeholder="Search name, email or role" aria-label="Search users" />
+          {filtered.length ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((person) => (
+                  <TableRow key={person.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar size="sm">
+                          <AvatarFallback>{initials(person.name)}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <p className="font-medium">{person.name}</p>
+                          <p className="truncate text-xs text-muted-foreground">{person.email}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{person.role.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={person.active ? "secondary" : "outline"}>{person.active ? "Active" : "Inactive"}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button type="button" size="sm" variant="outline" onClick={() => setEditing(person)}>
+                        Manage
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-sm text-muted-foreground">No users match this search.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <CreateUserDialog
+        open={createOpen}
+        roles={model.roles}
+        pending={pending}
+        onOpenChange={setCreateOpen}
+        onSave={save}
+      />
+      <EditUserDialog
+        person={editing}
+        roles={model.roles}
+        actorId={model.actorId}
+        pending={pending}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
+        }}
+        onSave={save}
+      />
+    </>
+  );
+}
+
+function CreateUserDialog({
+  open,
+  roles,
+  pending,
+  onOpenChange,
+  onSave,
+}: {
+  open: boolean;
+  roles: Role[];
+  pending: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (url: string, body: Record<string, string>) => void;
+}) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [roleId, setRoleId] = useState(roles.find((role) => role.slug === "hr_staff")?.id ?? roles[0]?.id ?? "");
+
+  useEffect(() => {
+    if (!open) return;
+    setName("");
+    setEmail("");
+    setPassword("");
+    setRoleId(roles.find((role) => role.slug === "hr_staff")?.id ?? roles[0]?.id ?? "");
+  }, [open, roles]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add user</DialogTitle>
+          <DialogDescription>They sign in with email and password. Choose a role that matches their office work.</DialogDescription>
+        </DialogHeader>
+        <form
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSave("/api/v1/admin/users", { name, email, password, roleId });
+          }}
+        >
+          <TextField id="new-user-name" label="Name" value={name} onChange={setName} />
+          <TextField id="new-user-email" label="Email" value={email} onChange={setEmail} />
+          <TextField id="new-user-password" label="Password" type="password" value={password} onChange={setPassword} hint="At least 8 characters." />
+          <SelectField id="new-user-role" label="Role" value={roleId} onChange={setRoleId}>
+            {roles.map((role) => (
+              <option key={role.id} value={role.id}>
+                {role.name}
+              </option>
+            ))}
+          </SelectField>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={pending}>
+              Create user
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditUserDialog({
+  person,
+  roles,
+  actorId,
+  pending,
+  onOpenChange,
+  onSave,
+}: {
+  person: Person | null;
+  roles: Role[];
+  actorId: string;
+  pending: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (url: string, body: Record<string, string>) => void;
+}) {
+  const [name, setName] = useState("");
+  const [roleId, setRoleId] = useState("");
+  const [active, setActive] = useState(true);
+  const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    if (!person) return;
+    setName(person.name);
+    setRoleId(person.role.id);
+    setActive(person.active);
+    setPassword("");
+  }, [person]);
+
+  return (
+    <Dialog open={Boolean(person)} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Manage user</DialogTitle>
+          <DialogDescription>
+            {person?.email}
+            {person?.id === actorId ? " · This is your account." : ""}
+          </DialogDescription>
+        </DialogHeader>
+        {person ? (
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              onSave(`/api/v1/admin/users/${person.id}`, {
+                name,
+                roleId,
+                active: String(active),
+                password,
+              });
+            }}
+          >
+            <TextField id={`edit-name-${person.id}`} label="Name" value={name} onChange={setName} />
+            <SelectField id={`edit-role-${person.id}`} label="Role" value={roleId} onChange={setRoleId}>
+              {roles.map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.name}
+                </option>
+              ))}
+            </SelectField>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={active} onChange={(event) => setActive(event.target.checked)} />
+              Active account
+            </label>
+            <TextField
+              id={`edit-password-${person.id}`}
+              label="Reset password"
+              type="password"
+              value={password}
+              onChange={setPassword}
+              hint="Leave blank to keep the current password."
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={pending}>
+                Save user
+              </Button>
+            </DialogFooter>
+          </form>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
