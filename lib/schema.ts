@@ -396,3 +396,17 @@ export const systemSettings = pgTable("system_settings", {
   value: text("value").notNull().default(""),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const expenses = pgTable("expenses", {
+  id: uuid("id").primaryKey(),
+  expenseDate: date("expense_date").notNull(),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("MVR"),
+  category: text("category").notNull(),
+  clientCompanyId: uuid("client_company_id").references(() => companies.id, { onDelete: "restrict" }),
+  counterparty: text("counterparty"),
+  note: text("note"),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

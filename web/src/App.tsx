@@ -8,6 +8,7 @@ import { DocumentsPage } from "@/pages/documents";
 import { EmployeeFormPage, EmployeeListPage } from "@/pages/employees";
 import { EmployeeOnboardPage } from "@/pages/employee-onboard";
 import { AccommodationsPage } from "@/pages/accommodations";
+import { ExpensesPage } from "@/pages/expenses";
 import { LoaEditorPage } from "@/pages/loa-editor";
 import { LoaListPage } from "@/pages/loas";
 import { LoginPage } from "@/pages/login";
@@ -60,6 +61,7 @@ export default function App() {
     const id = path.slice("/projects/".length);
     return uuid.test(id) ? <ProjectDetail id={id} /> : <Missing />;
   }
+  if (path === "/apps/expenses") return <ExpensesPage />;
   return <Missing />;
 }
 

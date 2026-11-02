@@ -20,13 +20,13 @@ export async function postJson(url: string, body: Record<string, unknown>): Prom
 
 export async function sendJson<T = Record<string, unknown>>(
   url: string,
-  method: "POST" | "PATCH",
-  body: Record<string, unknown>,
+  method: "POST" | "PATCH" | "DELETE",
+  body: Record<string, unknown> = {},
 ): Promise<T & { error?: string; location?: string }> {
   const response = await fetch(url, {
     method,
     headers: { accept: "application/json", "content-type": "application/json" },
-    body: JSON.stringify(body),
+    body: method === "DELETE" ? undefined : JSON.stringify(body),
   });
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string; location?: string };
   if (response.status === 401 && window.location.pathname !== "/login") {

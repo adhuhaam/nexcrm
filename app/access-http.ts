@@ -40,6 +40,11 @@ function sameOrigin(request: IncomingMessage): boolean {
 }
 
 function readCookie(request: IncomingMessage): string | null {
+  const auth = request.headers.authorization;
+  if (typeof auth === "string" && auth.toLowerCase().startsWith("bearer ")) {
+    const token = auth.slice(7).trim();
+    if (token) return token;
+  }
   const header = request.headers.cookie;
   if (!header) return null;
   for (const part of header.split(";")) {
@@ -106,7 +111,8 @@ export async function guardAccess(request: IncomingMessage, response: ServerResp
   const token = readCookie(request);
 
   if (method === "POST" && path === "/login") {
-    if (!sameOrigin(request)) {
+    // Browser pages must match Origin. Native Expo clients (no Origin) authenticate over Tailscale.
+    if (request.headers.origin && !sameOrigin(request)) {
       sendJson(response, 403, { error: "Sign-in must come from this site." });
       return true;
     }
@@ -117,7 +123,7 @@ export async function guardAccess(request: IncomingMessage, response: ServerResp
         sendJson(response, 401, { error: "Email or password is not recognised." });
         return true;
       }
-      sendJson(response, 200, { location: "/" }, { "set-cookie": cookieHeader(opened.token, request) });
+      sendJson(response, 200, { location: "/", token: opened.token }, { "set-cookie": cookieHeader(opened.token, request) });
     } catch (error) {
       const message = error instanceof AccessError ? error.message : "Sign-in failed.";
       sendJson(response, 400, { error: message });

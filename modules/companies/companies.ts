@@ -28,6 +28,7 @@ export type CompanyDetail = CompanyRecord & {
     passportNumber: string | null;
     occupation: string | null;
     employmentStatus: string | null;
+    photoFileId: string | null;
   }[];
 };
 
@@ -160,8 +161,9 @@ export async function getCompanyDetail(id: string): Promise<CompanyDetail | null
     passport_number: string | null;
     occupation: string | null;
     employment_status: string | null;
+    photo_file_id: string | null;
   }>(
-    `select id, legal_name, passport_number, occupation, employment_status
+    `select id, legal_name, passport_number, occupation, employment_status, photo_file_id
      from employees where company_id = $1 order by legal_name limit 200`,
     [id],
   );
@@ -183,6 +185,7 @@ export async function getCompanyDetail(id: string): Promise<CompanyDetail | null
       passportNumber: row.passport_number,
       occupation: row.occupation,
       employmentStatus: row.employment_status,
+      photoFileId: row.photo_file_id,
     })),
   };
 }

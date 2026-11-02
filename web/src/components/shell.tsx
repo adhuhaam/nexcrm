@@ -58,8 +58,9 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getJson, postJson } from "@/lib/api";
+import { appIsActive, officeApps } from "@/lib/apps";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -247,6 +248,33 @@ function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
+        <div className="flex flex-wrap items-center gap-1.5 px-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          {officeApps.map((app) => {
+            const active = appIsActive(app);
+            return (
+              <Tooltip key={app.id}>
+                <TooltipTrigger asChild>
+                  <a
+                    href={app.href}
+                    aria-label={app.label}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex size-8 items-center justify-center rounded-lg text-[10px] font-semibold tracking-wide transition-colors",
+                      active
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/80",
+                    )}
+                  >
+                    {app.short}
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent side="right" align="center">
+                  {app.label}
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>

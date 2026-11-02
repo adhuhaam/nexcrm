@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TextField } from "@/components/field";
 import { FormDialog, FormDialogWide } from "@/components/form-dialog";
+import { EmployeeAvatar } from "@/components/employee-avatar";
 import { QuickCreateMenu } from "@/components/quick-create";
 import { Banner, Shell, ShellEmpty, WhenEditing } from "@/components/shell";
 import { PageSkeleton } from "@/components/ux";
@@ -36,6 +37,7 @@ type Detail = {
     passportNumber: string | null;
     occupation: string | null;
     employmentStatus: string | null;
+    photoFileId: string | null;
   }[];
 };
 
@@ -203,6 +205,7 @@ export function CompanyDetailPage({ id }: { id: string }) {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-12"> </TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Passport</TableHead>
                         <TableHead>Position</TableHead>
@@ -215,6 +218,9 @@ export function CompanyDetailPage({ id }: { id: string }) {
                           className="cursor-pointer"
                           onClick={() => window.location.assign(`/employees?edit=${employee.id}`)}
                         >
+                          <TableCell className="w-12 pr-0">
+                            <EmployeeAvatar name={employee.legalName} photoFileId={employee.photoFileId} size="sm" />
+                          </TableCell>
                           <TableCell className="font-medium">{employee.legalName}</TableCell>
                           <TableCell className="font-mono text-xs">{employee.passportNumber ?? "—"}</TableCell>
                           <TableCell>{employee.occupation ?? "—"}</TableCell>

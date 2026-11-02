@@ -20,6 +20,7 @@ import { getWorkPermit, listWorkPermits } from "../modules/hr/work-permits.ts";
 import { getProjectView, listProjects } from "../modules/projects/projects.ts";
 import { guardAccess } from "./access-http.ts";
 import { handleAgencyApi } from "./agency-http.ts";
+import { handleExpensesApi } from "./expenses-http.ts";
 import { handleHrApi } from "./hr-http.ts";
 import { noticeText, renderPage, type PageModel } from "./page.ts";
 import { handleProjectRequest } from "./projects-http.ts";
@@ -149,6 +150,7 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
   if (await guardAccess(request, response, url)) return;
 
   if (await handleAgencyApi(request, response, url)) return;
+  if (await handleExpensesApi(request, response, url)) return;
   if (await handleHrApi(request, response, url)) return;
 
   if (method === "GET" && url.pathname === "/api/v1/hr") {

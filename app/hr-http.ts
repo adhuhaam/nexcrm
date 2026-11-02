@@ -70,6 +70,11 @@ function idFromPath(pathname: string, prefix: string): string | null {
 }
 
 function readCookie(request: IncomingMessage): string | null {
+  const auth = request.headers.authorization;
+  if (typeof auth === "string" && auth.toLowerCase().startsWith("bearer ")) {
+    const token = auth.slice(7).trim();
+    if (token) return token;
+  }
   const header = request.headers.cookie;
   if (!header) return null;
   for (const part of header.split(";")) {
