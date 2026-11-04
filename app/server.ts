@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { handleRequest } from "./http.ts";
 import { serveWeb } from "./static.ts";
+import { applyExpoCors } from "../lib/cors.ts";
 import { pool } from "../lib/db.ts";
 import { checkHealth } from "../lib/health.ts";
 import { migrate } from "../lib/migrate.ts";
@@ -17,6 +18,8 @@ await seedCompanies();
 await seedAccess();
 
 const server = createServer(async (request, response) => {
+  if (applyExpoCors(request, response)) return;
+
   const url = new URL(request.url ?? "/", "http://127.0.0.1");
   if (request.method === "GET" && url.pathname === "/health") {
     try {

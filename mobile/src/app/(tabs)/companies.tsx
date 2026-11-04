@@ -1,8 +1,11 @@
-import { useCallback, useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
-import { Banner, Card, Empty, Loading, Muted } from "../../components/ui";
+import { useCallback, useLayoutEffect, useState } from "react";
+import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import { HeaderAdd } from "../../components/form";
+import { Banner, Empty, ListRow, Loading, SearchField } from "../../components/ui";
 import { getJson } from "../../lib/api";
+import { usePermissions } from "../../lib/permissions";
+import { colors, space } from "../../lib/theme";
 
 type Company = {
   id: string;
@@ -14,6 +17,8 @@ type Company = {
 
 export default function CompaniesScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
+  const { canEdit } = usePermissions();
   const [rows, setRows] = useState<Company[] | null>(null);
   const [q, setQ] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +27,7 @@ export default function CompaniesScreen() {
   const load = useCallback(async () => {
     try {
       setError(null);
-      const data = await getJson<{ companies: Company[] }>("/api/v1/companies?kind=employer");
+      const data = await getJson<{ companies: Company[] }>("/api/v1/companies?kind=employer&counts=1");
       setRows(data.companies);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not load companies");
@@ -35,6 +40,12 @@ export default function CompaniesScreen() {
     }, [load]),
   );
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: canEdit ? () => <HeaderAdd onPress={() => router.push("/companies/form?kind=employer")} /> : undefined,
+    });
+  }, [canEdit, navigation, router]);
+
   const filtered =
     rows?.filter((row) => {
       const needle = q.trim().toLowerCase();
@@ -46,13 +57,7 @@ export default function CompaniesScreen() {
 
   return (
     <View style={styles.root}>
-      <TextInput
-        value={q}
-        onChangeText={setQ}
-        placeholder="Search employers"
-        placeholderTextColor="#8a8580"
-        style={styles.search}
-      />
+      <SearchField value={q} onChangeText={setQ} placeholder="Search employers" />
       <Banner message={error} error />
       <FlatList
         data={filtered ?? []}
@@ -60,20 +65,26 @@ export default function CompaniesScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
+            tintColor={colors.brand}
             onRefresh={() => {
               setRefreshing(true);
               void load().finally(() => setRefreshing(false));
             }}
           />
         }
-        ListEmptyComponent={<Empty title="No companies" body="Employer companies from NEXCRM will show here." />}
+        ListEmptyComponent={
+          <Empty title="No companies" body="Employer companies from NEXCRM will show here." icon="business-outline" />
+        }
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
-          <Card onPress={() => router.push(`/companies/${item.id}`)}>
-            <Text style={styles.name}>{item.legalName}</Text>
-            <Muted>{item.registrationNumber ?? "No registration number"}</Muted>
-            {typeof item.employeeCount === "number" ? <Muted>{`${item.employeeCount} employees`}</Muted> : null}
-          </Card>
+          <ListRow
+            title={item.legalName}
+            subtitle={item.registrationNumber ?? "No registration number"}
+            meta={typeof item.employeeCount === "number" ? `${item.employeeCount} employees` : null}
+            avatarName={item.legalName}
+            avatarTone="ink"
+            onPress={() => router.push(`/companies/${item.id}`)}
+          />
         )}
       />
     </View>
@@ -81,18 +92,6 @@ export default function CompaniesScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#f4f1ec", paddingHorizontal: 16, paddingTop: 8 },
-  search: {
-    borderWidth: 1,
-    borderColor: "#d6d3d1",
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 10,
-    fontSize: 16,
-    color: "#1c1917",
-  },
-  list: { paddingBottom: 32 },
-  name: { fontSize: 16, fontWeight: "600", color: "#1c1917", marginBottom: 4 },
+  root: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: space.lg, paddingTop: space.sm },
+  list: { paddingBottom: 40 },
 });

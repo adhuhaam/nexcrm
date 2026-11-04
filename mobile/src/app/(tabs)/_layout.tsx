@@ -1,42 +1,68 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import { Platform } from "react-native";
+import { colors } from "../../lib/theme";
 
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: "#f4f1ec" },
+        headerStyle: { backgroundColor: colors.bg },
         headerShadowVisible: false,
-        headerTitleStyle: { fontWeight: "700", color: "#1c1917" },
-        tabBarActiveTintColor: "#1f4b3a",
-        tabBarInactiveTintColor: "#78716c",
-        tabBarStyle: { backgroundColor: "#fff", borderTopColor: "#e7e5e4" },
+        headerTitleStyle: { fontWeight: "700", color: colors.ink, fontSize: 18 },
+        tabBarActiveTintColor: colors.brand,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
+        tabBarStyle: {
+          backgroundColor: colors.surfaceRaised,
+          borderTopColor: colors.line,
+          height: Platform.OS === "web" ? 64 : undefined,
+          paddingTop: 4,
+        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Dashboard",
+          title: "Home",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="grid-outline" color={typeof color === "string" ? color : "#78716c"} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="companies"
-        options={{
-          title: "Companies",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="business-outline" color={typeof color === "string" ? color : "#78716c"} size={size} />
+            <Ionicons name="home-outline" color={typeof color === "string" ? color : colors.muted} size={size} />
           ),
         }}
       />
       <Tabs.Screen
         name="employees"
         options={{
-          title: "Employees",
+          title: "People",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people-outline" color={typeof color === "string" ? color : "#78716c"} size={size} />
+            <Ionicons name="people-outline" color={typeof color === "string" ? color : colors.muted} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="companies"
+        options={{
+          title: "Firms",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="business-outline" color={typeof color === "string" ? color : colors.muted} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="clients"
+        options={{
+          title: "Clients",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="briefcase-outline" color={typeof color === "string" ? color : colors.muted} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="payroll"
+        options={{
+          title: "Pay",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="card-outline" color={typeof color === "string" ? color : colors.muted} size={size} />
           ),
         }}
       />
@@ -45,7 +71,7 @@ export default function TabsLayout() {
         options={{
           title: "More",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="menu-outline" color={typeof color === "string" ? color : "#78716c"} size={size} />
+            <Ionicons name="ellipsis-horizontal" color={typeof color === "string" ? color : colors.muted} size={size} />
           ),
         }}
       />

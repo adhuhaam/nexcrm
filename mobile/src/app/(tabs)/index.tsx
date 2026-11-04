@@ -1,9 +1,21 @@
 import { useCallback, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { Banner, Card, Empty, Loading, Muted, Subtitle, Title } from "../../components/ui";
+import {
+  Banner,
+  Empty,
+  ListRow,
+  Loading,
+  MetricTile,
+  Muted,
+  SectionLabel,
+  Subtitle,
+  Title,
+} from "../../components/ui";
 import { getJson } from "../../lib/api";
+import { useAuth } from "../../lib/auth";
 import { formatDate } from "../../lib/dates";
+import { colors, space } from "../../lib/theme";
 
 type DashboardModel = {
   counts: { companies: number; employers?: number; clients?: number; employees: number; letters: number };
@@ -18,6 +30,7 @@ type DashboardModel = {
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { session } = useAuth();
   const [model, setModel] = useState<DashboardModel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -39,6 +52,8 @@ export default function DashboardScreen() {
 
   if (!model && !error) return <Loading />;
 
+  const firstName = session?.user.name?.split(/\s+/)[0] ?? "there";
+
   return (
     <ScrollView
       style={styles.root}
@@ -46,6 +61,7 @@ export default function DashboardScreen() {
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
+          tintColor={colors.brand}
           onRefresh={() => {
             setRefreshing(true);
             void load().finally(() => setRefreshing(false));
@@ -53,53 +69,86 @@ export default function DashboardScreen() {
         />
       }
     >
-      <Title>Dashboard</Title>
-      <Subtitle>People & documents on the tailnet</Subtitle>
-      <View style={{ height: 12 }} />
+      <Text style={styles.kicker}>Office</Text>
+      <Title>Hello, {firstName}</Title>
+      <Subtitle>People, clients, and payroll on the tailnet.</Subtitle>
+      <View style={{ height: space.lg }} />
       <Banner message={error} error />
       {model ? (
         <>
           <View style={styles.metrics}>
-            <Metric
+            <MetricTile
               label="Employers"
               value={model.counts.employers ?? model.counts.companies}
+              icon="business-outline"
               onPress={() => router.push("/(tabs)/companies")}
             />
-            <Metric label="Employees" value={model.counts.employees} onPress={() => router.push("/(tabs)/employees")} />
-            <Metric label="LOAs" value={model.counts.letters} onPress={() => router.push("/loas")} />
+            <MetricTile
+              label="Employees"
+              value={model.counts.employees}
+              icon="people-outline"
+              onPress={() => router.push("/(tabs)/employees")}
+            />
+            <MetricTile
+              label="Clients"
+              value={model.counts.clients ?? 0}
+              icon="briefcase-outline"
+              onPress={() => router.push("/(tabs)/clients")}
+            />
+            <MetricTile
+              label="LOAs"
+              value={model.counts.letters}
+              icon="document-text-outline"
+              onPress={() => router.push("/loas")}
+            />
           </View>
-          <Text style={styles.section}>Recent LOAs</Text>
+
+          <ListRow
+            title="Payroll"
+            subtitle="Open pay runs by client"
+            icon="card-outline"
+            onPress={() => router.push("/(tabs)/payroll")}
+          />
+
+          <SectionLabel>Recent LOAs</SectionLabel>
           {model.recentLetters.length === 0 ? (
-            <Empty title="No letters yet" body="Create a LOA from the web or mobile editor." />
+            <Empty title="No letters yet" body="Create a LOA from the web office when ready." icon="document-outline" />
           ) : (
             model.recentLetters.map((letter) => (
-              <Card key={letter.id} onPress={() => router.push(`/loas/${letter.id}`)}>
-                <Text style={styles.cardTitle}>{letter.documentNumber}</Text>
-                <Muted>{letter.employeeName ?? "—"} · {letter.companyName}</Muted>
-                <Muted>{formatDate(letter.letterDate)}</Muted>
-              </Card>
+              <ListRow
+                key={letter.id}
+                title={letter.documentNumber}
+                subtitle={`${letter.employeeName ?? "—"} · ${letter.companyName}`}
+                meta={formatDate(letter.letterDate)}
+                avatarName={letter.employeeName ?? letter.companyName}
+                avatarTone="accent"
+                onPress={() => router.push(`/loas/${letter.id}`)}
+              />
             ))
           )}
         </>
-      ) : null}
+      ) : (
+        <Muted>Pull to refresh once Tailscale is connected.</Muted>
+      )}
     </ScrollView>
   );
 }
 
-function Metric({ label, value, onPress }: { label: string; value: number; onPress: () => void }) {
-  return (
-    <Card onPress={onPress}>
-      <Muted>{label}</Muted>
-      <Text style={styles.metricValue}>{value}</Text>
-    </Card>
-  );
-}
-
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#f4f1ec" },
-  content: { padding: 16, paddingBottom: 40 },
-  metrics: { gap: 0 },
-  section: { marginTop: 8, marginBottom: 8, fontSize: 16, fontWeight: "700", color: "#1c1917" },
-  cardTitle: { fontSize: 16, fontWeight: "600", color: "#1c1917", marginBottom: 4 },
-  metricValue: { fontSize: 28, fontWeight: "700", color: "#1f4b3a", marginTop: 4 },
+  root: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: space.lg, paddingBottom: 48 },
+  kicker: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    color: colors.brand,
+    marginBottom: 6,
+  },
+  metrics: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginBottom: space.md,
+  },
 });

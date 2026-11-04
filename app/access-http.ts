@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { isExpoDevOrigin } from "../lib/cors.ts";
 import {
   AccessError,
   authorize,
@@ -111,8 +112,9 @@ export async function guardAccess(request: IncomingMessage, response: ServerResp
   const token = readCookie(request);
 
   if (method === "POST" && path === "/login") {
-    // Browser pages must match Origin. Native Expo clients (no Origin) authenticate over Tailscale.
-    if (request.headers.origin && !sameOrigin(request)) {
+    // Same-site office UI, native Expo (no Origin), or Expo web/Metro on localhost / tunnels.
+    const origin = request.headers.origin;
+    if (origin && !sameOrigin(request) && !(typeof origin === "string" && isExpoDevOrigin(origin))) {
       sendJson(response, 403, { error: "Sign-in must come from this site." });
       return true;
     }

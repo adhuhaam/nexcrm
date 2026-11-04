@@ -1,5 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { clearSession, getJson, loadSession, login as apiLogin, logout as apiLogout, onAuthChange } from "./api";
+import {
+  clearSession,
+  getJson,
+  loadSession,
+  login as apiLogin,
+  logout as apiLogout,
+  onAuthChange,
+} from "./api";
+import { loadApiBase } from "./config";
 
 export type OfficeSession = {
   user: { id: string; name: string; email: string };
@@ -17,8 +25,9 @@ export type OfficeSession = {
 type AuthState = {
   ready: boolean;
   session: OfficeSession | null;
+  apiBase: string | null;
   refresh: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (apiUrl: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -27,10 +36,13 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [session, setSession] = useState<OfficeSession | null>(null);
+  const [apiBase, setApiBase] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    const base = await loadApiBase();
+    setApiBase(base);
     const token = await loadSession();
-    if (!token) {
+    if (!token || !base) {
       setSession(null);
       return;
     }
@@ -62,8 +74,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const signIn = useCallback(
-    async (email: string, password: string) => {
-      await apiLogin(email, password);
+    async (apiUrl: string, email: string, password: string) => {
+      const base = await apiLogin(apiUrl, email, password);
+      setApiBase(base);
       await refresh();
     },
     [refresh],
@@ -75,8 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ ready, session, refresh, signIn, signOut }),
-    [ready, session, refresh, signIn, signOut],
+    () => ({ ready, session, apiBase, refresh, signIn, signOut }),
+    [ready, session, apiBase, refresh, signIn, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

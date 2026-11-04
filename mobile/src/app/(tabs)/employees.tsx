@@ -1,13 +1,16 @@
-import { useCallback, useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
-import { Banner, Card, Empty, Loading, Muted } from "../../components/ui";
+import { useCallback, useLayoutEffect, useState } from "react";
+import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import { HeaderAdd } from "../../components/form";
+import { Banner, Empty, ListRow, Loading, SearchField } from "../../components/ui";
 import { getJson } from "../../lib/api";
+import { usePermissions } from "../../lib/permissions";
+import { colors, space } from "../../lib/theme";
 
 type Employee = {
   id: string;
   legalName: string;
-  preferredName: string | null;
+  preferredName?: string | null;
   passportNumber: string | null;
   companyName: string;
   occupation: string | null;
@@ -16,6 +19,8 @@ type Employee = {
 
 export default function EmployeesScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
+  const { canEdit } = usePermissions();
   const [rows, setRows] = useState<Employee[] | null>(null);
   const [q, setQ] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -38,18 +43,21 @@ export default function EmployeesScreen() {
     }, [load]),
   );
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: canEdit ? () => <HeaderAdd onPress={() => router.push("/employees/form")} /> : undefined,
+    });
+  }, [canEdit, navigation, router]);
+
   if (!rows && !error) return <Loading />;
 
   return (
     <View style={styles.root}>
-      <TextInput
+      <SearchField
         value={q}
         onChangeText={setQ}
         onSubmitEditing={() => void load(q)}
         placeholder="Search name or passport"
-        placeholderTextColor="#8a8580"
-        style={styles.search}
-        returnKeyType="search"
       />
       <Banner message={error} error />
       <FlatList
@@ -58,22 +66,26 @@ export default function EmployeesScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
+            tintColor={colors.brand}
             onRefresh={() => {
               setRefreshing(true);
               void load(q).finally(() => setRefreshing(false));
             }}
           />
         }
-        ListEmptyComponent={<Empty title="No employees" body="People records from NEXCRM will show here." />}
+        ListEmptyComponent={
+          <Empty title="No employees" body="People records from NEXCRM will show here." icon="people-outline" />
+        }
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
-          <Card onPress={() => router.push(`/employees/${item.id}`)}>
-            <Text style={styles.name}>{item.preferredName || item.legalName}</Text>
-            <Muted>{item.companyName}</Muted>
-            <Muted>
-              {[item.occupation, item.passportNumber, item.employmentStatus].filter(Boolean).join(" · ") || "—"}
-            </Muted>
-          </Card>
+          <ListRow
+            title={item.preferredName || item.legalName}
+            subtitle={item.companyName}
+            meta={[item.occupation, item.passportNumber].filter(Boolean).join(" · ") || "—"}
+            status={item.employmentStatus}
+            avatarName={item.preferredName || item.legalName}
+            onPress={() => router.push(`/employees/${item.id}`)}
+          />
         )}
       />
     </View>
@@ -81,18 +93,6 @@ export default function EmployeesScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#f4f1ec", paddingHorizontal: 16, paddingTop: 8 },
-  search: {
-    borderWidth: 1,
-    borderColor: "#d6d3d1",
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 10,
-    fontSize: 16,
-    color: "#1c1917",
-  },
-  list: { paddingBottom: 32 },
-  name: { fontSize: 16, fontWeight: "600", color: "#1c1917", marginBottom: 4 },
+  root: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: space.lg, paddingTop: space.sm },
+  list: { paddingBottom: 40 },
 });

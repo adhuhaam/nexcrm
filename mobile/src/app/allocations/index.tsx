@@ -1,20 +1,26 @@
-import { useCallback, useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
-import { useFocusEffect } from "expo-router";
-import { Banner, Card, Empty, Loading, Muted } from "../../components/ui";
+import { useCallback, useLayoutEffect, useState } from "react";
+import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import { HeaderAdd } from "../../components/form";
+import { Banner, Empty, ListRow, Loading } from "../../components/ui";
 import { getJson } from "../../lib/api";
+import { usePermissions } from "../../lib/permissions";
+import { colors, space } from "../../lib/theme";
 
 type Allocation = {
   id: string;
   employeeName?: string;
   clientName?: string;
   employerName?: string;
-  staffRate?: string | null;
-  billRate?: string | null;
+  staffSalary?: string;
+  billRate?: string;
   status?: string | null;
 };
 
 export default function AllocationsScreen() {
+  const router = useRouter();
+  const navigation = useNavigation();
+  const { canEdit } = usePermissions();
   const [rows, setRows] = useState<Allocation[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -35,6 +41,13 @@ export default function AllocationsScreen() {
     }, [load]),
   );
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: "Allocations",
+      headerRight: canEdit ? () => <HeaderAdd onPress={() => router.push("/allocations/form")} /> : undefined,
+    });
+  }, [canEdit, navigation, router]);
+
   if (!rows && !error) return <Loading />;
 
   return (
@@ -46,24 +59,28 @@ export default function AllocationsScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
+            tintColor={colors.brand}
             onRefresh={() => {
               setRefreshing(true);
               void load().finally(() => setRefreshing(false));
             }}
           />
         }
-        ListEmptyComponent={<Empty title="No allocations" body="Active placements will show here." />}
+        ListEmptyComponent={
+          <Empty title="No allocations" body="Active placements will show here." icon="git-network-outline" />
+        }
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
-          <Card>
-            <Text style={styles.name}>{item.employeeName ?? "Employee"}</Text>
-            <Muted>{[item.clientName, item.employerName].filter(Boolean).join(" · ") || "—"}</Muted>
-            <Muted>
-              {[item.status, item.staffRate && `staff ${item.staffRate}`, item.billRate && `bill ${item.billRate}`]
-                .filter(Boolean)
-                .join(" · ") || "—"}
-            </Muted>
-          </Card>
+          <ListRow
+            title={item.employeeName ?? "Employee"}
+            subtitle={[item.clientName, item.employerName].filter(Boolean).join(" · ") || "—"}
+            meta={[item.staffSalary && `staff ${item.staffSalary}`, item.billRate && `bill ${item.billRate}`]
+              .filter(Boolean)
+              .join(" · ")}
+            status={item.status}
+            avatarName={item.employeeName ?? "Employee"}
+            onPress={() => router.push(`/allocations/${item.id}` as never)}
+          />
         )}
       />
     </View>
@@ -71,7 +88,6 @@ export default function AllocationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#f4f1ec", paddingHorizontal: 16, paddingTop: 8 },
-  list: { paddingBottom: 32 },
-  name: { fontSize: 16, fontWeight: "600", color: "#1c1917", marginBottom: 4 },
+  root: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: space.lg, paddingTop: space.sm },
+  list: { paddingBottom: 40 },
 });

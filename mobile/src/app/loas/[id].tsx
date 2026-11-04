@@ -1,9 +1,10 @@
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text } from "react-native";
-import { Banner, Card, Loading, Muted } from "../../components/ui";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Banner, Card, DetailRow, Loading, SectionLabel } from "../../components/ui";
 import { getJson } from "../../lib/api";
 import { formatDate } from "../../lib/dates";
+import { colors, space } from "../../lib/theme";
 
 type LetterDetail = {
   id: string;
@@ -43,28 +44,23 @@ export default function LoaDetailScreen() {
       <Banner message={error} error />
       {letter && snapshot ? (
         <>
+          <Text style={styles.name}>{letter.documentNumber}</Text>
+          <Text style={styles.meta}>Dated {formatDate(letter.letterDate)}</Text>
           <Card>
-            <Text style={styles.name}>{letter.documentNumber}</Text>
-            <Muted>Letter date</Muted>
-            <Text style={styles.value}>{letter.letterDate}</Text>
-            <Muted>Employer (snapshot)</Muted>
-            <Text style={styles.value}>{snapshot.company.legalName}</Text>
-            <Muted>Employee (snapshot)</Muted>
-            <Text style={styles.value}>{snapshot.employee.legalName}</Text>
-            <Muted>Passport</Muted>
-            <Text style={styles.value}>{snapshot.employee.passportNumber || "—"}</Text>
-            <Muted>Nationality</Muted>
-            <Text style={styles.value}>{snapshot.employee.nationality || "—"}</Text>
+            <DetailRow label="Employer (snapshot)" value={snapshot.company.legalName} />
+            <DetailRow label="Employee (snapshot)" value={snapshot.employee.legalName} />
+            <DetailRow label="Passport" value={snapshot.employee.passportNumber} />
+            <DetailRow label="Nationality" value={snapshot.employee.nationality} />
           </Card>
           {snapshot.terms ? (
-            <Card>
-              <Text style={styles.section}>Terms</Text>
-              {Object.entries(snapshot.terms).map(([key, value]) => (
-                <Text key={key} style={styles.term}>
-                  {key}: {value || "—"}
-                </Text>
-              ))}
-            </Card>
+            <View>
+              <SectionLabel>Terms</SectionLabel>
+              <Card>
+                {Object.entries(snapshot.terms).map(([key, value]) => (
+                  <DetailRow key={key} label={key} value={value} />
+                ))}
+              </Card>
+            </View>
           ) : null}
         </>
       ) : null}
@@ -73,10 +69,8 @@ export default function LoaDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#f4f1ec" },
-  content: { padding: 16 },
-  name: { fontSize: 20, fontWeight: "700", color: "#1c1917", marginBottom: 12 },
-  section: { fontSize: 16, fontWeight: "700", color: "#1c1917", marginBottom: 8 },
-  value: { fontSize: 15, color: "#1c1917", marginBottom: 10 },
-  term: { fontSize: 14, color: "#44403c", marginBottom: 6 },
+  root: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: space.lg, paddingBottom: 40 },
+  name: { fontSize: 24, fontWeight: "700", color: colors.ink, letterSpacing: -0.4 },
+  meta: { marginTop: 4, marginBottom: space.lg, fontSize: 14, color: colors.muted },
 });

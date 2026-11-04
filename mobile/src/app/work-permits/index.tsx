@@ -1,11 +1,15 @@
-import { useCallback, useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
-import { useFocusEffect } from "expo-router";
-import { Banner, Card, Empty, Loading, Muted } from "../../components/ui";
+import { useCallback, useLayoutEffect, useState } from "react";
+import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import { HeaderAdd } from "../../components/form";
+import { Banner, Empty, ListRow, Loading } from "../../components/ui";
 import { getJson } from "../../lib/api";
+import { usePermissions } from "../../lib/permissions";
+import { colors, space } from "../../lib/theme";
 
 type Permit = {
   id: string;
+  legalName?: string;
   employeeName?: string;
   workPermitNumber?: string | null;
   expiresOn?: string | null;
@@ -13,6 +17,9 @@ type Permit = {
 };
 
 export default function WorkPermitsScreen() {
+  const router = useRouter();
+  const navigation = useNavigation();
+  const { canEdit } = usePermissions();
   const [rows, setRows] = useState<Permit[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -33,6 +40,13 @@ export default function WorkPermitsScreen() {
     }, [load]),
   );
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: "Work permits",
+      headerRight: canEdit ? () => <HeaderAdd onPress={() => router.push("/work-permits/form")} /> : undefined,
+    });
+  }, [canEdit, navigation, router]);
+
   if (!rows && !error) return <Loading />;
 
   return (
@@ -44,19 +58,24 @@ export default function WorkPermitsScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
+            tintColor={colors.brand}
             onRefresh={() => {
               setRefreshing(true);
               void load().finally(() => setRefreshing(false));
             }}
           />
         }
-        ListEmptyComponent={<Empty title="No permits" body="Work permits will show here." />}
+        ListEmptyComponent={<Empty title="No permits" body="Work permits will show here." icon="id-card-outline" />}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
-          <Card>
-            <Text style={styles.name}>{item.employeeName ?? item.workPermitNumber ?? "Permit"}</Text>
-            <Muted>{[item.companyName, item.workPermitNumber, item.expiresOn].filter(Boolean).join(" · ") || "—"}</Muted>
-          </Card>
+          <ListRow
+            title={item.legalName ?? item.employeeName ?? item.workPermitNumber ?? "Permit"}
+            subtitle={item.companyName ?? "Company"}
+            meta={[item.workPermitNumber, item.expiresOn && `expires ${item.expiresOn}`].filter(Boolean).join(" · ")}
+            avatarName={item.legalName ?? item.employeeName ?? "Permit"}
+            avatarTone="ink"
+            onPress={() => router.push(`/work-permits/form?id=${item.id}`)}
+          />
         )}
       />
     </View>
@@ -64,7 +83,6 @@ export default function WorkPermitsScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#f4f1ec", paddingHorizontal: 16, paddingTop: 8 },
-  list: { paddingBottom: 32 },
-  name: { fontSize: 16, fontWeight: "600", color: "#1c1917", marginBottom: 4 },
+  root: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: space.lg, paddingTop: space.sm },
+  list: { paddingBottom: 40 },
 });

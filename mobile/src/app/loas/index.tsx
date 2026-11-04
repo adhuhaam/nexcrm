@@ -1,9 +1,12 @@
-import { useCallback, useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
-import { Banner, Card, Empty, Loading, Muted } from "../../components/ui";
+import { useCallback, useLayoutEffect, useState } from "react";
+import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import { HeaderAdd } from "../../components/form";
+import { Banner, Empty, ListRow, Loading, SearchField } from "../../components/ui";
 import { getJson } from "../../lib/api";
 import { formatDate } from "../../lib/dates";
+import { usePermissions } from "../../lib/permissions";
+import { colors, space } from "../../lib/theme";
 
 type LetterRow = {
   id: string;
@@ -16,6 +19,8 @@ type LetterRow = {
 
 export default function LoaListScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
+  const { canEdit } = usePermissions();
   const [rows, setRows] = useState<LetterRow[] | null>(null);
   const [q, setQ] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -38,18 +43,22 @@ export default function LoaListScreen() {
     }, [load]),
   );
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: "LOAs",
+      headerRight: canEdit ? () => <HeaderAdd onPress={() => router.push("/loas/form")} /> : undefined,
+    });
+  }, [canEdit, navigation, router]);
+
   if (!rows && !error) return <Loading />;
 
   return (
     <View style={styles.root}>
-      <TextInput
+      <SearchField
         value={q}
         onChangeText={setQ}
         onSubmitEditing={() => void load(q)}
         placeholder="Search name, passport, or doc #"
-        placeholderTextColor="#8a8580"
-        style={styles.search}
-        returnKeyType="search"
       />
       <Banner message={error} error />
       <FlatList
@@ -58,20 +67,24 @@ export default function LoaListScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
+            tintColor={colors.brand}
             onRefresh={() => {
               setRefreshing(true);
               void load(q).finally(() => setRefreshing(false));
             }}
           />
         }
-        ListEmptyComponent={<Empty title="No LOAs" body="Archived letters will show here." />}
+        ListEmptyComponent={<Empty title="No LOAs" body="Archived letters will show here." icon="document-text-outline" />}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
-          <Card onPress={() => router.push(`/loas/${item.id}`)}>
-            <Text style={styles.name}>{item.documentNumber}</Text>
-            <Muted>{item.employeeName ?? "—"} · {item.companyName}</Muted>
-            <Muted>{formatDate(item.letterDate)}</Muted>
-          </Card>
+          <ListRow
+            title={item.documentNumber}
+            subtitle={`${item.employeeName ?? "—"} · ${item.companyName}`}
+            meta={formatDate(item.letterDate)}
+            avatarName={item.employeeName ?? item.companyName}
+            avatarTone="accent"
+            onPress={() => router.push(`/loas/${item.id}`)}
+          />
         )}
       />
     </View>
@@ -79,18 +92,6 @@ export default function LoaListScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#f4f1ec", paddingHorizontal: 16, paddingTop: 8 },
-  search: {
-    borderWidth: 1,
-    borderColor: "#d6d3d1",
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 10,
-    fontSize: 16,
-    color: "#1c1917",
-  },
-  list: { paddingBottom: 32 },
-  name: { fontSize: 16, fontWeight: "600", color: "#1c1917", marginBottom: 4 },
+  root: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: space.lg, paddingTop: space.sm },
+  list: { paddingBottom: 40 },
 });
