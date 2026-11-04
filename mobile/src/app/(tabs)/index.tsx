@@ -3,6 +3,7 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native
 import { useFocusEffect, useRouter } from "expo-router";
 import { Banner, Card, Empty, Loading, Muted, Subtitle, Title } from "../../components/ui";
 import { getJson } from "../../lib/api";
+import { formatDate } from "../../lib/dates";
 
 type DashboardModel = {
   counts: { companies: number; employers?: number; clients?: number; employees: number; letters: number };
@@ -75,7 +76,7 @@ export default function DashboardScreen() {
               <Card key={letter.id} onPress={() => router.push(`/loas/${letter.id}`)}>
                 <Text style={styles.cardTitle}>{letter.documentNumber}</Text>
                 <Muted>{letter.employeeName ?? "—"} · {letter.companyName}</Muted>
-                <Muted>{letter.letterDate}</Muted>
+                <Muted>{formatDate(letter.letterDate)}</Muted>
               </Card>
             ))
           )}

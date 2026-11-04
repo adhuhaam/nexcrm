@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text } from "react-native";
 import { Banner, Card, Loading, Muted } from "../../components/ui";
 import { getJson } from "../../lib/api";
+import { formatDate } from "../../lib/dates";
 
 type LetterDetail = {
   id: string;

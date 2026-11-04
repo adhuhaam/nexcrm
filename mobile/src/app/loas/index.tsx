@@ -3,6 +3,7 @@ import { FlatList, RefreshControl, StyleSheet, Text, TextInput, View } from "rea
 import { useFocusEffect, useRouter } from "expo-router";
 import { Banner, Card, Empty, Loading, Muted } from "../../components/ui";
 import { getJson } from "../../lib/api";
+import { formatDate } from "../../lib/dates";
 
 type LetterRow = {
   id: string;
@@ -69,7 +70,7 @@ export default function LoaListScreen() {
           <Card onPress={() => router.push(`/loas/${item.id}`)}>
             <Text style={styles.name}>{item.documentNumber}</Text>
             <Muted>{item.employeeName ?? "—"} · {item.companyName}</Muted>
-            <Muted>{item.letterDate}</Muted>
+            <Muted>{formatDate(item.letterDate)}</Muted>
           </Card>
         )}
       />
