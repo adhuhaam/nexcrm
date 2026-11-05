@@ -24,7 +24,7 @@ Manpower-agency **super app**: legal employers second staff to client companies 
 | `app/` | HTTP server, `*-http.ts` routers, SPA static, legacy HTML helpers |
 | `modules/` | Domain logic |
 | `lib/` | DB pool, env, migrate, Drizzle `schema.ts` |
-| `db/migrations/` | Ordered SQL (`001`…`015`), applied on boot |
+| `db/migrations/` | Ordered SQL (`001`…`027+`), applied on boot |
 | `web/` | React + Vite + shadcn office SPA |
 | `mobile/` | Expo client (partial parity) |
 | `docs/` | Product / architecture / API / deploy / this master plan |
@@ -74,7 +74,7 @@ Payroll includes **active and ended** allocations that overlap the month (so lea
 
 ---
 
-## 4. Migrations (001–015)
+## 4. Migrations (001–027)
 
 | # | File | Purpose |
 | --- | --- | --- |
@@ -93,6 +93,18 @@ Payroll includes **active and ended** allocations that overlap the month (so lea
 | 013 | `013_attendance_od.sql` | Status `OD` |
 | 014 | `014_payroll_lop.sql` | LOP columns + generation modes |
 | 015 | `015_allocation_end.sql` | `end_reason` / `end_note` + event types |
+| 016 | `016_xpat_sync.sql` | XPAT sync bookkeeping |
+| 017 | `017_employee_day_rates.sql` | Employee day-rate fields |
+| 018 | `018_company_branding.sql` | Letterhead / seal / signature |
+| 019 | `019_files_kind_branding.sql` | Branding file kinds |
+| 020 | `020_client_designation_rates.sql` | Client rates by designation |
+| 021 | `021_monthly_designation_rates.sql` | Monthly staff/bill rates |
+| 022 | `022_designations.sql` | Shared designation catalog |
+| 023 | `023_company_tin.sql` | Company TIN |
+| 024 | `024_xpat_employer_name.sql` | XPAT employer name |
+| 025 | `025_invoice_numbers.sql` | Invoice sequences |
+| 026 | `026_salary_sheet_numbers.sql` | Salary sheet sequences |
+| 027 | `027_role_permissions.sql` | Per-module role permission matrix |
 
 ---
 
@@ -100,13 +112,15 @@ Payroll includes **active and ended** allocations that overlap the month (so lea
 
 | Module | Responsibility |
 | --- | --- |
-| `modules/access` | Auth, roles, sessions, seed admin |
-| `modules/companies` | Employer/client CRUD, prefs |
+| `modules/access` | Auth, roles, sessions, permission matrix, seed admin |
+| `modules/companies` | Employer/client CRUD, prefs, branding |
 | `modules/hr/employees` | Employee CRUD |
-| `modules/hr/allocations` | Join / rate-change / **endAllocation** |
+| `modules/hr/allocations` | Join / rate-change / end / **transfer** |
 | `modules/hr/attendance` | Month sheet, bulk, period summary, **applyAllocationEndAttendance** |
 | `modules/hr/payroll` | LOP engine, client_batch / employer_client, lock/recalc/delete |
 | `modules/hr/ot` | Scoped rates + entries |
+| `modules/hr/designations` | Shared job-title catalog |
+| `modules/hr/client-rates` | Client designation monthly rates |
 | `modules/hr/accommodations` | Houses, stays, charge preview |
 | `modules/hr/onboard` + `passport-ocr` | Quick onboard / OCR |
 | `modules/hr/work-permits` | Permit tracking |
@@ -114,7 +128,8 @@ Payroll includes **active and ended** allocations that overlap the month (so lea
 | `modules/expenses` | Expenses CRUD |
 | `modules/files` | Disk vault under `FILE_ROOT` |
 | `modules/projects` | Sites / pools / slots |
-| `modules/settings` | OpenAI OCR config |
+| `modules/settings` | Office prefs + OpenAI OCR |
+| `modules/integrations` | XPAT sync |
 
 Empty placeholders (future): `compliance/`, `crm/`, `identity/`, `people/`, `recruitment/`, `resources/`.
 
@@ -134,23 +149,24 @@ Empty placeholders (future): `compliance/`, `crm/`, `identity/`, `people/`, `rec
 
 ## 6. Web SPA (`web/`)
 
-Shell: Workspace + Operations + Access; app icons above user footer.
+Shell: Workspace + Operations + Settings; app icons above user footer; mobile bottom nav.
 
 | Route | Page |
 | --- | --- |
 | `/` | Dashboard |
 | `/companies`, `/companies/:id` | Employers |
-| `/clients` | Clients |
+| `/clients`, `/clients/:id` | Clients + rates |
+| `/designations` | Shared designation catalog |
 | `/employees`, onboard, detail | People |
 | `/loas`, editor | LOAs |
-| `/allocations` | Secondments + **Resign / Terminate / Lost / Transfer out** |
+| `/allocations` | Staffing board + transfer / end actions |
 | `/attendance` | Month sheet, bulk tools, log, OT |
-| `/payroll` | Dual-mode LOP pay runs |
+| `/payroll` (+ salary-sheet / payment-request) | Dual-mode LOP pay runs |
 | `/accommodations` | Housing |
 | `/documents` | Vault |
 | `/work-permits`, `/projects` | Ops |
 | `/apps/expenses` | Expenses app |
-| `/users`, `/admin`, `/settings` | Access |
+| `/settings` (also `/users`, `/admin`) | Settings hub: General / People / Roles / Health |
 
 ---
 

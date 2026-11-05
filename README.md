@@ -26,9 +26,9 @@ flowchart LR
 
 1. **Agency CRM / HR** — employers & clients, employees, onboard (passport OCR), allocations, LOAs, work permits, projects/sites/slots, accommodations, per-client payroll, documents.
 2. **Finance apps** (sidebar app launcher) — Expenses today; Investments and finance-oriented Projects planned under `/apps/*`.
-3. **Access & settings** — roles, users, OpenAI key for OCR.
+3. **Settings** — people, roles (per-module permissions), office prefs, OCR key, health.
 
-See [docs/PRODUCT.md](docs/PRODUCT.md) for module map and roadmap.
+**Agents:** start at [AGENTS.md](AGENTS.md), then [docs/](docs/README.md). See [docs/PRODUCT.md](docs/PRODUCT.md) for the module map.
 
 ## Quick start (dev)
 
@@ -67,10 +67,14 @@ Migrations run automatically on service start. System admin can store the OpenAI
 
 | Doc | Purpose |
 | --- | --- |
+| [AGENTS.md](AGENTS.md) | Agent catch-up (rules, paths, commands) |
+| [docs/README.md](docs/README.md) | Docs index + reading order |
+| [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) | Living full-repo orientation |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Monorepo layout, auth, clients, apps launcher |
 | [docs/API.md](docs/API.md) | `/api/v1` surface for web + mobile |
 | [docs/PRODUCT.md](docs/PRODUCT.md) | Agency + finance product map |
 | [docs/DEPLOY.md](docs/DEPLOY.md) | nginx, systemd, network Postgres |
+| [docs/REMOTE.md](docs/REMOTE.md) | Tailscale SSH + Cursor remote |
 | [mobile/README.md](mobile/README.md) | Expo run / Tailscale API base URL |
 | [mobile/AGENTS.md](mobile/AGENTS.md) | Mobile agent notes |
 

@@ -50,8 +50,8 @@ sequenceDiagram
 
 - Cookie session: `nexcrm_session` (HttpOnly, SameSite=Lax).
 - `POST /login`, `POST /logout`, `GET /api/v1/session`.
-- Roles in `roles` / `users` (`system_admin`, `hr_manager`, …). Flags: `canPreview`, `canEdit`, `canDelete`.
-- Admin-only paths: `/admin`, `/users`, `/settings`, `/api/v1/admin/*`.
+- Roles in `roles` / `users` (`system_admin`, `hr_manager`, …). Coarse flags plus per-module View/Create/Edit/Delete in `role_permissions` (`modules/access/permissions.ts`).
+- Settings hub routes: `/settings` (also `/users`, `/admin`) → General / People / Roles / Health.
 
 Mobile uses the same cookie/session model against the published API origin (see `mobile/src/lib/config.ts`).
 
@@ -59,10 +59,10 @@ Mobile uses the same cookie/session model against the published API origin (see 
 
 ### Web (`web/`)
 
-- Vite React SPA; production build copied/served from `web/dist`.
-- Shell: sidebar Workspace + Operations + Access; **app icon launcher** above the user footer (`web/src/lib/apps.ts`).
+- Vite React SPA; production build copied/served from `web/dist`. Soft SPA nav via `web/src/lib/spa-nav.ts` + lazy routes in `App.tsx`.
+- Shell: Workspace + Operations + **Settings**; **app icon launcher** above the user footer (`web/src/lib/apps.ts`); mobile bottom nav.
 - PWA: `manifest.webmanifest`, `sw.js`, install prompt.
-- Integrations UI: OpenAI key for passport OCR in System settings.
+- Integrations UI: OpenAI OCR key, office/region/currency under Settings → General.
 
 ### Mobile (`mobile/`)
 
@@ -73,20 +73,21 @@ Mobile uses the same cookie/session model against the published API origin (see 
 
 | Area | Module folder | Notes |
 | --- | --- | --- |
-| Access | `modules/access` | Sessions, roles, users |
+| Access | `modules/access` | Sessions, roles, users, permission matrix |
 | Companies | `modules/companies` | Employer / client kinds |
-| HR / agency | `modules/hr` | Employees, allocations, payroll, accommodations, OCR onboard |
+| HR / agency | `modules/hr` | Employees, allocations, attendance, payroll, designations, OCR onboard |
 | Projects | `modules/projects` | Projects, sites, pools, slots |
 | Documents | `modules/documents` | LOAs / letters, snapshots |
 | Files | `modules/files` | Upload / download / vault |
 | Expenses | `modules/expenses` | Finance app v1 |
-| Settings | `modules/settings` | OpenAI key + OCR model |
+| Settings | `modules/settings` | Office prefs + OpenAI OCR |
+| Integrations | `modules/integrations` | XPAT sync helpers |
 
 ## Data & migrations
 
-- SQL files in `db/migrations/` (`001_…` … `010_expenses.sql`, …).
+- SQL files in `db/migrations/` (`001_…` through `027_role_permissions.sql`, …).
 - `lib/migrate.ts` applies pending files on server start.
-- Drizzle mirror: `lib/schema.ts` (keep in sync when adding tables).
+- Drizzle mirror: `lib/schema.ts` (keep in sync when adding tables). See [MASTER_PLAN.md](MASTER_PLAN.md) for the migration table.
 
 ## Environment
 
