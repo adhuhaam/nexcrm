@@ -12,7 +12,8 @@ import {
   headcountByClient,
   resignAllocation,
 } from "../modules/hr/allocations.ts";
-import { createPayRun, lockPayRun } from "../modules/hr/payroll.ts";
+import { createPayRuns, lockPayRun } from "../modules/hr/payroll.ts";
+import { saveEmployeeMonth } from "../modules/hr/attendance.ts";
 import { ensureFileRoot, listEntityFiles, storeBuffer } from "../modules/files/storage.ts";
 
 loadEnv();
@@ -101,15 +102,29 @@ assert.equal(rated.billRate, "7800.00");
 const headcount = await headcountByClient();
 assert.ok(headcount.some((row) => row.clientCompanyId === client.id && row.activeCount >= 1));
 
-const payRun = await createPayRun({
+const janDays: Record<string, string> = {};
+for (let d = 1; d <= 31; d++) janDays[String(d)] = "P";
+await saveEmployeeMonth({
+  employeeId: employee.id,
+  year: 2026,
+  month: 1,
+  days: janDays,
+  createdBy: null,
+});
+
+const generated = await createPayRuns({
+  mode: "employer_client",
   clientCompanyId: client.id,
+  employerCompanyId: employer.id,
   periodStart: "2026-01-01",
   periodEnd: "2026-01-31",
 });
+const payRun = generated.payRuns[0];
 assert.equal(payRun.status, "draft");
 assert.ok(payRun.items.length >= 1);
 assert.equal(payRun.items[0].staffSalary, "5200.00");
 assert.equal(payRun.items[0].billRate, "7800.00");
+assert.equal(payRun.items[0].netStaff, "5200.00");
 
 const locked = await lockPayRun(payRun.id);
 assert.equal(locked.status, "locked");

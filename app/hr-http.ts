@@ -17,6 +17,7 @@ import {
   getEmployee,
   listAssignmentOptions,
   listEmployees,
+  listExpiringWorkPermits,
   setEmployeePhoto,
   updateEmployee,
 } from "../modules/hr/employees.ts";
@@ -112,11 +113,12 @@ export async function handleHrApi(request: IncomingMessage, response: ServerResp
   try {
     if (method === "GET" && path === "/api/v1/hr/dashboard") {
       const [employers, clients] = await Promise.all([listCompanies("employer"), listCompanies("client")]);
-      const [employeeCount, letterCount, recent, headcount] = await Promise.all([
+      const [employeeCount, letterCount, recent, headcount, expiring] = await Promise.all([
         countEmployees(),
         countLetters(),
         recentLetters(8),
         headcountByClient(),
+        listExpiringWorkPermits(3),
       ]);
       sendJson(response, 200, {
         counts: {
@@ -127,6 +129,7 @@ export async function handleHrApi(request: IncomingMessage, response: ServerResp
           letters: letterCount,
         },
         headcount,
+        expiring,
         recentLetters: recent,
         preferences: await getPreferences(),
         companies: employers.map((company) => ({ id: company.id, legalName: company.legalName })),
@@ -135,11 +138,43 @@ export async function handleHrApi(request: IncomingMessage, response: ServerResp
     }
 
     if (method === "GET" && path === "/api/v1/employees") {
+      const pageRaw = url.searchParams.get("page");
+      const pageSizeRaw = url.searchParams.get("pageSize");
+      const expiryRaw = url.searchParams.get("expiry");
+      const allocationRaw = url.searchParams.get("allocation");
+      const xpatRaw = url.searchParams.get("xpat");
+      const photoRaw = url.searchParams.get("hasPhoto");
+      const wpRaw = url.searchParams.get("hasWorkPermit");
+      const expiry =
+        expiryRaw === "expired" || expiryRaw === "soon" || expiryRaw === "missing" ? expiryRaw : null;
+      const allocation =
+        allocationRaw === "allocated" || allocationRaw === "unallocated" ? allocationRaw : null;
+      const xpat =
+        xpatRaw === "arrived" ||
+        xpatRaw === "departed" ||
+        xpatRaw === "pending" ||
+        xpatRaw === "valid" ||
+        xpatRaw === "invalid" ||
+        xpatRaw === "missing"
+          ? xpatRaw
+          : null;
+      const hasPhoto = photoRaw === "1" || photoRaw === "true" ? true : photoRaw === "0" || photoRaw === "false" ? false : null;
+      const hasWorkPermit =
+        wpRaw === "1" || wpRaw === "true" ? true : wpRaw === "0" || wpRaw === "false" ? false : null;
+      const result = await listEmployees({
+        companyId: url.searchParams.get("companyId"),
+        clientCompanyId: url.searchParams.get("clientCompanyId"),
+        q: url.searchParams.get("q"),
+        expiry,
+        allocation,
+        xpat,
+        hasPhoto,
+        hasWorkPermit,
+        page: pageRaw ? Number(pageRaw) : null,
+        pageSize: pageSizeRaw ? Number(pageSizeRaw) : pageRaw ? 50 : null,
+      });
       sendJson(response, 200, {
-        employees: await listEmployees({
-          companyId: url.searchParams.get("companyId"),
-          q: url.searchParams.get("q"),
-        }),
+        ...result,
         companies: await listCompanies("employer"),
       });
       return true;
@@ -198,9 +233,7 @@ export async function handleHrApi(request: IncomingMessage, response: ServerResp
         mimeType: multipart.file.mimeType,
         kind: "employee_photo",
         uploadedBy: await actorId(request),
-        entityType: "employee",
-        entityId: employeeId,
-        label: "Employee photo",
+        // Avatar only — not listed in the Documents vault.
         employeeIdForPath: employeeId,
       });
       const updated = await setEmployeePhoto(employeeId, stored.id);
@@ -297,7 +330,9 @@ export async function handleHrApi(request: IncomingMessage, response: ServerResp
           ? companyId
           : preferences.selectedCompanyId ?? preferences.defaultCompanyId ?? companies[0]?.id ?? null;
       const company = selectedCompanyId ? await getCompany(selectedCompanyId) : null;
-      const employees = selectedCompanyId ? await listEmployees({ companyId: selectedCompanyId }) : [];
+      const employees = selectedCompanyId
+        ? (await listEmployees({ companyId: selectedCompanyId })).employees
+        : [];
       const employee =
         employeeIdParam && uuidPattern.test(employeeIdParam) ? await getEmployee(employeeIdParam) : null;
       const documentNumber = selectedCompanyId ? await previewDocumentNumber(selectedCompanyId) : null;

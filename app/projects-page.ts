@@ -77,18 +77,27 @@ function shell(title: string, body: string): string {
 
 export function renderProjectList(projects: ProjectRecord[], companies: { id: string; legalName: string }[], notice: string | null, error: boolean): string {
   const rows = projects
-    .map((project) => `<li><a href="/projects/${project.id}">${escapeHtml(project.name)}</a> <span class="hint">${escapeHtml(project.companyName)}</span></li>`)
+    .map(
+      (project) => `<li class="panel" style="margin-top:12px;list-style:none">
+        <a href="/projects/${project.id}"><strong>${escapeHtml(project.name)}</strong></a>
+        <div class="hint">${escapeHtml(project.companyName)}</div>
+        <div class="hint" style="margin-top:6px">
+          ${project.siteCount} sites · ${project.poolCount} pools · ${project.slotCount} slots · ${project.employeeCount} employees
+          ${project.openSlotCount ? ` · ${project.openSlotCount} open` : ""}
+        </div>
+      </li>`,
+    )
     .join("");
   const options = companies.map((company) => `<option value="${company.id}">${escapeHtml(company.legalName)}</option>`).join("");
   const banner = notice ? `<p class="${error ? "warning" : "notice"}" role="${error ? "alert" : "status"}">${escapeHtml(notice)}</p>` : "";
   return shell(
     "NEXCRM projects",
     `<h1>Projects</h1>
-    <p>A project has work sites, quota pools, and quota slots. A slot is one place in a pool. Open means it is empty. Occupied means a work permit holder is working on that project. Project documents stay with the project.</p>
+    <p>Legal employer → project → site → pool → slot → employee. Open a project to manage placement.</p>
     ${banner}
     <section class="panel">
       <h2>Project list</h2>
-      ${rows ? `<ul>${rows}</ul>` : "<p>No projects yet.</p>"}
+      ${rows ? `<ul style="padding:0;margin:0">${rows}</ul>` : "<p>No projects yet.</p>"}
     </section>
     <section class="panel">
       <h2>New project</h2>

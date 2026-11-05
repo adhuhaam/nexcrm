@@ -20,6 +20,9 @@ type Company = {
   documentPrefix: string | null;
   signatoryName: string | null;
   signatoryTitle: string | null;
+  letterheadFileId?: string | null;
+  sealFileId?: string | null;
+  signatureFileId?: string | null;
 };
 
 type EmployeeOption = { id: string; legalName: string; passportNumber: string | null };
@@ -71,6 +74,9 @@ function buildSnapshot(state: EditorState, company: Company | null): LetterSnaps
       documentPrefix: company?.documentPrefix ?? null,
       signatoryName: company?.signatoryName ?? null,
       signatoryTitle: company?.signatoryTitle ?? null,
+      letterheadFileId: company?.letterheadFileId ?? null,
+      sealFileId: company?.sealFileId ?? null,
+      signatureFileId: company?.signatureFileId ?? null,
     },
     employee: {
       id: state.employeeId || null,
@@ -102,6 +108,9 @@ function buildSnapshot(state: EditorState, company: Company | null): LetterSnaps
     letterheadAddress: state.letterheadAddress || null,
     phone: state.phone || null,
     email: state.email || null,
+    letterheadFileId: company?.letterheadFileId ?? null,
+    sealFileId: company?.sealFileId ?? null,
+    signatureFileId: company?.signatureFileId ?? null,
   };
 }
 

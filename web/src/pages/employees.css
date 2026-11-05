@@ -1,0 +1,942 @@
+/* Employees directory — app-like people cards & contact list */
+
+.nexcrm-people .nx-main {
+  gap: 0.75rem;
+}
+
+.nexcrm-people .nx-main:has(.emp-editor-inline) {
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem;
+}
+
+.people-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .people-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .people-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1536px) {
+  .people-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.people-card {
+  position: relative;
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  width: 100%;
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  border-radius: 1.15rem;
+  background: color-mix(in oklch, var(--card) 92%, var(--muted));
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  box-shadow: var(--nx-inset, inset 0 1px 0 color-mix(in oklch, white 55%, transparent));
+  transform-origin: center;
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 160ms ease,
+    box-shadow 180ms ease !important;
+  animation: nx-rise 300ms cubic-bezier(0.22, 1, 0.36, 1) both !important;
+}
+
+.people-card:nth-child(1) { animation-delay: 20ms !important; }
+.people-card:nth-child(2) { animation-delay: 45ms !important; }
+.people-card:nth-child(3) { animation-delay: 70ms !important; }
+.people-card:nth-child(4) { animation-delay: 95ms !important; }
+.people-card:nth-child(5) { animation-delay: 120ms !important; }
+.people-card:nth-child(6) { animation-delay: 145ms !important; }
+.people-card:nth-child(7) { animation-delay: 170ms !important; }
+.people-card:nth-child(8) { animation-delay: 195ms !important; }
+
+.people-card:hover {
+  transform: translateY(-4px) scale(1.012);
+  border-color: color-mix(in oklch, var(--nx-accent, oklch(0.62 0.14 240)) 40%, var(--border));
+  box-shadow: var(--nx-lift, 0 14px 32px -18px color-mix(in oklch, var(--foreground) 30%, transparent));
+}
+
+.people-card:active {
+  transform: translateY(-1px) scale(0.995);
+}
+
+.people-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: color-mix(in oklch, var(--nx-accent, oklch(0.62 0.14 240)) 55%, transparent);
+  opacity: 0;
+  transition: opacity 160ms ease !important;
+}
+
+.people-card:hover::before,
+.people-card.is-urgent::before,
+.people-card.is-expired::before {
+  opacity: 1;
+}
+
+.people-card.is-urgent::before {
+  background: oklch(0.72 0.14 75);
+}
+
+.people-card.is-expired::before {
+  background: oklch(0.6 0.2 25);
+}
+
+.people-card-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.85rem;
+  padding: 1rem 1rem 0.85rem;
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in oklch, var(--nx-accent, oklch(0.62 0.14 240)) 14%, transparent), transparent 55%),
+    linear-gradient(180deg, color-mix(in oklch, var(--muted) 55%, transparent), transparent);
+}
+
+.people-card-hero .people-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+  box-shadow: 0 6px 16px -10px color-mix(in oklch, var(--foreground) 35%, transparent);
+}
+
+.people-card-hero .people-avatar-wrap::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 0.5rem;
+  border: 1.5px solid color-mix(in oklch, var(--nx-accent, oklch(0.62 0.14 240)) 28%, transparent);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 160ms ease !important;
+}
+
+.people-card:hover .people-avatar-wrap::after {
+  opacity: 1;
+}
+
+.people-card-identity {
+  min-width: 0;
+  flex: 1;
+  padding-bottom: 0.15rem;
+}
+
+.people-card-name {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.people-card-role {
+  margin: 0.2rem 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.people-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.people-card-body {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0 1rem 0.85rem;
+}
+
+.people-meta-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.people-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
+  background: color-mix(in oklch, var(--background) 70%, var(--muted));
+  padding: 0.22rem 0.55rem;
+  color: var(--foreground);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.68rem;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.people-pill.is-muted {
+  color: var(--muted-foreground);
+  font-family: inherit;
+}
+
+.people-pill.is-warn {
+  border-color: color-mix(in oklch, oklch(0.72 0.14 75) 40%, var(--border));
+  background: color-mix(in oklch, oklch(0.72 0.14 75) 12%, var(--card));
+  color: oklch(0.45 0.1 70);
+}
+
+.people-pill.is-danger {
+  border-color: color-mix(in oklch, oklch(0.6 0.2 25) 40%, var(--border));
+  background: color-mix(in oklch, oklch(0.6 0.2 25) 10%, var(--card));
+  color: oklch(0.48 0.16 25);
+}
+
+.dark .people-pill.is-warn {
+  color: oklch(0.82 0.1 85);
+}
+
+.dark .people-pill.is-danger {
+  color: oklch(0.8 0.1 25);
+}
+
+.people-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  border-top: 1px solid color-mix(in oklch, var(--border) 75%, transparent);
+  background: color-mix(in oklch, var(--muted) 32%, transparent);
+  padding: 0.65rem 1rem;
+}
+
+.people-card-foot-copy {
+  min-width: 0;
+}
+
+.people-card-foot-copy p {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.people-card-foot-copy p:first-child {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.people-card-foot-copy p:last-child {
+  margin-top: 0.1rem;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+}
+
+.people-card-actions {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transform: translateY(4px) scale(0.96);
+  transition: opacity 150ms ease, transform 150ms ease !important;
+}
+
+.people-card:hover .people-card-actions,
+.people-card:focus-visible .people-card-actions {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.people-card-actions button {
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  background: color-mix(in oklch, var(--card) 92%, transparent);
+  color: var(--foreground);
+  cursor: pointer;
+  box-shadow: 0 4px 12px -8px color-mix(in oklch, var(--foreground) 35%, transparent);
+  transition: transform 120ms ease, background-color 120ms ease !important;
+}
+
+.people-card-actions button:hover:not(:disabled) {
+  transform: scale(1.06);
+  background: var(--muted);
+}
+
+.people-card-actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.people-card-chevron {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--muted) 70%, transparent);
+  color: var(--muted-foreground);
+  flex-shrink: 0;
+  transition: transform 160ms ease, background-color 160ms ease, color 160ms ease !important;
+}
+
+.people-card:hover .people-card-chevron {
+  transform: translateX(2px);
+  background: color-mix(in oklch, var(--nx-accent, oklch(0.62 0.14 240)) 16%, var(--muted));
+  color: var(--foreground);
+}
+
+/* Contact-style list (not spreadsheet) */
+.people-list {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.2rem;
+  border: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
+  border-radius: 1.1rem;
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--muted) 35%, transparent), transparent 40%),
+    color-mix(in oklch, var(--card) 94%, var(--muted));
+  overflow: hidden;
+}
+
+.people-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  border: 0;
+  border-radius: 0.9rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0.7rem 0.75rem;
+  text-align: left;
+  transition:
+    background-color 140ms ease,
+    transform 140ms ease,
+    box-shadow 140ms ease !important;
+  animation: nx-rise 240ms ease both !important;
+}
+
+.people-row:nth-child(1) { animation-delay: 15ms !important; }
+.people-row:nth-child(2) { animation-delay: 30ms !important; }
+.people-row:nth-child(3) { animation-delay: 45ms !important; }
+.people-row:nth-child(4) { animation-delay: 60ms !important; }
+.people-row:nth-child(5) { animation-delay: 75ms !important; }
+.people-row:nth-child(6) { animation-delay: 90ms !important; }
+.people-row:nth-child(7) { animation-delay: 105ms !important; }
+.people-row:nth-child(8) { animation-delay: 120ms !important; }
+
+.people-row:hover {
+  background: color-mix(in oklch, var(--nx-accent, oklch(0.62 0.14 240)) 8%, var(--muted));
+  transform: translateX(2px);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--nx-accent, oklch(0.62 0.14 240)) 12%, transparent);
+}
+
+.people-row:active {
+  transform: scale(0.995);
+}
+
+.people-row-main {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.people-row-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.people-row-name {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.92rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.people-row-sub {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+}
+
+.people-row-meta {
+  display: none;
+  min-width: 0;
+  text-align: right;
+}
+
+@media (min-width: 768px) {
+  .people-row {
+    grid-template-columns: auto minmax(0, 1.2fr) minmax(0, 0.9fr) auto;
+  }
+
+  .people-row-meta {
+    display: grid;
+    gap: 0.15rem;
+    justify-items: end;
+  }
+}
+
+.people-row-side {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.people-row-action {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid transparent;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 140ms ease, background-color 140ms ease, color 140ms ease !important;
+}
+
+.people-row:hover .people-row-action {
+  opacity: 1;
+}
+
+.people-row-action:hover:not(:disabled) {
+  background: var(--muted);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+.people-row-action:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.people-row-chevron {
+  color: var(--muted-foreground);
+  opacity: 0.55;
+  transition: transform 150ms ease, opacity 150ms ease, color 150ms ease !important;
+}
+
+.people-row:hover .people-row-chevron {
+  opacity: 1;
+  color: var(--foreground);
+  transform: translateX(2px);
+}
+
+.people-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  border: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
+  border-radius: 0.95rem;
+  background: color-mix(in oklch, var(--card) 90%, var(--muted));
+  padding: 0.55rem 0.7rem;
+  box-shadow: var(--nx-inset, inset 0 1px 0 color-mix(in oklch, white 45%, transparent));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .people-card,
+  .people-row,
+  .people-card-actions,
+  .people-card-chevron,
+  .people-row-chevron {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .people-card:hover,
+  .people-row:hover {
+    transform: none;
+  }
+}
+
+/* Inline employee editor (fills nx-main) */
+.emp-editor-inline {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in oklch, var(--card) 94%, transparent);
+}
+
+.emp-editor-inline,
+.emp-editor-inline *,
+.emp-editor-inline *::before,
+.emp-editor-inline *::after {
+  animation: unset !important;
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease !important;
+}
+
+.emp-editor-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: 100%;
+  height: 100%;
+  min-height: min(60vh, 640px);
+  max-height: min(72vh, 780px);
+}
+
+.emp-editor-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in oklch, var(--card) 88%, var(--muted));
+  padding: 0.85rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .emp-editor-top {
+    padding: 1rem 1.25rem;
+  }
+}
+
+.emp-editor-top-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.emp-editor-title {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.emp-editor-sub {
+  margin: 0.15rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+}
+
+.emp-editor-body {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+  .emp-editor-body {
+    grid-template-columns: 15.5rem minmax(0, 1fr);
+  }
+}
+
+.emp-editor-nav {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in oklch, var(--muted) 35%, transparent);
+  padding: 0.65rem;
+  scrollbar-width: none;
+}
+
+.emp-editor-nav::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .emp-editor-nav {
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-bottom: none;
+    border-right: 1px solid var(--border);
+    padding: 0.85rem;
+  }
+}
+
+.emp-editor-nav-btn {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.55rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  font-size: 0.84rem;
+  white-space: nowrap;
+}
+
+.emp-editor-nav-btn:hover {
+  background: color-mix(in oklch, var(--muted) 75%, transparent);
+}
+
+.emp-editor-nav-btn.is-active {
+  background: linear-gradient(
+    105deg,
+    color-mix(in oklch, var(--nx-accent, oklch(0.62 0.14 240)) 16%, transparent),
+    color-mix(in oklch, var(--muted) 50%, transparent)
+  );
+  font-weight: 650;
+  box-shadow: inset 0 1px 0 color-mix(in oklch, white 40%, transparent);
+}
+
+@media (min-width: 900px) {
+  .emp-editor-nav-btn.is-active::before {
+    content: "";
+    position: absolute;
+    left: 0.2rem;
+    top: 18%;
+    bottom: 18%;
+    width: 3px;
+    border-radius: 999px;
+    background: var(--nx-accent, oklch(0.62 0.14 240));
+  }
+}
+
+.emp-editor-nav-icon {
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 0.55rem;
+  background: color-mix(in oklch, var(--muted) 80%, transparent);
+  color: var(--muted-foreground);
+  flex-shrink: 0;
+}
+
+.emp-editor-nav-btn.is-active .emp-editor-nav-icon {
+  background: color-mix(in oklch, var(--nx-accent, oklch(0.62 0.14 240)) 20%, transparent);
+  color: var(--foreground);
+}
+
+.emp-editor-nav-copy {
+  min-width: 0;
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .emp-editor-nav-copy {
+    display: grid;
+    gap: 0.1rem;
+  }
+}
+
+.emp-editor-nav-copy strong {
+  font-weight: 650;
+}
+
+.emp-editor-nav-copy span {
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  white-space: normal;
+}
+
+.emp-editor-main {
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+@media (min-width: 768px) {
+  .emp-editor-main {
+    padding: 1.25rem 1.5rem;
+  }
+}
+
+.emp-editor-panel {
+  display: grid;
+  gap: 1rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  animation: nx-rise 240ms ease both !important;
+}
+
+.emp-editor-card {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in oklch, var(--card) 94%, transparent);
+  padding: 1rem;
+  box-shadow: inset 0 1px 0 color-mix(in oklch, white 45%, transparent);
+}
+
+/* Employee profile hero (XPAT) */
+.emp-profile {
+  overflow: hidden;
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  border-radius: 1.15rem;
+  background: color-mix(in oklch, var(--card) 96%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, white 45%, transparent),
+    0 12px 28px -22px color-mix(in oklch, var(--foreground) 28%, transparent);
+}
+
+.emp-profile-banner {
+  position: relative;
+  min-height: 4.5rem;
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in oklch, var(--nx-accent, oklch(0.62 0.14 240)) 22%, transparent), transparent 55%),
+    linear-gradient(135deg, color-mix(in oklch, var(--muted) 70%, transparent), color-mix(in oklch, var(--nx-accent, oklch(0.62 0.14 240)) 8%, transparent));
+}
+
+.emp-profile-body {
+  display: grid;
+  gap: 1rem;
+  padding: 0 1rem 1.1rem;
+}
+
+@media (min-width: 720px) {
+  .emp-profile-body {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 1.15rem;
+    padding: 0 1.2rem 1.25rem;
+  }
+}
+
+.emp-profile-photo {
+  margin-top: -2.35rem;
+  width: fit-content;
+  border-radius: 0.55rem;
+  padding: 0.2rem;
+  background: var(--card);
+  box-shadow: 0 10px 24px -14px color-mix(in oklch, var(--foreground) 40%, transparent);
+}
+
+.emp-profile-identity {
+  display: grid;
+  gap: 0.45rem;
+  padding-top: 0.85rem;
+  min-width: 0;
+}
+
+@media (min-width: 720px) {
+  .emp-profile-identity {
+    padding-top: 0.55rem;
+  }
+}
+
+.emp-profile-name {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.2rem;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.emp-profile-role {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.84rem;
+}
+
+.emp-profile-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.emp-profile-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+  border: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--muted) 45%, transparent);
+  padding: 0.2rem 0.6rem;
+  color: var(--foreground);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emp-profile-pill.is-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.68rem;
+}
+
+.emp-profile-pill.is-soft {
+  color: var(--muted-foreground);
+}
+
+.emp-profile-facts {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: 1fr;
+  border-top: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  padding: 0.95rem 1rem 1.1rem;
+  background: color-mix(in oklch, var(--muted) 22%, transparent);
+}
+
+@media (min-width: 640px) {
+  .emp-profile-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-left: 1.2rem;
+    padding-right: 1.2rem;
+  }
+}
+
+@media (min-width: 1100px) {
+  .emp-profile-facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.emp-profile-fact {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  border-radius: 0.7rem;
+  border: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+  background: color-mix(in oklch, var(--card) 92%, transparent);
+  padding: 0.65rem 0.75rem;
+}
+
+.emp-profile-fact span {
+  color: var(--muted-foreground);
+  font-size: 0.65rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.emp-profile-fact strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.emp-profile-empty {
+  padding: 1rem 1.2rem 1.2rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+@media (min-width: 768px) {
+  .emp-editor-card {
+    padding: 1.15rem 1.25rem;
+  }
+}
+
+.emp-editor-card-head {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.emp-editor-card-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.emp-editor-card-head p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+}
+
+.emp-editor-fields {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .emp-editor-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .emp-editor-fields.is-wide {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.emp-editor-span {
+  grid-column: 1 / -1;
+}
+
+.emp-editor-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  border-top: 1px solid var(--border);
+  background: color-mix(in oklch, var(--card) 90%, var(--muted));
+  padding: 0.75rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .emp-editor-foot {
+    padding: 0.85rem 1.25rem;
+  }
+}
+
+.emp-editor-foot-start {
+  margin-right: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}

@@ -126,6 +126,7 @@ function freezeCompany(company: NonNullable<Awaited<ReturnType<typeof getCompany
     companyId: company.id,
     legalName: company.legalName,
     registrationNumber: company.registrationNumber,
+    tinNumber: company.tinNumber,
     registeredAddress: company.registeredAddress,
     country: company.country,
     businessActivity: company.businessActivity,
@@ -134,6 +135,9 @@ function freezeCompany(company: NonNullable<Awaited<ReturnType<typeof getCompany
     documentPrefix: company.documentPrefix,
     signatoryName: company.signatoryName,
     signatoryTitle: company.signatoryTitle,
+    letterheadFileId: company.letterheadFileId,
+    sealFileId: company.sealFileId,
+    signatureFileId: company.signatureFileId,
   };
 }
 
@@ -190,6 +194,9 @@ export async function createLetter(input: LetterCreateInput): Promise<LetterReco
     letterheadAddress: emptyToNull(input.letterheadAddress) ?? company.registeredAddress,
     phone: emptyToNull(input.phone) ?? company.phone,
     email: emptyToNull(input.email) ?? company.email,
+    letterheadFileId: company.letterheadFileId,
+    sealFileId: company.sealFileId,
+    signatureFileId: company.signatureFileId,
   };
 
   const fingerprint = fingerprintOf(snapshot);

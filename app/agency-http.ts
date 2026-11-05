@@ -1,17 +1,50 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { createCompany, getCompany, listCompanies } from "../modules/companies/companies.ts";
+import { createCompany, getCompany, listCompanies, listCompaniesWithCounts } from "../modules/companies/companies.ts";
 import { CompanyValidationError } from "../modules/companies/validation.ts";
 import {
   AllocationError,
   changeAllocationRates,
   createAllocation,
+  createAllocationsBatch,
   headcountByClient,
   listAllocationEvents,
   listAllocations,
-  resignAllocation,
+  endAllocation,
+  transferAllocation,
 } from "../modules/hr/allocations.ts";
-import { createPayRun, getPayRun, listPayRuns, lockPayRun, PayrollError } from "../modules/hr/payroll.ts";
-import { FileError, listEntityFiles, openFileStream, readMultipart, storeBuffer } from "../modules/files/storage.ts";
+import {
+  ClientRateError,
+  deleteClientDesignationRate,
+  listClientDesignationRates,
+  upsertClientDesignationRate,
+} from "../modules/hr/client-rates.ts";
+import {
+  createDesignation,
+  deactivateDesignation,
+  DesignationError,
+  listDesignations,
+  updateDesignation,
+} from "../modules/hr/designations.ts";
+import {
+  createPayRuns,
+  deletePayRun,
+  getPayRun,
+  getPayRunForPaymentRequest,
+  getPayRunForSalarySheet,
+  listEmployersForClient,
+  listPayRuns,
+  lockPayRun,
+  PayrollError,
+  recalculatePayRun,
+} from "../modules/hr/payroll.ts";
+import {
+  FileError,
+  listDriveFiles,
+  listEntityFiles,
+  openFileStream,
+  readMultipart,
+  storeBuffer,
+} from "../modules/files/storage.ts";
 import { getLetter } from "../modules/documents/letters.ts";
 import { eq } from "drizzle-orm";
 import { db } from "../lib/db.ts";
@@ -257,8 +290,73 @@ export async function handleAgencyApi(request: IncomingMessage, response: Server
       return true;
     }
 
+    if (method === "GET" && path === "/api/v1/designations") {
+      const includeInactive = url.searchParams.get("includeInactive") === "1";
+      sendJson(response, 200, { designations: await listDesignations({ includeInactive }) });
+      return true;
+    }
+    if (method === "POST" && path === "/api/v1/designations") {
+      if (!sameOrigin(request)) {
+        sendJson(response, 403, { error: "Cross-origin request rejected" });
+        return true;
+      }
+      try {
+        const body = await readJson(request);
+        const created = await createDesignation({ name: body.name, sortOrder: body.sortOrder });
+        sendJson(response, 201, created);
+      } catch (reason) {
+        if (reason instanceof DesignationError) {
+          sendJson(response, 400, { error: reason.message });
+          return true;
+        }
+        throw reason;
+      }
+      return true;
+    }
+    const designationId = idFrom(path, "/api/v1/designations/");
+    if (designationId && path === `/api/v1/designations/${designationId}`) {
+      try {
+        if (method === "PATCH") {
+          if (!sameOrigin(request)) {
+            sendJson(response, 403, { error: "Cross-origin request rejected" });
+            return true;
+          }
+          const body = await readJson(request);
+          sendJson(
+            response,
+            200,
+            await updateDesignation(designationId, {
+              name: body.name,
+              sortOrder: body.sortOrder,
+              active: body.active,
+            }),
+          );
+          return true;
+        }
+        if (method === "DELETE") {
+          if (!sameOrigin(request)) {
+            sendJson(response, 403, { error: "Cross-origin request rejected" });
+            return true;
+          }
+          const ok = await deactivateDesignation(designationId);
+          if (!ok) {
+            sendJson(response, 404, { error: "Designation not found" });
+            return true;
+          }
+          sendJson(response, 200, { ok: true });
+          return true;
+        }
+      } catch (reason) {
+        if (reason instanceof DesignationError) {
+          sendJson(response, 400, { error: reason.message });
+          return true;
+        }
+        throw reason;
+      }
+    }
+
     if (method === "GET" && path === "/api/v1/clients") {
-      sendJson(response, 200, { clients: await listCompanies("client") });
+      sendJson(response, 200, { clients: await listCompaniesWithCounts({ kind: "client" }) });
       return true;
     }
     if (method === "GET" && path === "/api/v1/employers") {
@@ -276,11 +374,61 @@ export async function handleAgencyApi(request: IncomingMessage, response: Server
       return true;
     }
 
+    const clientRatesMatch = path.match(/^\/api\/v1\/clients\/([0-9a-f-]{36})\/rates(?:\/([0-9a-f-]{36}))?$/i);
+    if (clientRatesMatch) {
+      const clientCompanyId = clientRatesMatch[1];
+      const rateId = clientRatesMatch[2] ?? null;
+      try {
+        if (method === "GET" && !rateId) {
+          sendJson(response, 200, { rates: await listClientDesignationRates(clientCompanyId) });
+          return true;
+        }
+        if (method === "POST" && !rateId) {
+          if (!sameOrigin(request)) {
+            sendJson(response, 403, { error: "Cross-origin request rejected" });
+            return true;
+          }
+          const body = await readJson(request);
+          const saved = await upsertClientDesignationRate({
+            clientCompanyId,
+            designation: body.designation,
+            staffMonthRate: body.staffMonthRate ?? body.staffDayRate,
+            billMonthRate: body.billMonthRate ?? body.billDayRate,
+            currency: body.currency,
+          });
+          sendJson(response, 201, saved);
+          return true;
+        }
+        if (method === "DELETE" && rateId) {
+          if (!sameOrigin(request)) {
+            sendJson(response, 403, { error: "Cross-origin request rejected" });
+            return true;
+          }
+          const deleted = await deleteClientDesignationRate(rateId);
+          if (!deleted) {
+            sendJson(response, 404, { error: "Rate not found" });
+            return true;
+          }
+          sendJson(response, 200, { ok: true });
+          return true;
+        }
+      } catch (reason) {
+        if (reason instanceof ClientRateError) {
+          sendJson(response, 400, { error: reason.message });
+          return true;
+        }
+        throw reason;
+      }
+    }
+
     if (method === "GET" && path === "/api/v1/allocations") {
       sendJson(response, 200, {
         allocations: await listAllocations({
           clientCompanyId: url.searchParams.get("clientCompanyId"),
+          employerCompanyId: url.searchParams.get("employerCompanyId"),
+          employeeId: url.searchParams.get("employeeId"),
           status: url.searchParams.get("status"),
+          q: url.searchParams.get("q"),
         }),
         clients: await listCompanies("client"),
         employers: await listCompanies("employer"),
@@ -309,15 +457,98 @@ export async function handleAgencyApi(request: IncomingMessage, response: Server
       return true;
     }
 
+    if (method === "POST" && path === "/api/v1/allocations/batch") {
+      if (!sameOrigin(request)) {
+        sendJson(response, 403, { error: "Cross-origin request rejected" });
+        return true;
+      }
+      try {
+        const body = await readJson(request);
+        const itemsRaw = Array.isArray(body.items) ? body.items : [];
+        const result = await createAllocationsBatch({
+          clientCompanyId: text(body.clientCompanyId),
+          joinDate: text(body.joinDate),
+          items: itemsRaw.map((item) => {
+            const row = item as Record<string, unknown>;
+            return {
+              employeeId: text(row.employeeId),
+              designation: text(row.designation) || null,
+              staffSalary: text(row.staffSalary),
+              billRate: text(row.billRate),
+              currency: text(row.currency) || undefined,
+            };
+          }),
+          createdBy: await actorId(request),
+        });
+        sendJson(response, 201, result);
+      } catch (reason) {
+        if (reason instanceof AllocationError) {
+          sendJson(response, 400, { error: reason.message });
+          return true;
+        }
+        throw reason;
+      }
+      return true;
+    }
+
     const allocationId = idFrom(path, "/api/v1/allocations/");
     if (method === "GET" && allocationId && path === `/api/v1/allocations/${allocationId}`) {
-      const rows = await listAllocations();
-      const row = rows.find((item) => item.id === allocationId);
+      const row = (await listAllocations()).find((item) => item.id === allocationId);
       if (!row) {
         sendJson(response, 404, { error: "Allocation not found" });
         return true;
       }
       sendJson(response, 200, { allocation: row, events: await listAllocationEvents(allocationId) });
+      return true;
+    }
+    if (method === "POST" && allocationId && path === `/api/v1/allocations/${allocationId}/transfer`) {
+      if (!sameOrigin(request)) {
+        sendJson(response, 403, { error: "Cross-origin request rejected" });
+        return true;
+      }
+      try {
+        const body = await readJson(request);
+        sendJson(
+          response,
+          200,
+          await transferAllocation(allocationId, {
+            endDate: body.endDate ?? body.resignDate,
+            note: body.note,
+            clientCompanyId: text(body.clientCompanyId),
+            joinDate: body.joinDate,
+            designation: text(body.designation) || null,
+            staffSalary: text(body.staffSalary),
+            billRate: text(body.billRate),
+            currency: text(body.currency) || undefined,
+            createdBy: await actorId(request),
+          }),
+        );
+      } catch (reason) {
+        if (reason instanceof AllocationError) {
+          sendJson(response, 400, { error: reason.message });
+          return true;
+        }
+        throw reason;
+      }
+      return true;
+    }
+    if (method === "POST" && allocationId && path === `/api/v1/allocations/${allocationId}/end`) {
+      if (!sameOrigin(request)) {
+        sendJson(response, 403, { error: "Cross-origin request rejected" });
+        return true;
+      }
+      const body = await readJson(request);
+      sendJson(
+        response,
+        200,
+        await endAllocation(allocationId, {
+          endDate: body.endDate ?? body.resignDate,
+          reason: body.reason,
+          note: body.note,
+          absentFrom: body.absentFrom,
+          createdBy: await actorId(request),
+        }),
+      );
       return true;
     }
     if (method === "POST" && allocationId && path === `/api/v1/allocations/${allocationId}/resign`) {
@@ -326,7 +557,16 @@ export async function handleAgencyApi(request: IncomingMessage, response: Server
         return true;
       }
       const body = await readJson(request);
-      sendJson(response, 200, await resignAllocation(allocationId, text(body.resignDate), await actorId(request)));
+      sendJson(
+        response,
+        200,
+        await endAllocation(allocationId, {
+          endDate: body.resignDate ?? body.endDate,
+          reason: "resign",
+          note: body.note,
+          createdBy: await actorId(request),
+        }),
+      );
       return true;
     }
     if (method === "POST" && allocationId && path === `/api/v1/allocations/${allocationId}/rate-change`) {
@@ -349,7 +589,16 @@ export async function handleAgencyApi(request: IncomingMessage, response: Server
     }
 
     if (method === "GET" && path === "/api/v1/pay-runs") {
-      sendJson(response, 200, { payRuns: await listPayRuns(), clients: await listCompanies("client") });
+      sendJson(response, 200, {
+        payRuns: await listPayRuns(),
+        clients: await listCompanies("client"),
+        employers: await listCompanies("employer"),
+      });
+      return true;
+    }
+    if (method === "GET" && path === "/api/v1/pay-runs/employers-for-client") {
+      const clientCompanyId = url.searchParams.get("clientCompanyId") ?? "";
+      sendJson(response, 200, { employers: await listEmployersForClient(clientCompanyId) });
       return true;
     }
     if (method === "POST" && path === "/api/v1/pay-runs") {
@@ -358,17 +607,36 @@ export async function handleAgencyApi(request: IncomingMessage, response: Server
         return true;
       }
       const body = await readJson(request);
-      const created = await createPayRun({
-        clientCompanyId: text(body.clientCompanyId),
-        employerCompanyId: text(body.employerCompanyId) || null,
-        periodStart: text(body.periodStart),
-        periodEnd: text(body.periodEnd),
+      const created = await createPayRuns({
+        mode: body.mode,
+        clientCompanyId: body.clientCompanyId,
+        employerCompanyId: body.employerCompanyId,
+        periodStart: body.periodStart,
+        periodEnd: body.periodEnd,
         createdBy: await actorId(request),
       });
       sendJson(response, 201, created);
       return true;
     }
     const payRunId = idFrom(path, "/api/v1/pay-runs/");
+    if (method === "GET" && payRunId && path === `/api/v1/pay-runs/${payRunId}/payment-request`) {
+      const run = await getPayRunForPaymentRequest(payRunId);
+      if (!run) {
+        sendJson(response, 404, { error: "Pay run not found" });
+        return true;
+      }
+      sendJson(response, 200, run);
+      return true;
+    }
+    if (method === "GET" && payRunId && path === `/api/v1/pay-runs/${payRunId}/salary-sheet`) {
+      const run = await getPayRunForSalarySheet(payRunId);
+      if (!run) {
+        sendJson(response, 404, { error: "Pay run not found" });
+        return true;
+      }
+      sendJson(response, 200, run);
+      return true;
+    }
     if (method === "GET" && payRunId && path === `/api/v1/pay-runs/${payRunId}`) {
       const run = await getPayRun(payRunId);
       if (!run) {
@@ -386,6 +654,27 @@ export async function handleAgencyApi(request: IncomingMessage, response: Server
       sendJson(response, 200, await lockPayRun(payRunId));
       return true;
     }
+    if (method === "POST" && payRunId && path === `/api/v1/pay-runs/${payRunId}/recalculate`) {
+      if (!sameOrigin(request)) {
+        sendJson(response, 403, { error: "Cross-origin request rejected" });
+        return true;
+      }
+      sendJson(response, 200, await recalculatePayRun(payRunId));
+      return true;
+    }
+    if (method === "DELETE" && payRunId && path === `/api/v1/pay-runs/${payRunId}`) {
+      if (!sameOrigin(request)) {
+        sendJson(response, 403, { error: "Cross-origin request rejected" });
+        return true;
+      }
+      const deleted = await deletePayRun(payRunId);
+      if (!deleted) {
+        sendJson(response, 404, { error: "Pay run not found" });
+        return true;
+      }
+      sendJson(response, 200, { ok: true });
+      return true;
+    }
 
     if (method === "GET" && path.startsWith("/api/v1/files/") && path.endsWith("/download")) {
       const fileId = path.slice("/api/v1/files/".length, -"/download".length);
@@ -401,6 +690,11 @@ export async function handleAgencyApi(request: IncomingMessage, response: Server
         "cache-control": "private, no-store",
       });
       opened.stream.pipe(response);
+      return true;
+    }
+
+    if (method === "GET" && path === "/api/v1/files/drive") {
+      sendJson(response, 200, { files: await listDriveFiles() });
       return true;
     }
 

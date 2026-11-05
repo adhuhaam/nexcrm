@@ -3,6 +3,7 @@ export type LetterSnapshot = {
     companyId: string;
     legalName: string;
     registrationNumber: string | null;
+    tinNumber?: string | null;
     registeredAddress: string | null;
     country: string | null;
     businessActivity: string | null;
@@ -11,6 +12,9 @@ export type LetterSnapshot = {
     documentPrefix: string | null;
     signatoryName: string | null;
     signatoryTitle: string | null;
+    letterheadFileId?: string | null;
+    sealFileId?: string | null;
+    signatureFileId?: string | null;
   };
   employee: {
     id: string | null;
@@ -42,4 +46,7 @@ export type LetterSnapshot = {
   letterheadAddress: string | null;
   phone: string | null;
   email: string | null;
+  letterheadFileId?: string | null;
+  sealFileId?: string | null;
+  signatureFileId?: string | null;
 };

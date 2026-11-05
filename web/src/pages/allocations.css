@@ -1,0 +1,220 @@
+/* Allocations module — staffing board + bench */
+
+.nexcrm-alloc .nx-layout {
+  max-height: min(82vh, 920px);
+}
+
+.nexcrm-alloc .alloc-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  justify-content: space-between;
+}
+
+.nexcrm-alloc .alloc-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.nexcrm-alloc .alloc-stat {
+  display: grid;
+  gap: 0.05rem;
+  min-width: 5.5rem;
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  border-radius: 0.75rem;
+  background: color-mix(in oklch, var(--muted) 35%, transparent);
+  padding: 0.45rem 0.65rem;
+}
+
+.nexcrm-alloc .alloc-stat strong {
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.nexcrm-alloc .alloc-stat span {
+  color: var(--muted-foreground);
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.nexcrm-alloc .alloc-board {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 900px) {
+  .nexcrm-alloc .alloc-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .nexcrm-alloc .alloc-board.is-wide {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.nexcrm-alloc .alloc-column {
+  display: grid;
+  align-content: start;
+  gap: 0.55rem;
+  min-width: 0;
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  border-radius: 0.95rem;
+  background:
+    radial-gradient(120% 80% at 0% 0%, color-mix(in oklch, var(--nx-accent) 8%, transparent), transparent 55%),
+    color-mix(in oklch, var(--card) 88%, transparent);
+  padding: 0.7rem;
+  box-shadow: var(--nx-inset);
+}
+
+.nexcrm-alloc .alloc-column.is-active {
+  border-color: color-mix(in oklch, var(--nx-accent) 45%, var(--border));
+  box-shadow: var(--nx-inset), 0 0 0 1px color-mix(in oklch, var(--nx-accent) 18%, transparent);
+}
+
+.nexcrm-alloc .alloc-column-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.nexcrm-alloc .alloc-column-head h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+
+.nexcrm-alloc .alloc-column-head p {
+  margin: 0.15rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+}
+
+.nexcrm-alloc .alloc-person {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.55rem;
+  align-items: center;
+  width: 100%;
+  border: 1px solid color-mix(in oklch, var(--border) 75%, transparent);
+  border-radius: 0.75rem;
+  background: color-mix(in oklch, var(--background) 70%, transparent);
+  padding: 0.55rem 0.6rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease !important;
+}
+
+.nexcrm-alloc .alloc-person:hover {
+  border-color: color-mix(in oklch, var(--nx-accent) 40%, var(--border));
+  transform: translateY(-1px);
+  box-shadow: var(--nx-lift);
+}
+
+.nexcrm-alloc .alloc-person.is-selected {
+  border-color: color-mix(in oklch, var(--nx-accent) 55%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--nx-accent) 25%, transparent);
+}
+
+.nexcrm-alloc .alloc-person strong {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.nexcrm-alloc .alloc-person em {
+  display: block;
+  margin-top: 0.1rem;
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  font-style: normal;
+}
+
+.nexcrm-alloc .alloc-margin {
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: color-mix(in oklch, var(--nx-warm-deep) 80%, var(--foreground));
+}
+
+.nexcrm-alloc .alloc-bench-grid {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(auto-fill, minmax(14.5rem, 1fr));
+}
+
+.nexcrm-alloc .alloc-bench-card {
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  border-radius: 0.85rem;
+  background: color-mix(in oklch, var(--card) 90%, transparent);
+  padding: 0.7rem;
+  transition: border-color 160ms ease, box-shadow 160ms ease !important;
+}
+
+.nexcrm-alloc .alloc-bench-card.is-picked {
+  border-color: color-mix(in oklch, var(--nx-accent) 50%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--nx-accent) 20%, transparent);
+}
+
+.nexcrm-alloc .alloc-timeline {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.nexcrm-alloc .alloc-event {
+  display: grid;
+  gap: 0.15rem;
+  border-left: 2px solid color-mix(in oklch, var(--nx-accent) 45%, transparent);
+  padding: 0.2rem 0 0.2rem 0.65rem;
+}
+
+.nexcrm-alloc .alloc-event strong {
+  font-size: 0.78rem;
+}
+
+.nexcrm-alloc .alloc-event span {
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+}
+
+.nexcrm-alloc .alloc-pick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-height: 10rem;
+  overflow: auto;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  background: color-mix(in oklch, var(--muted) 25%, transparent);
+}
+
+.nexcrm-alloc .alloc-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--background) 80%, transparent);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.nexcrm-alloc .alloc-pick.is-on {
+  border-color: color-mix(in oklch, var(--nx-accent) 40%, transparent);
+  background: color-mix(in oklch, var(--nx-accent) 14%, transparent);
+  font-weight: 600;
+}

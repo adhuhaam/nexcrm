@@ -4,6 +4,7 @@ export type CompanySnapshot = {
   companyId: string;
   legalName: string;
   registrationNumber: string | null;
+  tinNumber: string | null;
   registeredAddress: string | null;
   country: string | null;
   businessActivity: string | null;
@@ -12,6 +13,9 @@ export type CompanySnapshot = {
   documentPrefix: string | null;
   signatoryName: string | null;
   signatoryTitle: string | null;
+  letterheadFileId: string | null;
+  sealFileId: string | null;
+  signatureFileId: string | null;
 };
 
 export type LetterSnapshot = {
@@ -46,6 +50,9 @@ export type LetterSnapshot = {
   letterheadAddress: string | null;
   phone: string | null;
   email: string | null;
+  letterheadFileId: string | null;
+  sealFileId: string | null;
+  signatureFileId: string | null;
 };
 
 export const companies = pgTable("companies", {
@@ -53,6 +60,7 @@ export const companies = pgTable("companies", {
   kind: text("kind").notNull().default("employer"),
   legalName: text("legal_name").notNull(),
   registrationNumber: text("registration_number"),
+  tinNumber: text("tin_number"),
   registeredAddress: text("registered_address"),
   country: text("country"),
   businessActivity: text("business_activity"),
@@ -61,6 +69,9 @@ export const companies = pgTable("companies", {
   documentPrefix: text("document_prefix"),
   signatoryName: text("signatory_name"),
   signatoryTitle: text("signatory_title"),
+  letterheadFileId: uuid("letterhead_file_id"),
+  sealFileId: uuid("seal_file_id"),
+  signatureFileId: uuid("signature_file_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -136,6 +147,7 @@ export const employees = pgTable("employees", {
   permanentAddress: text("permanent_address"),
   emergencyContact: text("emergency_contact"),
   occupation: text("occupation"),
+  designation: text("designation"),
   employmentStatus: text("employment_status"),
   projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
   siteId: uuid("site_id").references(() => sites.id, { onDelete: "set null" }),
@@ -153,11 +165,17 @@ export const employees = pgTable("employees", {
   insuranceExpiry: date("insurance_expiry"),
   origin: text("origin"),
   salary: numeric("salary", { precision: 12, scale: 2 }),
+  staffDayRate: numeric("staff_day_rate", { precision: 12, scale: 2 }),
+  billDayRate: numeric("bill_day_rate", { precision: 12, scale: 2 }),
   arrivalDate: date("arrival_date"),
   workVisaNumber: text("work_visa_number"),
   workVisaExpiry: date("work_visa_expiry"),
   contractExpiry: date("contract_expiry"),
   photoFileId: uuid("photo_file_id"),
+  xpatSyncedAt: timestamp("xpat_synced_at", { withTimezone: true }),
+  xpatStatus: text("xpat_status"),
+  xpatStateName: text("xpat_state_name"),
+  xpatEmployerName: text("xpat_employer_name"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -192,6 +210,21 @@ export const roles = pgTable("roles", {
   systemRole: boolean("system_role").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const rolePermissions = pgTable(
+  "role_permissions",
+  {
+    roleId: uuid("role_id")
+      .notNull()
+      .references(() => roles.id, { onDelete: "cascade" }),
+    module: text("module").notNull(),
+    canView: boolean("can_view").notNull().default(false),
+    canCreate: boolean("can_create").notNull().default(false),
+    canEdit: boolean("can_edit").notNull().default(false),
+    canDelete: boolean("can_delete").notNull().default(false),
+  },
+  (table) => [primaryKey({ columns: [table.roleId, table.module] })],
+);
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey(),
@@ -277,6 +310,29 @@ export const employments = pgTable("employments", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Office-wide job titles used by employees, client rates, and allocations. */
+export const designations = pgTable("designations", {
+  id: uuid("id").primaryKey(),
+  name: text("name").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const clientDesignationRates = pgTable("client_designation_rates", {
+  id: uuid("id").primaryKey(),
+  clientCompanyId: uuid("client_company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
+  designation: text("designation").notNull(),
+  staffMonthRate: numeric("staff_month_rate", { precision: 12, scale: 2 }).notNull(),
+  billMonthRate: numeric("bill_month_rate", { precision: 12, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("MVR"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const clientAllocations = pgTable("client_allocations", {
   id: uuid("id").primaryKey(),
   employeeId: uuid("employee_id")
@@ -290,6 +346,8 @@ export const clientAllocations = pgTable("client_allocations", {
     .references(() => companies.id, { onDelete: "restrict" }),
   joinDate: date("join_date").notNull(),
   resignDate: date("resign_date"),
+  endReason: text("end_reason"),
+  endNote: text("end_note"),
   designation: text("designation"),
   staffSalary: numeric("staff_salary", { precision: 12, scale: 2 }).notNull(),
   billRate: numeric("bill_rate", { precision: 12, scale: 2 }).notNull(),
@@ -321,9 +379,18 @@ export const payRuns = pgTable("pay_runs", {
   periodStart: date("period_start").notNull(),
   periodEnd: date("period_end").notNull(),
   status: text("status").notNull().default("draft"),
+  generationMode: text("generation_mode").notNull().default("employer_client"),
+  invoiceNumber: text("invoice_number"),
+  salarySheetNumber: text("salary_sheet_number"),
   createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   lockedAt: timestamp("locked_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const invoiceCounters = pgTable("invoice_counters", {
+  id: text("id").primaryKey(),
+  lastValue: integer("last_value").notNull().default(0),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const payRunItems = pgTable("pay_run_items", {
@@ -342,6 +409,19 @@ export const payRunItems = pgTable("pay_run_items", {
   staffSalary: numeric("staff_salary", { precision: 12, scale: 2 }).notNull(),
   billRate: numeric("bill_rate", { precision: 12, scale: 2 }).notNull(),
   currency: text("currency").notNull().default("MVR"),
+  calendarDays: integer("calendar_days").notNull().default(0),
+  paidDays: integer("paid_days").notNull().default(0),
+  absentDays: integer("absent_days").notNull().default(0),
+  offDays: integer("off_days").notNull().default(0),
+  unmarkedDays: integer("unmarked_days").notNull().default(0),
+  grossStaff: numeric("gross_staff", { precision: 12, scale: 2 }).notNull().default("0"),
+  lopStaff: numeric("lop_staff", { precision: 12, scale: 2 }).notNull().default("0"),
+  otStaff: numeric("ot_staff", { precision: 12, scale: 2 }).notNull().default("0"),
+  netStaff: numeric("net_staff", { precision: 12, scale: 2 }).notNull().default("0"),
+  grossBill: numeric("gross_bill", { precision: 12, scale: 2 }).notNull().default("0"),
+  lopBill: numeric("lop_bill", { precision: 12, scale: 2 }).notNull().default("0"),
+  otBill: numeric("ot_bill", { precision: 12, scale: 2 }).notNull().default("0"),
+  netBill: numeric("net_bill", { precision: 12, scale: 2 }).notNull().default("0"),
   snapshot: jsonb("snapshot").$type<Record<string, unknown>>().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -405,6 +485,52 @@ export const expenses = pgTable("expenses", {
   category: text("category").notNull(),
   clientCompanyId: uuid("client_company_id").references(() => companies.id, { onDelete: "restrict" }),
   counterparty: text("counterparty"),
+  note: text("note"),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const attendanceRecords = pgTable("attendance_records", {
+  id: uuid("id").primaryKey(),
+  employeeId: uuid("employee_id")
+    .notNull()
+    .references(() => employees.id, { onDelete: "cascade" }),
+  attendanceDate: date("attendance_date").notNull(),
+  status: text("status").notNull(),
+  note: text("note"),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const otRates = pgTable("ot_rates", {
+  id: uuid("id").primaryKey(),
+  scope: text("scope").notNull(),
+  companyId: uuid("company_id").references(() => companies.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }),
+  clientCompanyId: uuid("client_company_id").references(() => companies.id, { onDelete: "cascade" }),
+  hourlyRate: numeric("hourly_rate", { precision: 12, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("MVR"),
+  label: text("label"),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const otEntries = pgTable("ot_entries", {
+  id: uuid("id").primaryKey(),
+  employeeId: uuid("employee_id")
+    .notNull()
+    .references(() => employees.id, { onDelete: "cascade" }),
+  workDate: date("work_date").notNull(),
+  hours: numeric("hours", { precision: 8, scale: 2 }).notNull(),
+  companyId: uuid("company_id").references(() => companies.id, { onDelete: "set null" }),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+  clientCompanyId: uuid("client_company_id").references(() => companies.id, { onDelete: "set null" }),
+  hourlyRate: numeric("hourly_rate", { precision: 12, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("MVR"),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   note: text("note"),
   createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

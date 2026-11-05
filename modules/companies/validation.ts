@@ -4,6 +4,7 @@ export type CompanyInput = {
   kind: CompanyKind;
   legalName: string;
   registrationNumber: string | null;
+  tinNumber: string | null;
   registeredAddress: string | null;
   country: string | null;
   businessActivity: string | null;
@@ -54,6 +55,7 @@ export function parseCompanyInput(record: Record<string, unknown>): CompanyInput
     kind: kindRaw,
     legalName: bounded(legalName, "legalName", 200) ?? "",
     registrationNumber: bounded(emptyToNull(record.registrationNumber), "registrationNumber", 100),
+    tinNumber: bounded(emptyToNull(record.tinNumber), "tinNumber", 80),
     registeredAddress: bounded(emptyToNull(record.registeredAddress), "registeredAddress", 500),
     country: bounded(emptyToNull(record.country), "country", 100),
     businessActivity: bounded(emptyToNull(record.businessActivity), "businessActivity", 200),

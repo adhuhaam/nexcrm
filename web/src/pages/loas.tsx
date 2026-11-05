@@ -7,7 +7,6 @@ import { Banner, Shell, ShellEmpty, WhenEditing } from "@/components/shell";
 import { PageSkeleton, SearchField } from "@/components/ux";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { getJson } from "@/lib/api";
-
 type LetterRow = {
   id: string;
   documentNumber: string;

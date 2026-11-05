@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
@@ -82,6 +81,18 @@
     --sidebar-ring: oklch(0.708 0 0);
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
+    --toast-success-bg: oklch(0.96 0.04 155);
+    --toast-success-text: oklch(0.28 0.07 155);
+    --toast-success-border: oklch(0.78 0.09 155);
+    --toast-error-bg: oklch(0.96 0.03 25);
+    --toast-error-text: oklch(0.4 0.16 25);
+    --toast-error-border: oklch(0.8 0.1 25);
+    --toast-warning-bg: oklch(0.97 0.04 90);
+    --toast-warning-text: oklch(0.38 0.08 70);
+    --toast-warning-border: oklch(0.84 0.1 85);
+    --toast-info-bg: oklch(0.96 0.03 230);
+    --toast-info-text: oklch(0.35 0.08 240);
+    --toast-info-border: oklch(0.8 0.08 230);
 }
 
 .dark {
@@ -116,6 +127,18 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+    --toast-success-bg: oklch(0.26 0.05 155);
+    --toast-success-text: oklch(0.9 0.05 155);
+    --toast-success-border: oklch(0.42 0.08 155);
+    --toast-error-bg: oklch(0.28 0.07 25);
+    --toast-error-text: oklch(0.92 0.04 25);
+    --toast-error-border: oklch(0.48 0.12 25);
+    --toast-warning-bg: oklch(0.28 0.05 80);
+    --toast-warning-text: oklch(0.93 0.04 90);
+    --toast-warning-border: oklch(0.48 0.08 80);
+    --toast-info-bg: oklch(0.26 0.05 240);
+    --toast-info-text: oklch(0.9 0.04 230);
+    --toast-info-border: oklch(0.42 0.08 240);
 }
 
 @layer base {
@@ -128,7 +151,7 @@
     text-size-adjust: 100%;
     }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground;
     font-family: var(--font-sans), system-ui, sans-serif;
     min-height: 100dvh;
     overflow-x: hidden;
@@ -144,6 +167,38 @@
       touch-action: manipulation;
     }
   }
+  /* iOS: avoid auto-zoom on focus */
+  @media (max-width: 767px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+}
+
+/* Instant UI: no transitions, animations, or blur paints */
+*,
+*::before,
+*::after {
+  animation: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition: none !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+.backdrop-blur,
+.backdrop-blur-sm,
+.backdrop-blur-md,
+.backdrop-blur-lg,
+.backdrop-blur-xl,
+.backdrop-blur-xs,
+[class*="backdrop-blur"] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 @layer utilities {
@@ -155,25 +210,55 @@
   }
 }
 
-@keyframes page-enter {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+/* Mobile: keep card tables swipeable */
+@media (max-width: 767px) {
+  .nexcrm-shell [data-slot="card-content"],
+  .nexcrm-shell [data-slot="table-container"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
   }
 }
 
-.page-enter {
-  animation: page-enter 220ms ease-out both;
+/* Toast / notification color grades */
+.cn-toast {
+  border-width: 1px !important;
+  box-shadow: none !important;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .page-enter {
-    animation: none;
-  }
+.cn-toast-success {
+  background: var(--toast-success-bg) !important;
+  color: var(--toast-success-text) !important;
+  border-color: var(--toast-success-border) !important;
+}
+
+.cn-toast-error {
+  background: var(--toast-error-bg) !important;
+  color: var(--toast-error-text) !important;
+  border-color: var(--toast-error-border) !important;
+}
+
+.cn-toast-warning {
+  background: var(--toast-warning-bg) !important;
+  color: var(--toast-warning-text) !important;
+  border-color: var(--toast-warning-border) !important;
+}
+
+.cn-toast-info {
+  background: var(--toast-info-bg) !important;
+  color: var(--toast-info-text) !important;
+  border-color: var(--toast-info-border) !important;
+}
+
+.cn-toast [data-icon] {
+  color: currentColor;
+}
+
+.cn-toast-close {
+  background: transparent !important;
+  border-color: currentColor !important;
+  color: inherit !important;
+  opacity: 0.7;
 }
 
 /* LOA A4 preview + print */
@@ -203,6 +288,30 @@
 .loa-letterhead {
   text-align: center;
   margin-bottom: 16pt;
+}
+
+.loa-letterhead-art {
+  display: block;
+  max-width: 100%;
+  max-height: 42mm;
+  margin: 0 auto 8pt;
+  object-fit: contain;
+}
+
+.loa-signature-art {
+  display: block;
+  max-width: 55mm;
+  max-height: 22mm;
+  margin: 8pt 0 2pt;
+  object-fit: contain;
+}
+
+.loa-seal-art {
+  display: block;
+  max-width: 32mm;
+  max-height: 32mm;
+  margin: 4pt 0 8pt;
+  object-fit: contain;
 }
 
 .loa-letterhead h1 {
@@ -285,5 +394,26 @@
 
   .loa-preview-pane {
     overflow: visible;
+  }
+
+  /* Tax invoice / client payment request — plain A4, no chrome frame */
+  html.tax-invoice-print-root,
+  body.tax-invoice-print-root,
+  body.tax-invoice-print-root #root {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  body.tax-invoice-print-root .tax-invoice-toolbar {
+    display: none !important;
+  }
+
+  body.tax-invoice-print-root .tax-invoice-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    outline: none !important;
   }
 }

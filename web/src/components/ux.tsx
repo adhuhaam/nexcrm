@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function Spinner({ className }: { className?: string }) {
-  return <Loader2Icon className={cn("size-4 animate-spin", className)} aria-hidden />;
+  return <Loader2Icon className={cn("size-4 opacity-70", className)} aria-hidden />;
 }
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-lg bg-muted", className)} />;
+  return <div className={cn("rounded-lg bg-muted", className)} />;
 }
 
 export function PageSkeleton({ cards = 3 }: { cards?: number }) {
@@ -52,11 +52,13 @@ export function SearchField({
   onChange,
   placeholder,
   label,
+  disabled = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="relative">
@@ -73,12 +75,14 @@ export function SearchField({
       </svg>
       <input
         value={value}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         aria-label={label}
         className={cn(
           "h-9 w-full rounded-lg border border-input bg-background pr-3 pl-9 text-sm outline-none",
           "placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+          disabled && "cursor-not-allowed opacity-60",
         )}
       />
     </div>

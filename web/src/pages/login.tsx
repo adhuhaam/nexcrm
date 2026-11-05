@@ -31,7 +31,7 @@ export function LoginPage() {
       <div className="absolute top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))]">
         <ThemeToggle />
       </div>
-      <Card className="page-enter w-full max-w-sm shadow-sm">
+      <Card className="w-full max-w-sm shadow-sm">
         <CardHeader>
           <CardTitle>NEXCRM</CardTitle>
           <CardDescription>Sign in to open the office workspace.</CardDescription>

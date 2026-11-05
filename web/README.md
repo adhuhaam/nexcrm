@@ -1,32 +1,26 @@
-# React + TypeScript + Vite
+# NEXCRM web
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + Vite + TypeScript office UI for NEXCRM (PWA-capable). Part of the monorepo super app — see [../README.md](../README.md) and [../docs/](../docs/).
 
-Currently, two official plugins are available:
+## Develop
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Point the API at the Node server (`npm start` from repo root) or configure the Vite proxy if used.
+
+## Production
+
+```bash
+npm run build
+```
+
+Output lands in `dist/`. The API process serves these files (SPA fallback) from `app/static.ts`.
+
+## Notes
+
+- Shell, apps launcher, and routes live under `src/`.
+- Finance apps register in `src/lib/apps.ts` and mount under `/apps/*`.
+- Shared API contract: [../docs/API.md](../docs/API.md).

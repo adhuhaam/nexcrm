@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DesignationField } from "@/components/designation-field";
 import { SelectField, TextField } from "@/components/field";
 import { Banner, Shell, WhenEditing } from "@/components/shell";
 import { Spinner } from "@/components/ux";
@@ -78,7 +79,7 @@ const STEPS = [
     label: "Place",
     short: "Project",
     icon: BriefcaseIcon,
-    tip: "Pick the employer company, then project → site → quota pool → open slot when you have them.",
+    tip: "Pick legal employer → project → site → quota pool → open slot. That is how every worker is placed.",
   },
   {
     id: 4,
@@ -127,7 +128,7 @@ function StepNav({
                 disabled={!reachable}
                 onClick={() => reachable && onJump(item.id)}
                 className={cn(
-                  "flex min-w-[4.5rem] flex-col items-center gap-1 rounded-lg px-2 py-2 text-center transition-colors sm:min-w-[5.5rem] sm:px-3",
+                  "flex min-w-[4.5rem] flex-col items-center gap-1 rounded-lg px-2 py-2 text-center sm:min-w-[5.5rem] sm:px-3",
                   active && "bg-primary text-primary-foreground shadow-sm",
                   done && !active && "bg-muted text-foreground hover:bg-muted/80",
                   !reachable && "cursor-not-allowed text-muted-foreground/50",
@@ -475,7 +476,7 @@ export function EmployeeOnboardPage() {
                     void scan(event.dataTransfer.files);
                   }}
                   className={cn(
-                    "flex w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-4 py-10 text-center transition-colors",
+                    "flex w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-4 py-10 text-center",
                     dragOver ? "border-primary bg-primary/5" : "border-border bg-muted/20 hover:border-primary/50 hover:bg-muted/40",
                     pending && "pointer-events-none opacity-70",
                   )}
@@ -596,10 +597,10 @@ export function EmployeeOnboardPage() {
             <CardContent className="grid gap-3 sm:grid-cols-2">
               <ol className="grid gap-2 text-sm text-muted-foreground sm:col-span-2 sm:grid-cols-4">
                 {[
-                  { icon: Building2Icon, label: "1. Employer" },
+                  { icon: Building2Icon, label: "1. Legal employer" },
                   { icon: BriefcaseIcon, label: "2. Project" },
                   { icon: MapPinIcon, label: "3. Site / pool" },
-                  { icon: UserCheckIcon, label: "4. Open slot" },
+                  { icon: UserCheckIcon, label: "4. Slot" },
                 ].map((item) => (
                   <li key={item.label} className="flex items-center gap-2 rounded-md bg-muted/35 px-3 py-2">
                     <item.icon className="size-4 shrink-0 text-foreground/70" />
@@ -609,7 +610,7 @@ export function EmployeeOnboardPage() {
               </ol>
               <SelectField
                 id="companyId"
-                label="Employer"
+                label="Legal employer"
                 value={companyId}
                 onChange={(value) => {
                   setCompanyId(value);
@@ -619,7 +620,7 @@ export function EmployeeOnboardPage() {
                   setSlotId("");
                 }}
               >
-                <option value="">Select employer</option>
+                <option value="">Select legal employer</option>
                 {employers.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.legalName}
@@ -743,9 +744,29 @@ export function EmployeeOnboardPage() {
                     ))}
                   </SelectField>
                   <TextField id="joinDate" label="Join date" type="date" value={joinDate} onChange={setJoinDate} />
-                  <TextField id="designation" label="Designation" value={designation} onChange={setDesignation} />
-                  <TextField id="staffSalary" label="Staff salary" value={staffSalary} onChange={setStaffSalary} />
-                  <TextField id="billRate" label="Bill rate" value={billRate} onChange={setBillRate} />
+                  <DesignationField
+                    id="designation"
+                    value={designation}
+                    onChange={(value) => {
+                      setDesignation(value);
+                      if (!clientCompanyId || !value.trim()) return;
+                      void getJson<{ rates: { designation: string; staffMonthRate: string; billMonthRate: string }[] }>(
+                        `/api/v1/clients/${clientCompanyId}/rates`,
+                      )
+                        .then((data) => {
+                          const match = data.rates.find(
+                            (rate) => rate.designation.trim().toLowerCase() === value.trim().toLowerCase(),
+                          );
+                          if (match) {
+                            setStaffSalary(match.staffMonthRate);
+                            setBillRate(match.billMonthRate);
+                          }
+                        })
+                        .catch(() => undefined);
+                    }}
+                  />
+                  <TextField id="staffSalary" label="Staff monthly salary" value={staffSalary} onChange={setStaffSalary} />
+                  <TextField id="billRate" label="Client monthly bill" value={billRate} onChange={setBillRate} />
                 </>
               ) : (
                 <p className="flex items-center gap-2 text-sm text-muted-foreground sm:col-span-2">

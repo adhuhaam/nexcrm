@@ -9,6 +9,8 @@ import { FormDialog } from "@/components/form-dialog";
 import { Banner, Shell, ShellEmpty, WhenEditing } from "@/components/shell";
 import { PageSkeleton } from "@/components/ux";
 import { getJson, sendJson } from "@/lib/api";
+import { formatDate } from "@/lib/dates";
+import { formatMoney } from "@/lib/money";
 
 type House = {
   id: string;
@@ -212,7 +214,7 @@ export function AccommodationsPage() {
                         {house.occupied}/{house.capacity}
                       </TableCell>
                       <TableCell className="tabular-nums">
-                        {house.dailyRate} {house.currency}
+                        {formatMoney(house.dailyRate, house.currency)}
                       </TableCell>
                       <TableCell>
                         <WhenEditing>
@@ -269,7 +271,7 @@ export function AccommodationsPage() {
                     <TableRow key={stay.id}>
                       <TableCell className="font-medium">{stay.employeeName}</TableCell>
                       <TableCell>{stay.accommodationName}</TableCell>
-                      <TableCell>{stay.checkIn}</TableCell>
+                      <TableCell>{formatDate(stay.checkIn)}</TableCell>
                       <TableCell>
                         <WhenEditing>
                           <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => void doCheckOut(stay.id)}>
@@ -318,7 +320,7 @@ export function AccommodationsPage() {
                     <TableCell>{row.accommodationName}</TableCell>
                     <TableCell className="text-right tabular-nums">{row.chargeableDays}</TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {row.amount} {row.currency}
+                      {formatMoney(row.amount, row.currency)}
                     </TableCell>
                   </TableRow>
                 ))}

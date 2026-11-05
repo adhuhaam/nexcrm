@@ -23,20 +23,60 @@ export type ProjectRecord = {
   companyId: string;
   companyName: string;
   name: string;
+  siteCount: number;
+  poolCount: number;
+  slotCount: number;
+  openSlotCount: number;
+  employeeCount: number;
 };
 
 export async function listProjects(): Promise<ProjectRecord[]> {
-  const rows = await db
-    .select({
-      id: projects.id,
-      companyId: projects.companyId,
-      companyName: companies.legalName,
-      name: projects.name,
-    })
-    .from(projects)
-    .innerJoin(companies, eq(companies.id, projects.companyId))
-    .orderBy(projects.name);
-  return rows;
+  const result = await pool.query<{
+    id: string;
+    company_id: string;
+    company_name: string;
+    name: string;
+    site_count: string;
+    pool_count: string;
+    slot_count: string;
+    open_slot_count: string;
+    employee_count: string;
+  }>(
+    `select p.id, p.company_id, c.legal_name as company_name, p.name,
+            coalesce(site_stats.site_count, 0)::text as site_count,
+            coalesce(site_stats.pool_count, 0)::text as pool_count,
+            coalesce(slot_stats.slot_count, 0)::text as slot_count,
+            coalesce(slot_stats.open_slot_count, 0)::text as open_slot_count,
+            coalesce(slot_stats.employee_count, 0)::text as employee_count
+     from projects p
+     join companies c on c.id = p.company_id
+     left join lateral (
+       select count(distinct s.id)::int as site_count,
+              count(distinct qp.id)::int as pool_count
+       from sites s
+       left join quota_pools qp on qp.site_id = s.id
+       where s.project_id = p.id
+     ) site_stats on true
+     left join lateral (
+       select count(*)::int as slot_count,
+              count(*) filter (where sl.status = 'open')::int as open_slot_count,
+              count(*) filter (where sl.status = 'occupied' and sl.employee_id is not null)::int as employee_count
+       from slots sl
+       where sl.project_id = p.id
+     ) slot_stats on true
+     order by p.name`,
+  );
+  return result.rows.map((row) => ({
+    id: row.id,
+    companyId: row.company_id,
+    companyName: row.company_name,
+    name: row.name,
+    siteCount: Number(row.site_count),
+    poolCount: Number(row.pool_count),
+    slotCount: Number(row.slot_count),
+    openSlotCount: Number(row.open_slot_count),
+    employeeCount: Number(row.employee_count),
+  }));
 }
 
 export async function createProject(companyId: string, name: string): Promise<ProjectRecord> {
@@ -45,11 +85,24 @@ export async function createProject(companyId: string, name: string): Promise<Pr
   const companyRows = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
   const company = companyRows[0];
   if (!company) throw new ProjectError("Company not found");
+  if (company.kind === "client") {
+    throw new ProjectError("Projects belong to legal employers, not client companies");
+  }
   const rows = await db
     .insert(projects)
     .values({ id: crypto.randomUUID(), companyId, name: trimmed })
     .returning();
-  return { id: rows[0].id, companyId, companyName: company.legalName, name: rows[0].name };
+  return {
+    id: rows[0].id,
+    companyId,
+    companyName: company.legalName,
+    name: rows[0].name,
+    siteCount: 0,
+    poolCount: 0,
+    slotCount: 0,
+    openSlotCount: 0,
+    employeeCount: 0,
+  };
 }
 
 export async function addSite(projectId: string, name: string, siteType?: string, address?: string): Promise<void> {
@@ -179,6 +232,40 @@ export async function openSlot(projectId: string, quotaPoolId: string, employeeI
   return inTransaction((client) => allocateSlot(client, projectId, quotaPoolId, employeeId, slotId));
 }
 
+/** Free every slot currently held by this employee. */
+export async function releaseEmployeeSlots(employeeId: string): Promise<void> {
+  await pool.query(
+    `update slots
+     set employee_id = null, status = 'open', occupation = null
+     where employee_id = $1`,
+    [employeeId],
+  );
+}
+
+/**
+ * Keep slot occupancy aligned with employee placement:
+ * employer → project → site → pool → slot → employee.
+ */
+export async function syncEmployeeSlot(input: {
+  employeeId: string;
+  projectId: string | null;
+  quotaPoolId: string | null;
+  slotId?: string | null;
+}): Promise<string | null> {
+  const { employeeId, projectId, quotaPoolId, slotId } = input;
+  if (!projectId || !quotaPoolId) {
+    await releaseEmployeeSlots(employeeId);
+    return null;
+  }
+  const current = await pool.query<{ id: string }>(
+    `select id from slots where employee_id = $1 and project_id = $2 limit 1`,
+    [employeeId, projectId],
+  );
+  if (slotId && current.rows[0]?.id === slotId) return slotId;
+  await releaseEmployeeSlots(employeeId);
+  return openSlot(projectId, quotaPoolId, employeeId, slotId || undefined);
+}
+
 export async function openSlotForName(projectId: string, quotaPoolId: string, employeeName: string, slotId?: string): Promise<string> {
   const name = employeeName.trim();
   if (!name) throw new ProjectError("Employee name is required");
@@ -217,9 +304,11 @@ export type ProjectView = {
     slotNumber: number | null;
     status: string;
     occupation: string | null;
+    employeeId: string | null;
     employeeName: string | null;
     poolId: string;
     poolName: string;
+    siteId: string;
     siteName: string;
   }[];
   documents: { id: string; title: string; notes: string | null }[];
@@ -250,9 +339,11 @@ export async function getProjectView(projectId: string): Promise<ProjectView | n
       slotNumber: slots.slotNumber,
       status: slots.status,
       occupation: slots.occupation,
+      employeeId: slots.employeeId,
       employeeOccupation: employees.occupation,
       employeeName: employees.legalName,
       poolName: quotaPools.name,
+      siteId: sites.id,
       siteName: sites.name,
       poolId: slots.quotaPoolId,
     })
@@ -293,9 +384,11 @@ export async function getProjectView(projectId: string): Promise<ProjectView | n
       slotNumber: slot.slotNumber,
       status: slot.status,
       occupation: slot.occupation ?? slot.employeeOccupation,
+      employeeId: slot.employeeId,
       employeeName: slot.employeeName,
       poolId: slot.poolId,
       poolName: slot.poolName,
+      siteId: slot.siteId,
       siteName: slot.siteName,
     })),
     documents: documentRows.map((document) => ({ id: document.id, title: document.title, notes: document.notes })),

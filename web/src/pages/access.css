@@ -1,0 +1,132 @@
+.nexcrm-access {
+  display: grid;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.nexcrm-access .access-tabs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(4.75rem, 1fr);
+  gap: 0.35rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  background: color-mix(in oklch, var(--muted) 32%, transparent);
+  padding: 0.5rem;
+  scrollbar-width: none;
+}
+
+.nexcrm-access .access-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .nexcrm-access .access-tabs {
+    grid-auto-flow: unset;
+    grid-auto-columns: unset;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    overflow: visible;
+    padding: 0.65rem 0.75rem;
+  }
+}
+
+.nexcrm-access .access-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-width: 0;
+  min-height: 3.1rem;
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: var(--foreground);
+  padding: 0.45rem 0.4rem;
+  text-decoration: none;
+  text-align: center;
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease !important;
+}
+
+@media (min-width: 768px) {
+  .nexcrm-access .access-tab {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 0.55rem;
+    min-height: 0;
+    padding: 0.55rem 0.65rem;
+    text-align: left;
+  }
+}
+
+.nexcrm-access .access-tab:hover {
+  background: color-mix(in oklch, var(--background) 70%, transparent);
+}
+
+.nexcrm-access .access-tab.is-active {
+  border-color: color-mix(in oklch, var(--nx-accent) 40%, var(--border));
+  background: color-mix(in oklch, var(--nx-accent) 12%, var(--background));
+  box-shadow: var(--nx-inset);
+}
+
+.nexcrm-access .access-tab-copy {
+  display: grid;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.nexcrm-access .access-tab-copy strong {
+  font-size: 0.84rem;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.nexcrm-access .access-tab-copy em {
+  display: none;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-style: normal;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .nexcrm-access .access-tab-copy em {
+    display: block;
+  }
+}
+
+.nexcrm-access .access-panel {
+  min-width: 0;
+  padding: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .nexcrm-access .access-panel {
+    padding: 1rem;
+  }
+}
+
+.nexcrm-access .access-panel > .nexcrm-admin .nx-layout {
+  max-height: none;
+}
+
+@media (min-width: 1024px) {
+  .nexcrm-access .access-panel > .nexcrm-admin .nx-layout {
+    max-height: min(72vh, 860px);
+  }
+}
+
+/* Roles panel already brings its own surface layout — nest flush */
+.nexcrm-access .access-panel > .nexcrm-admin {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+

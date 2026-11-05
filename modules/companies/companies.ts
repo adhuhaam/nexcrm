@@ -5,6 +5,9 @@ import { parseCompanyInput, type CompanyInput, type CompanyKind } from "./valida
 
 export type CompanyRecord = CompanyInput & {
   id: string;
+  letterheadFileId: string | null;
+  sealFileId: string | null;
+  signatureFileId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -32,12 +35,15 @@ export type CompanyDetail = CompanyRecord & {
   }[];
 };
 
+export type CompanyBrandingSlot = "letterhead" | "seal" | "signature";
+
 function rowToCompany(row: typeof companies.$inferSelect): CompanyRecord {
   return {
     id: row.id,
     kind: (row.kind === "client" ? "client" : "employer") as CompanyKind,
     legalName: row.legalName,
     registrationNumber: row.registrationNumber,
+    tinNumber: row.tinNumber,
     registeredAddress: row.registeredAddress,
     country: row.country,
     businessActivity: row.businessActivity,
@@ -46,6 +52,9 @@ function rowToCompany(row: typeof companies.$inferSelect): CompanyRecord {
     documentPrefix: row.documentPrefix,
     signatoryName: row.signatoryName,
     signatoryTitle: row.signatoryTitle,
+    letterheadFileId: row.letterheadFileId ?? null,
+    sealFileId: row.sealFileId ?? null,
+    signatureFileId: row.signatureFileId ?? null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -80,6 +89,7 @@ export async function listCompaniesWithCounts(filters?: {
     kind: string;
     legal_name: string;
     registration_number: string | null;
+    tin_number: string | null;
     registered_address: string | null;
     country: string | null;
     business_activity: string | null;
@@ -88,6 +98,9 @@ export async function listCompaniesWithCounts(filters?: {
     document_prefix: string | null;
     signatory_name: string | null;
     signatory_title: string | null;
+    letterhead_file_id: string | null;
+    seal_file_id: string | null;
+    signature_file_id: string | null;
     created_at: Date;
     updated_at: Date;
     project_count: string;
@@ -96,13 +109,23 @@ export async function listCompaniesWithCounts(filters?: {
     employee_count: string;
   }>(
     `select c.*,
-            (select count(*)::text from projects p where p.company_id = c.id) as project_count,
-            (select count(*)::text from sites s
-              inner join projects p on p.id = s.project_id where p.company_id = c.id) as site_count,
-            (select count(*)::text from quota_pools qp
-              inner join sites s on s.id = qp.site_id
-              inner join projects p on p.id = s.project_id where p.company_id = c.id) as pool_count,
-            (select count(*)::text from employees e where e.company_id = c.id) as employee_count
+            case when c.kind = 'client' then '0'
+              else (select count(*)::text from projects p where p.company_id = c.id)
+            end as project_count,
+            case when c.kind = 'client' then '0'
+              else (select count(*)::text from sites s
+                inner join projects p on p.id = s.project_id where p.company_id = c.id)
+            end as site_count,
+            case when c.kind = 'client' then '0'
+              else (select count(*)::text from quota_pools qp
+                inner join sites s on s.id = qp.site_id
+                inner join projects p on p.id = s.project_id where p.company_id = c.id)
+            end as pool_count,
+            case when c.kind = 'client' then
+              (select count(*)::text from client_allocations a
+               where a.client_company_id = c.id and a.status = 'active')
+              else (select count(*)::text from employees e where e.company_id = c.id)
+            end as employee_count
      from companies c
      ${where.length ? `where ${where.join(" and ")}` : ""}
      order by c.legal_name`,
@@ -113,6 +136,7 @@ export async function listCompaniesWithCounts(filters?: {
     kind: (row.kind === "client" ? "client" : "employer") as CompanyKind,
     legalName: row.legal_name,
     registrationNumber: row.registration_number,
+    tinNumber: row.tin_number,
     registeredAddress: row.registered_address,
     country: row.country,
     businessActivity: row.business_activity,
@@ -121,6 +145,9 @@ export async function listCompaniesWithCounts(filters?: {
     documentPrefix: row.document_prefix,
     signatoryName: row.signatory_name,
     signatoryTitle: row.signatory_title,
+    letterheadFileId: row.letterhead_file_id,
+    sealFileId: row.seal_file_id,
+    signatureFileId: row.signature_file_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     projectCount: Number(row.project_count),
@@ -138,8 +165,47 @@ export async function getCompany(id: string): Promise<CompanyRecord | null> {
 export async function getCompanyDetail(id: string): Promise<CompanyDetail | null> {
   const company = await getCompany(id);
   if (!company) return null;
-  const counts = await listCompaniesWithCounts();
+  const counts = await listCompaniesWithCounts({ kind: company.kind });
   const listed = counts.find((item) => item.id === id);
+
+  // Clients are billing / placement targets only — no projects hierarchy.
+  if (company.kind === "client") {
+    const allocated = await pool.query<{
+      id: string;
+      legal_name: string;
+      passport_number: string | null;
+      occupation: string | null;
+      employment_status: string | null;
+      photo_file_id: string | null;
+    }>(
+      `select e.id, e.legal_name, e.passport_number,
+              coalesce(a.designation, e.occupation) as occupation,
+              e.employment_status, e.photo_file_id
+       from client_allocations a
+       join employees e on e.id = a.employee_id
+       where a.client_company_id = $1 and a.status = 'active'
+       order by e.legal_name
+       limit 500`,
+      [id],
+    );
+    return {
+      ...company,
+      projectCount: 0,
+      siteCount: 0,
+      poolCount: 0,
+      employeeCount: listed?.employeeCount ?? allocated.rows.length,
+      projects: [],
+      employees: allocated.rows.map((row) => ({
+        id: row.id,
+        legalName: row.legal_name,
+        passportNumber: row.passport_number,
+        occupation: row.occupation,
+        employmentStatus: row.employment_status,
+        photoFileId: row.photo_file_id,
+      })),
+    };
+  }
+
   const projectsResult = await pool.query<{
     id: string;
     name: string;
@@ -211,5 +277,26 @@ export async function updateCompany(id: string, input: CompanyInput | Record<str
 
 export async function findCompanyByLegalName(legalName: string): Promise<CompanyRecord | null> {
   const rows = await db.select().from(companies).where(eq(companies.legalName, legalName)).limit(1);
+  return rows[0] ? rowToCompany(rows[0]) : null;
+}
+
+export async function setCompanyBrandingFile(
+  companyId: string,
+  slot: CompanyBrandingSlot,
+  fileId: string | null,
+): Promise<CompanyRecord | null> {
+  const existing = await getCompany(companyId);
+  if (!existing) return null;
+  const patch =
+    slot === "letterhead"
+      ? { letterheadFileId: fileId }
+      : slot === "seal"
+        ? { sealFileId: fileId }
+        : { signatureFileId: fileId };
+  const rows = await db
+    .update(companies)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(eq(companies.id, companyId))
+    .returning();
   return rows[0] ? rowToCompany(rows[0]) : null;
 }

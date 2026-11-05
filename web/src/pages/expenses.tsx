@@ -10,6 +10,8 @@ import { FormDialog } from "@/components/form-dialog";
 import { Banner, Shell, ShellEmpty, WhenEditing, useOffice } from "@/components/shell";
 import { PageSkeleton } from "@/components/ux";
 import { getJson, sendJson } from "@/lib/api";
+import { formatDate } from "@/lib/dates";
+import { formatMoney } from "@/lib/money";
 
 type ExpenseCategory = "client_payment" | "investment" | "other";
 
@@ -276,7 +278,7 @@ function ExpensesBody({
               <TableBody>
                 {rows.map((row) => (
                   <TableRow key={row.id}>
-                    <TableCell className="whitespace-nowrap">{row.expenseDate}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatDate(row.expenseDate)}</TableCell>
                     <TableCell>
                       <Badge variant="secondary">{categoryLabels[row.category]}</Badge>
                     </TableCell>
@@ -288,7 +290,7 @@ function ExpensesBody({
                       {row.note ? <div className="text-xs text-muted-foreground">{row.note}</div> : null}
                     </TableCell>
                     <TableCell className="text-right tabular-nums whitespace-nowrap">
-                      {row.amount} {row.currency}
+                      {formatMoney(row.amount, row.currency)}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">

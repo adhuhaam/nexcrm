@@ -1,0 +1,154 @@
+/* Roles / admin permission matrix */
+
+.nexcrm-admin .nx-layout {
+  max-height: min(82vh, 960px);
+}
+
+.nexcrm-admin .admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+
+.nexcrm-admin .admin-hint {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.nexcrm-admin .admin-matrix {
+  display: grid;
+  gap: 1rem;
+}
+
+.nexcrm-admin .admin-category {
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  border-radius: 0.95rem;
+  background:
+    radial-gradient(120% 80% at 0% 0%, color-mix(in oklch, var(--nx-accent) 8%, transparent), transparent 55%),
+    color-mix(in oklch, var(--card) 90%, transparent);
+  overflow: hidden;
+  box-shadow: var(--nx-inset);
+}
+
+.nexcrm-admin .admin-category-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 75%, transparent);
+  padding: 0.75rem 0.9rem;
+  background: color-mix(in oklch, var(--muted) 28%, transparent);
+}
+
+.nexcrm-admin .admin-category-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.nexcrm-admin .admin-category-head p {
+  margin: 0.1rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+}
+
+.nexcrm-admin .admin-table-wrap {
+  overflow-x: auto;
+}
+
+.nexcrm-admin .admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.nexcrm-admin .admin-table th,
+.nexcrm-admin .admin-table td {
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+  padding: 0.65rem 0.75rem;
+  vertical-align: middle;
+}
+
+.nexcrm-admin .admin-table th {
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.nexcrm-admin .admin-table th:first-child,
+.nexcrm-admin .admin-table td:first-child {
+  text-align: left;
+  min-width: 12rem;
+}
+
+.nexcrm-admin .admin-table tbody tr:hover {
+  background: color-mix(in oklch, var(--muted) 35%, transparent);
+}
+
+.nexcrm-admin .admin-module {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.nexcrm-admin .admin-module strong {
+  font-weight: 650;
+}
+
+.nexcrm-admin .admin-module span {
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.nexcrm-admin .admin-check {
+  display: grid;
+  place-items: center;
+  margin: 0 auto;
+  width: 1.55rem;
+  height: 1.55rem;
+  border: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
+  border-radius: 0.45rem;
+  background: color-mix(in oklch, var(--background) 80%, transparent);
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease !important;
+}
+
+.nexcrm-admin .admin-check input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nexcrm-admin .admin-check span {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 0.2rem;
+  background: transparent;
+}
+
+.nexcrm-admin .admin-check.is-on {
+  border-color: color-mix(in oklch, var(--nx-accent) 55%, var(--border));
+  background: color-mix(in oklch, var(--nx-accent) 18%, transparent);
+}
+
+.nexcrm-admin .admin-check.is-on span {
+  background: var(--nx-accent);
+}
+
+.nexcrm-admin .admin-check.is-locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.nexcrm-admin .admin-check:hover:not(.is-locked) {
+  border-color: color-mix(in oklch, var(--nx-accent) 40%, var(--border));
+}

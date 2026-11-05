@@ -6,7 +6,6 @@ import { pool } from "../lib/db.ts";
 import { checkHealth } from "../lib/health.ts";
 import { migrate } from "../lib/migrate.ts";
 import { seedAccess } from "../modules/access/seed.ts";
-import { seedCompanies } from "../modules/companies/seed.ts";
 import { ensureFileRoot } from "../modules/files/storage.ts";
 
 const host = process.env.HOST ?? "127.0.0.1";
@@ -14,7 +13,6 @@ const port = Number(process.env.PORT ?? "3000");
 
 await migrate(pool);
 await ensureFileRoot();
-await seedCompanies();
 await seedAccess();
 
 const server = createServer(async (request, response) => {

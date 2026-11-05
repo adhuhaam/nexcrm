@@ -10,13 +10,22 @@ import {
   type TextInputProps,
   type ViewProps,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, initials, radius, space } from "../lib/theme";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
 export function Screen({ children, style, ...rest }: ViewProps) {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={[styles.screen, style]} {...rest}>
+    <View
+      style={[
+        styles.screen,
+        { paddingTop: Math.max(insets.top, space.sm), paddingBottom: Math.max(insets.bottom, space.sm) },
+        style,
+      ]}
+      {...rest}
+    >
       {children}
     </View>
   );

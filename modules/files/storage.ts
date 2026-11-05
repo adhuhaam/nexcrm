@@ -11,7 +11,16 @@ import { loadEnv } from "../../lib/env.ts";
 
 loadEnv();
 
-export type FileKind = "passport_scan" | "passport_ocr_json" | "loa_signed" | "employee_doc" | "employee_photo" | "other";
+export type FileKind =
+  | "passport_scan"
+  | "passport_ocr_json"
+  | "loa_signed"
+  | "employee_doc"
+  | "employee_photo"
+  | "company_letterhead"
+  | "company_seal"
+  | "company_signature"
+  | "other";
 
 export type StoredFile = {
   id: string;
@@ -180,12 +189,74 @@ export async function listEntityFiles(entityType: string, entityId: string): Pro
      from file_links
      inner join files on files.id = file_links.file_id
      where file_links.entity_type = $1 and file_links.entity_id = $2
+       and files.kind <> 'employee_photo'
      order by files.created_at desc`,
     [entityType, entityId],
   );
   return q.rows.map((row) => ({
     linkId: row.link_id,
     label: row.label,
+    id: row.id,
+    originalName: row.original_name,
+    storedPath: row.stored_path,
+    mimeType: row.mime_type,
+    sizeBytes: row.size_bytes,
+    kind: row.kind as FileKind,
+    sha256: row.sha256,
+    uploadedBy: row.uploaded_by,
+    createdAt: row.created_at,
+  }));
+}
+
+export type DriveFile = StoredFile & {
+  label: string | null;
+  linkId: string;
+  entityType: string;
+  entityId: string;
+  entityName: string;
+};
+
+/** Flat drive index for the Documents file manager (excludes profile photos). */
+export async function listDriveFiles(limit = 2000): Promise<DriveFile[]> {
+  const q = await pool.query<{
+    link_id: string;
+    label: string | null;
+    entity_type: string;
+    entity_id: string;
+    entity_name: string | null;
+    id: string;
+    original_name: string;
+    stored_path: string;
+    mime_type: string;
+    size_bytes: number;
+    kind: string;
+    sha256: string | null;
+    uploaded_by: string | null;
+    created_at: Date;
+  }>(
+    `select file_links.id as link_id,
+            file_links.label,
+            file_links.entity_type,
+            file_links.entity_id,
+            coalesce(employees.legal_name, companies.legal_name, projects.name, file_links.entity_id::text) as entity_name,
+            files.id, files.original_name, files.stored_path, files.mime_type, files.size_bytes,
+            files.kind, files.sha256, files.uploaded_by, files.created_at
+     from file_links
+     inner join files on files.id = file_links.file_id
+     left join employees on file_links.entity_type = 'employee' and employees.id = file_links.entity_id
+     left join companies on file_links.entity_type = 'company' and companies.id = file_links.entity_id
+     left join projects on file_links.entity_type = 'project' and projects.id = file_links.entity_id
+     where files.kind <> 'employee_photo'
+     order by files.created_at desc
+     limit $1`,
+    [Math.min(Math.max(limit, 1), 5000)],
+  );
+  return q.rows.map((row) => ({
+    linkId: row.link_id,
+    label: row.label,
+    entityType: row.entity_type,
+    entityId: row.entity_id,
+    entityName: row.entity_name ?? row.entity_id,
     id: row.id,
     originalName: row.original_name,
     storedPath: row.stored_path,

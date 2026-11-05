@@ -66,7 +66,7 @@ export function MobileInstallBanner() {
   if (!deferred || dismissed) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-lg backdrop-blur md:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-sm md:hidden">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
         <div className="min-w-0 text-sm">
           <p className="font-medium">Install NEXCRM</p>

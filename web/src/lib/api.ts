@@ -1,7 +1,13 @@
+function redirectToLogin(): void {
+  if (window.location.pathname === "/login") return;
+  void import("@/lib/session").then(({ clearSessionCache }) => clearSessionCache());
+  window.location.assign("/login");
+}
+
 export async function getJson<T>(url: string): Promise<T> {
   const response = await fetch(url, { headers: { accept: "application/json" } });
   if (response.status === 401 && window.location.pathname !== "/login") {
-    window.location.assign("/login");
+    redirectToLogin();
     throw new Error("Sign in to open the office.");
   }
   if (!response.ok) {
@@ -30,7 +36,7 @@ export async function sendJson<T = Record<string, unknown>>(
   });
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string; location?: string };
   if (response.status === 401 && window.location.pathname !== "/login") {
-    window.location.assign("/login");
+    redirectToLogin();
     throw new Error(payload.error ?? "Sign in to open the office.");
   }
   if (!response.ok) {
@@ -47,7 +53,7 @@ export async function uploadForm<T = Record<string, unknown>>(url: string, form:
   });
   const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
   if (response.status === 401 && window.location.pathname !== "/login") {
-    window.location.assign("/login");
+    redirectToLogin();
     throw new Error(payload.error ?? "Sign in to open the office.");
   }
   if (!response.ok) {

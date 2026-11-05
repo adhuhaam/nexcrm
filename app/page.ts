@@ -1,3 +1,4 @@
+import { formatDateTime } from "../lib/dates.ts";
 import type { CompanyRecord } from "../modules/companies/companies.ts";
 import type { Preferences } from "../modules/companies/preferences.ts";
 import { issueBlockers, type CompanyInput } from "../modules/companies/validation.ts";
@@ -55,11 +56,7 @@ export function renderPage(model: PageModel): string {
     .join("");
   const snapshotRows = model.snapshots
     .map((item) => {
-      const when = new Intl.DateTimeFormat("en-GB", {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: "Indian/Maldives",
-      }).format(item.createdAt);
+      const when = formatDateTime(item.createdAt);
       return `<article>
         <h3>${escapeHtml(item.snapshot.legalName)}</h3>
         <p>${escapeHtml(item.snapshot.phone ?? "No phone")} · ${escapeHtml(item.snapshot.email ?? "No email")}</p>

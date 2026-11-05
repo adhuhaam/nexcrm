@@ -34,6 +34,12 @@ export type WorkPermitInput = {
 export type WorkPermitRecord = WorkPermitInput & {
   id: string;
   companyName: string;
+  photoFileId: string | null;
+  xpatSyncedAt: string | null;
+  xpatStatus: string | null;
+  xpatStateName: string | null;
+  workSite: string | null;
+  siteCode: string | null;
   quotaPoolNumber: string | null;
   quotaPoolName: string | null;
   linkedSites: string | null;
@@ -65,6 +71,12 @@ const columns = `
   employees.work_visa_number,
   employees.work_visa_expiry::text,
   employees.contract_expiry::text,
+  employees.photo_file_id,
+  employees.xpat_synced_at::text,
+  employees.xpat_status,
+  employees.xpat_state_name,
+  employees.work_site,
+  employees.site_code,
   string_agg(distinct quota_pools.pool_number, ', ') as quota_pool_number,
   string_agg(distinct quota_pools.name, ', ') as quota_pool_name,
   string_agg(distinct sites.name, ', ') as linked_sites,
@@ -96,6 +108,12 @@ type WorkPermitRow = {
   work_visa_number: string | null;
   work_visa_expiry: string | null;
   contract_expiry: string | null;
+  photo_file_id: string | null;
+  xpat_synced_at: string | null;
+  xpat_status: string | null;
+  xpat_state_name: string | null;
+  work_site: string | null;
+  site_code: string | null;
   quota_pool_number: string | null;
   quota_pool_name: string | null;
   linked_sites: string | null;
@@ -128,6 +146,12 @@ function fromRow(row: WorkPermitRow): WorkPermitRecord {
     workVisaNumber: row.work_visa_number,
     workVisaExpiry: row.work_visa_expiry,
     contractExpiry: row.contract_expiry,
+    photoFileId: row.photo_file_id,
+    xpatSyncedAt: row.xpat_synced_at,
+    xpatStatus: row.xpat_status,
+    xpatStateName: row.xpat_state_name,
+    workSite: row.work_site,
+    siteCode: row.site_code,
     quotaPoolNumber: row.quota_pool_number,
     quotaPoolName: row.quota_pool_name,
     linkedSites: row.linked_sites,

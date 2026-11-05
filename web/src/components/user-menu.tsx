@@ -1,4 +1,4 @@
-import { LogOutIcon, SettingsIcon, ShieldIcon, UserIcon, UsersIcon } from "lucide-react";
+import { LogOutIcon, SettingsIcon, ShieldIcon, UserIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -67,27 +67,11 @@ export function UserMenu({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => {
-                window.location.assign("/users");
-              }}
-            >
-              <UsersIcon />
-              User management
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                window.location.assign("/admin");
-              }}
-            >
-              <ShieldIcon />
-              Roles
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
                 window.location.assign("/settings");
               }}
             >
               <SettingsIcon />
-              System settings
+              Settings
             </DropdownMenuItem>
           </>
         ) : null}
@@ -95,6 +79,7 @@ export function UserMenu({
         <DropdownMenuItem
           variant="destructive"
           onClick={() => {
+            void import("@/lib/session").then(({ clearSessionCache }) => clearSessionCache());
             void postJson("/logout", {});
           }}
         >

@@ -5,6 +5,12 @@ loadEnv();
 
 export const SETTING_OPENAI_API_KEY = "openai_api_key";
 export const SETTING_OPENAI_OCR_MODEL = "openai_ocr_model";
+export const SETTING_OFFICE_NAME = "office_name";
+export const SETTING_OFFICE_SUPPORT_EMAIL = "office_support_email";
+export const SETTING_DISPLAY_TIME_ZONE = "display_time_zone";
+export const SETTING_DEFAULT_CURRENCY = "default_currency";
+export const SETTING_DATE_FORMAT = "date_format";
+export const SETTING_WEEK_STARTS_ON = "week_starts_on";
 
 export type OpenAiConfig = {
   apiKey: string | null;
@@ -12,13 +18,36 @@ export type OpenAiConfig = {
   source: "settings" | "env" | "none";
 };
 
-export type OpenAiSettingsView = {
+export type OfficeSettings = {
+  officeName: string;
+  supportEmail: string;
+  timeZone: string;
+  currency: string;
+  dateFormat: "dmy" | "ymd" | "mdy";
+  weekStartsOn: "monday" | "sunday";
+};
+
+export type SystemSettingsView = OfficeSettings & {
   openaiConfigured: boolean;
   openaiKeyHint: string | null;
   openaiKeySource: "settings" | "env" | "none";
   openaiModel: string;
   envKeyPresent: boolean;
+  /** @deprecated alias kept for older clients */
+  openaiConfiguredAlias?: boolean;
 };
+
+/** @deprecated Use SystemSettingsView */
+export type OpenAiSettingsView = SystemSettingsView;
+
+const TIME_ZONES = [
+  "Indian/Maldives",
+  "Asia/Colombo",
+  "Asia/Dubai",
+  "Asia/Kolkata",
+  "Asia/Singapore",
+  "UTC",
+] as const;
 
 async function getRaw(key: string): Promise<string | null> {
   const result = await pool.query<{ value: string }>(`select value from system_settings where key = $1`, [key]);
@@ -44,6 +73,46 @@ function maskKey(key: string): string {
   return `${key.slice(0, 3)}…${key.slice(-4)}`;
 }
 
+function normalizeCurrency(value: string | null | undefined): string {
+  const text = (value ?? "MVR").trim().toUpperCase().slice(0, 8);
+  return text || "MVR";
+}
+
+function normalizeDateFormat(value: string | null | undefined): OfficeSettings["dateFormat"] {
+  const text = (value ?? "dmy").trim().toLowerCase();
+  if (text === "ymd" || text === "mdy") return text;
+  return "dmy";
+}
+
+function normalizeWeekStart(value: string | null | undefined): OfficeSettings["weekStartsOn"] {
+  return (value ?? "monday").trim().toLowerCase() === "sunday" ? "sunday" : "monday";
+}
+
+function normalizeTimeZone(value: string | null | undefined): string {
+  const text = (value ?? "").trim();
+  if (text) return text;
+  return process.env.DISPLAY_TIME_ZONE?.trim() || "Indian/Maldives";
+}
+
+export async function resolveOfficeSettings(): Promise<OfficeSettings> {
+  const [officeName, supportEmail, timeZone, currency, dateFormat, weekStartsOn] = await Promise.all([
+    getRaw(SETTING_OFFICE_NAME),
+    getRaw(SETTING_OFFICE_SUPPORT_EMAIL),
+    getRaw(SETTING_DISPLAY_TIME_ZONE),
+    getRaw(SETTING_DEFAULT_CURRENCY),
+    getRaw(SETTING_DATE_FORMAT),
+    getRaw(SETTING_WEEK_STARTS_ON),
+  ]);
+  return {
+    officeName: officeName || "NEXCRM",
+    supportEmail: supportEmail || "",
+    timeZone: normalizeTimeZone(timeZone),
+    currency: normalizeCurrency(currency || process.env.DEFAULT_CURRENCY),
+    dateFormat: normalizeDateFormat(dateFormat),
+    weekStartsOn: normalizeWeekStart(weekStartsOn),
+  };
+}
+
 export async function resolveOpenAiConfig(): Promise<OpenAiConfig> {
   const fromDb = await getRaw(SETTING_OPENAI_API_KEY);
   const fromEnv = process.env.OPENAI_API_KEY?.trim() || null;
@@ -54,10 +123,11 @@ export async function resolveOpenAiConfig(): Promise<OpenAiConfig> {
   return { apiKey: null, model, source: "none" };
 }
 
-export async function getOpenAiSettingsView(): Promise<OpenAiSettingsView> {
-  const config = await resolveOpenAiConfig();
+export async function getSystemSettingsView(): Promise<SystemSettingsView> {
+  const [office, config] = await Promise.all([resolveOfficeSettings(), resolveOpenAiConfig()]);
   const envKeyPresent = Boolean(process.env.OPENAI_API_KEY?.trim());
   return {
+    ...office,
     openaiConfigured: Boolean(config.apiKey),
     openaiKeyHint: config.apiKey ? maskKey(config.apiKey) : null,
     openaiKeySource: config.source,
@@ -66,11 +136,22 @@ export async function getOpenAiSettingsView(): Promise<OpenAiSettingsView> {
   };
 }
 
-export async function saveOpenAiSettings(input: {
+/** @deprecated */
+export async function getOpenAiSettingsView(): Promise<SystemSettingsView> {
+  return getSystemSettingsView();
+}
+
+export async function saveSystemSettings(input: {
   apiKey?: string | null;
   clearApiKey?: boolean;
   model?: string | null;
-}): Promise<OpenAiSettingsView> {
+  officeName?: string | null;
+  supportEmail?: string | null;
+  timeZone?: string | null;
+  currency?: string | null;
+  dateFormat?: string | null;
+  weekStartsOn?: string | null;
+}): Promise<SystemSettingsView> {
   if (input.clearApiKey) {
     await clearSetting(SETTING_OPENAI_API_KEY);
   } else if (typeof input.apiKey === "string") {
@@ -78,13 +159,62 @@ export async function saveOpenAiSettings(input: {
     if (trimmed) await setSetting(SETTING_OPENAI_API_KEY, trimmed);
   }
   if (typeof input.model === "string") {
-    const model = input.model.trim() || "gpt-4o-mini";
-    await setSetting(SETTING_OPENAI_OCR_MODEL, model);
+    await setSetting(SETTING_OPENAI_OCR_MODEL, input.model.trim() || "gpt-4o-mini");
   }
-  return getOpenAiSettingsView();
+  if (typeof input.officeName === "string") {
+    await setSetting(SETTING_OFFICE_NAME, input.officeName.trim().slice(0, 120) || "NEXCRM");
+  }
+  if (typeof input.supportEmail === "string") {
+    const email = input.supportEmail.trim().toLowerCase().slice(0, 200);
+    if (email) await setSetting(SETTING_OFFICE_SUPPORT_EMAIL, email);
+    else await clearSetting(SETTING_OFFICE_SUPPORT_EMAIL);
+  }
+  if (typeof input.timeZone === "string") {
+    const zone = input.timeZone.trim() || "Indian/Maldives";
+    await setSetting(SETTING_DISPLAY_TIME_ZONE, zone);
+  }
+  if (typeof input.currency === "string") {
+    await setSetting(SETTING_DEFAULT_CURRENCY, normalizeCurrency(input.currency));
+  }
+  if (typeof input.dateFormat === "string") {
+    await setSetting(SETTING_DATE_FORMAT, normalizeDateFormat(input.dateFormat));
+  }
+  if (typeof input.weekStartsOn === "string") {
+    await setSetting(SETTING_WEEK_STARTS_ON, normalizeWeekStart(input.weekStartsOn));
+  }
+  return getSystemSettingsView();
+}
+
+/** @deprecated */
+export async function saveOpenAiSettings(input: {
+  apiKey?: string | null;
+  clearApiKey?: boolean;
+  model?: string | null;
+}): Promise<SystemSettingsView> {
+  return saveSystemSettings(input);
 }
 
 export async function openaiIntegrationStatus(): Promise<{ openaiConfigured: boolean; openaiModel: string }> {
-  const view = await getOpenAiSettingsView();
+  const view = await getSystemSettingsView();
   return { openaiConfigured: view.openaiConfigured, openaiModel: view.openaiModel };
+}
+
+export function settingsCatalog() {
+  return {
+    timeZones: [...TIME_ZONES],
+    currencies: ["MVR", "USD", "EUR", "INR", "LKR", "AED"],
+    dateFormats: [
+      { id: "dmy", label: "DD/MM/YYYY", example: "05/11/2026" },
+      { id: "ymd", label: "YYYY-MM-DD", example: "2026-11-05" },
+      { id: "mdy", label: "MM/DD/YYYY", example: "11/05/2026" },
+    ],
+    weekStarts: [
+      { id: "monday", label: "Monday" },
+      { id: "sunday", label: "Sunday" },
+    ],
+    ocrModels: [
+      { id: "gpt-4o-mini", label: "GPT-4o mini (fast, lower cost)" },
+      { id: "gpt-4o", label: "GPT-4o (higher accuracy)" },
+    ],
+  };
 }

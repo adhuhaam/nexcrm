@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ComponentType,
   type CSSProperties,
@@ -11,23 +12,33 @@ import {
 import {
   ArrowRightLeftIcon,
   BedDoubleIcon,
-  BriefcaseBusinessIcon,
   Building2Icon,
+  CalendarCheckIcon,
+  ChevronRightIcon,
+  CircleCheckIcon,
+  Clock3Icon,
+  CommandIcon,
   EllipsisVerticalIcon,
   FileArchiveIcon,
   FileTextIcon,
   FolderKanbanIcon,
   IdCardIcon,
+  InfoIcon,
   LayoutDashboardIcon,
   LogOutIcon,
+  OctagonXIcon,
   PenLineIcon,
+  PinIcon,
   PlusCircleIcon,
+  SearchIcon,
   SettingsIcon,
-  ShieldIcon,
+  TagsIcon,
+  TriangleAlertIcon,
   UserRoundPenIcon,
   UsersIcon,
   WalletIcon,
 } from "lucide-react";
+import { CommandPalette } from "@/components/command-palette";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { InstallPrompt, MobileInstallBanner } from "@/components/install-prompt";
 import { EmptyState, PageSkeleton, Spinner } from "@/components/ux";
@@ -59,9 +70,15 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { getJson, postJson } from "@/lib/api";
+import { postJson } from "@/lib/api";
 import { appIsActive, officeApps } from "@/lib/apps";
+import { usePath } from "@/hooks/use-path";
+import { clearSessionCache, loadOfficeSession, peekOfficeSession, type OfficeSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
+import "@/styles/nexcrm-shell.css";
+import "@/styles/nexcrm-surface.css";
+
+export type { OfficeSession };
 
 type NavItem = {
   href: string;
@@ -71,9 +88,11 @@ type NavItem = {
 
 type NavGroup = { label: string; items: NavItem[] };
 
+const PIN_KEY = "nexcrm.shell.pins";
+
 const workspaceNav: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboardIcon },
-  { href: "/companies", label: "Companies", icon: Building2Icon },
+  { href: "/companies", label: "Legal employers", icon: Building2Icon },
   { href: "/employees", label: "Employees", icon: UsersIcon },
   { href: "/loas", label: "LOAs", icon: FileTextIcon },
   { href: "/loas/new", label: "LOA editor", icon: PenLineIcon },
@@ -81,32 +100,20 @@ const workspaceNav: NavItem[] = [
 
 const operationsNav: NavItem[] = [
   { href: "/clients", label: "Clients", icon: Building2Icon },
+  { href: "/designations", label: "Designations", icon: TagsIcon },
   { href: "/allocations", label: "Allocations", icon: ArrowRightLeftIcon },
+  { href: "/attendance", label: "Attendance", icon: CalendarCheckIcon },
   { href: "/accommodations", label: "Accommodations", icon: BedDoubleIcon },
   { href: "/payroll", label: "Payroll", icon: WalletIcon },
   { href: "/documents", label: "Documents", icon: FileArchiveIcon },
-  { href: "/work-permits", label: "Work permits", icon: IdCardIcon },
   { href: "/projects", label: "Projects", icon: FolderKanbanIcon },
 ];
 
 const accessNav: NavItem[] = [
-  { href: "/users", label: "Users", icon: BriefcaseBusinessIcon },
-  { href: "/admin", label: "Roles", icon: ShieldIcon },
   { href: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
-export type OfficeSession = {
-  user: { id: string; name: string; email: string } | null;
-  role?: {
-    id: string;
-    slug: string;
-    name: string;
-    canPreview: boolean;
-    canEdit: boolean;
-    canDelete: boolean;
-    systemRole: boolean;
-  };
-};
+const allNav = [...workspaceNav, ...operationsNav, ...accessNav];
 
 const OfficeContext = createContext<OfficeSession | null>(null);
 
@@ -121,6 +128,16 @@ function current(href: string): boolean {
   if (href === "/") return path === "/";
   if (href === "/loas/new") return path === "/loas/new" || (path.startsWith("/loas/") && path !== "/loas");
   if (href === "/loas") return path === "/loas";
+  if (href === "/settings") {
+    return (
+      path === "/settings" ||
+      path.startsWith("/settings/") ||
+      path === "/admin" ||
+      path.startsWith("/admin/") ||
+      path === "/users" ||
+      path.startsWith("/users/")
+    );
+  }
   return path === href || path.startsWith(`${href}/`);
 }
 
@@ -129,7 +146,7 @@ function groupsFor(isAdmin: boolean): NavGroup[] {
     { label: "Workspace", items: workspaceNav },
     { label: "Operations", items: operationsNav },
   ];
-  if (isAdmin) groups.push({ label: "Access", items: accessNav });
+  if (isAdmin) groups.push({ label: "System", items: accessNav });
   return groups;
 }
 
@@ -140,17 +157,72 @@ function initials(name: string): string {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
+function readPins(): string[] {
+  try {
+    const raw = localStorage.getItem(PIN_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePins(pins: string[]) {
+  try {
+    localStorage.setItem(PIN_KEY, JSON.stringify(pins.slice(0, 8)));
+  } catch {
+    /* ignore */
+  }
+}
+
+function crumbsFor(pathname: string, pageTitle: string): { label: string; href?: string }[] {
+  if (pathname === "/") return [{ label: "Office" }, { label: "Dashboard" }];
+  if (pathname === "/users" || pathname.startsWith("/users/")) {
+    return [{ label: "Office", href: "/" }, { label: "Settings", href: "/settings" }, { label: "People" }];
+  }
+  if (pathname.startsWith("/settings/health")) {
+    return [{ label: "Office", href: "/" }, { label: "Settings", href: "/settings" }, { label: "Health" }];
+  }
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    return [{ label: "Office", href: "/" }, { label: "Settings", href: "/settings" }, { label: "Roles" }];
+  }
+  if (pathname === "/settings" || pathname.startsWith("/settings/")) {
+    return [{ label: "Office", href: "/" }, { label: "Settings" }];
+  }
+  const match = allNav.find((item) => current(item.href) && item.href !== "/");
+  return [{ label: "Office", href: "/" }, { label: match?.label ?? pageTitle }];
+}
+
+function openCommandPalette() {
+  const event = new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true });
+  window.dispatchEvent(event);
+}
+
+function useClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+  return now;
+}
+
 function AppSidebar({
   groups,
   session,
   canEdit,
+  pins,
+  onTogglePin,
 }: {
   groups: NavGroup[];
   session: OfficeSession;
   canEdit: boolean;
+  pins: string[];
+  onTogglePin: (href: string) => void;
 }) {
   const user = session.user!;
   const role = session.role!;
+  const pinnedItems = pins.map((href) => allNav.find((item) => item.href === href)).filter(Boolean) as NavItem[];
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">
@@ -159,14 +231,22 @@ function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg">
               <a href="/">
-                <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-semibold">
-                  NX
+                <span className="shell-brand-mark">NX</span>
+                <span className="shell-brand-copy">
+                  <strong>NEXCRM</strong>
+                  <span>Office shell</span>
                 </span>
-                <span className="text-base font-semibold tracking-tight">NEXCRM</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <button type="button" className="shell-search-chip group-data-[collapsible=icon]:hidden" onClick={openCommandPalette}>
+          <SearchIcon className="size-3.5" />
+          <span>Search office…</span>
+          <kbd>
+            <CommandIcon className="mr-0.5 inline size-2.5" />K
+          </kbd>
+        </button>
       </SidebarHeader>
 
       <SidebarContent>
@@ -179,7 +259,7 @@ function AppSidebar({
                     <DropdownMenuTrigger asChild>
                       <SidebarMenuButton
                         tooltip="Quick Create"
-                        className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
+                        className="min-w-8 bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
                       >
                         <PlusCircleIcon />
                         <span>Quick Create</span>
@@ -222,6 +302,20 @@ function AppSidebar({
           </SidebarGroup>
         ) : null}
 
+        {pinnedItems.length ? (
+          <div className="group-data-[collapsible=icon]:hidden">
+            <p className="shell-kicker">Pinned</p>
+            <div className="shell-pin-row">
+              {pinnedItems.map((item) => (
+                <a key={item.href} href={item.href} className={cn("shell-pin", current(item.href) && "is-active")}>
+                  <PinIcon className="size-3" />
+                  {item.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         {groups.map((group) => (
           <SidebarGroup key={group.label}>
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
@@ -230,6 +324,7 @@ function AppSidebar({
                 {group.items.map((item) => {
                   const Icon = item.icon;
                   const active = current(item.href);
+                  const pinned = pins.includes(item.href);
                   return (
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
@@ -238,6 +333,18 @@ function AppSidebar({
                           <span>{item.label}</span>
                         </a>
                       </SidebarMenuButton>
+                      <button
+                        type="button"
+                        className="absolute top-1.5 right-1 hidden size-6 place-items-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-foreground group-hover/menu-item:grid group-data-[collapsible=icon]:hidden"
+                        title={pinned ? "Unpin" : "Pin"}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          onTogglePin(item.href);
+                        }}
+                      >
+                        <PinIcon className={cn("size-3", pinned && "fill-current")} />
+                      </button>
                     </SidebarMenuItem>
                   );
                 })}
@@ -248,32 +355,36 @@ function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="flex flex-wrap items-center gap-1.5 px-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+        <div className="shell-dock group-data-[collapsible=icon]:hidden">
           {officeApps.map((app) => {
             const active = appIsActive(app);
             return (
               <Tooltip key={app.id}>
                 <TooltipTrigger asChild>
-                  <a
-                    href={app.href}
-                    aria-label={app.label}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "flex size-8 items-center justify-center rounded-lg text-[10px] font-semibold tracking-wide transition-colors",
-                      active
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/80",
-                    )}
-                  >
+                  <a href={app.href} aria-label={app.label} className={cn(active && "is-active")}>
                     {app.short}
                   </a>
                 </TooltipTrigger>
-                <TooltipContent side="right" align="center">
-                  {app.label}
-                </TooltipContent>
+                <TooltipContent side="right">{app.label}</TooltipContent>
               </Tooltip>
             );
           })}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <a href="/documents" aria-label="Documents" className={cn(current("/documents") && "is-active")}>
+                DR
+              </a>
+            </TooltipTrigger>
+            <TooltipContent side="right">Documents drive</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <a href="/employees" aria-label="Employees" className={cn(current("/employees") && "is-active")}>
+                HR
+              </a>
+            </TooltipTrigger>
+            <TooltipContent side="right">Employees</TooltipContent>
+          </Tooltip>
         </div>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -288,17 +399,12 @@ function AppSidebar({
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{user.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                    <span className="truncate text-xs text-muted-foreground">{role.name}</span>
                   </div>
                   <EllipsisVerticalIcon className="ml-auto size-4" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="min-w-56 rounded-lg"
-                side="right"
-                align="end"
-                sideOffset={4}
-              >
+              <DropdownMenuContent className="min-w-56 rounded-lg" side="right" align="end" sideOffset={4}>
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <Avatar className="size-8 rounded-lg">
@@ -313,17 +419,9 @@ function AppSidebar({
                 {role.slug === "system_admin" ? (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => window.location.assign("/users")}>
-                      <UsersIcon />
-                      User management
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => window.location.assign("/admin")}>
-                      <ShieldIcon />
-                      Roles
-                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => window.location.assign("/settings")}>
                       <SettingsIcon />
-                      System settings
+                      Settings
                     </DropdownMenuItem>
                   </>
                 ) : null}
@@ -331,6 +429,7 @@ function AppSidebar({
                 <DropdownMenuItem
                   variant="destructive"
                   onClick={() => {
+                    clearSessionCache();
                     void postJson("/logout", {});
                   }}
                 >
@@ -346,38 +445,72 @@ function AppSidebar({
   );
 }
 
+function greetingFor(name: string, now = new Date()): string {
+  const hour = now.getHours();
+  const first = name.trim().split(/\s+/)[0] || "there";
+  if (hour < 12) return `Good morning, ${first}`;
+  if (hour < 18) return `Good afternoon, ${first}`;
+  return `Good evening, ${first}`;
+}
+
 export function Shell({
   title,
+  heading,
+  greet = false,
   eyebrow,
   description,
   actions,
+  surface = true,
+  surfaceFlush = false,
   children,
 }: {
   title: string;
+  /** Overrides the visible H1 (document title still uses `title`). */
+  heading?: string;
+  /** When true, H1 becomes a time-of-day greeting using the signed-in user. */
+  greet?: boolean;
   eyebrow?: string;
   description?: string;
   actions?: ReactNode;
+  /** Wrap page body in the shared nexcrm-surface chrome (default on). */
+  surface?: boolean;
+  /** Drop inset padding on the surface (directory / drive layouts). */
+  surfaceFlush?: boolean;
   children: ReactNode;
 }) {
-  const [session, setSession] = useState<OfficeSession | undefined>(undefined);
+  const [session, setSession] = useState<OfficeSession | undefined>(() => peekOfficeSession() ?? undefined);
+  const [pins, setPins] = useState<string[]>(() => readPins());
+  const now = useClock();
+  const pathname = usePath();
 
   useEffect(() => {
     document.title = title;
   }, [title]);
 
   useEffect(() => {
-    getJson<OfficeSession>("/api/v1/session")
+    let cancelled = false;
+    loadOfficeSession()
       .then((next) => {
+        if (cancelled) return;
         if (!next.user) {
+          clearSessionCache();
           window.location.assign("/login");
           return;
         }
         setSession(next);
       })
       .catch(() => {
+        if (cancelled) return;
+        clearSessionCache();
         window.location.assign("/login");
       });
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  const pageTitle = title.replace(/^NEXCRM · /, "");
+  const crumbs = useMemo(() => crumbsFor(pathname, pageTitle), [pathname, pageTitle]);
 
   if (!session?.user || !session.role) {
     return (
@@ -391,62 +524,172 @@ export function Shell({
   }
 
   const groups = groupsFor(session.role.slug === "system_admin");
-  const pageTitle = title.replace(/^NEXCRM · /, "");
+  const displayHeading = heading ?? (greet ? greetingFor(session.user.name, now) : pageTitle);
+  const clockLabel = now.toLocaleString(undefined, {
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  function togglePin(href: string) {
+    setPins((currentPins) => {
+      const next = currentPins.includes(href) ? currentPins.filter((item) => item !== href) : [...currentPins, href];
+      writePins(next);
+      return next;
+    });
+  }
+
+  const body = surface ? (
+    <div className={cn("nexcrm-surface shell-module", surfaceFlush && "is-flush")}>{children}</div>
+  ) : (
+    children
+  );
 
   return (
     <OfficeContext.Provider value={session}>
       <TooltipProvider>
-        <SidebarProvider
-          style={
-            {
-              "--sidebar-width": "calc(var(--spacing) * 68)",
-            } as CSSProperties
-          }
-        >
-          <AppSidebar groups={groups} session={session} canEdit={session.role.canEdit} />
-          <SidebarInset
-            className={cn(
-              "[--dashboard-header-height:--spacing(12)]",
-              "min-w-0 overflow-x-clip",
-            )}
+        <div className="nexcrm-shell">
+          <SidebarProvider
+            style={
+              {
+                "--sidebar-width": "calc(var(--spacing) * 68)",
+              } as CSSProperties
+            }
           >
-            <header className="sticky top-0 z-50 flex h-12 shrink-0 items-center gap-2 border-b bg-background/50 backdrop-blur-md transition-[width,height] ease-linear print:hidden">
-              <div className="flex w-full items-center justify-between px-4 lg:px-6">
-                <div className="flex min-w-0 items-center gap-1 lg:gap-2">
+            <AppSidebar
+              groups={groups}
+              session={session}
+              canEdit={session.role.canEdit}
+              pins={pins}
+              onTogglePin={togglePin}
+            />
+            <SidebarInset className="min-w-0 overflow-x-clip">
+              <header className="shell-titlebar print:hidden">
+                <div className="shell-titlebar-left">
                   <SidebarTrigger className="-ml-1" />
-                  <Separator
-                    orientation="vertical"
-                    className="mx-2 data-[orientation=vertical]:h-4 data-[orientation=vertical]:self-center"
-                  />
-                  <p className="truncate text-sm font-medium">{pageTitle}</p>
+                  <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-4" />
+                  <nav className="shell-crumbs" aria-label="Breadcrumb">
+                    {crumbs.map((crumb, index) => (
+                      <span key={`${crumb.label}-${index}`} className="flex items-center gap-0.5">
+                        {index > 0 ? <ChevronRightIcon className="size-3 opacity-50" /> : null}
+                        {crumb.href ? <a href={crumb.href}>{crumb.label}</a> : <strong>{crumb.label}</strong>}
+                      </span>
+                    ))}
+                  </nav>
+                  <div className="min-w-0 flex-1 sm:max-w-[12rem] md:max-w-xs lg:max-w-sm">
+                    <CommandPalette canEdit={session.role.canEdit} />
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="shell-titlebar-right">
+                  <span className="shell-chip is-live hidden sm:inline-flex">Online</span>
+                  <span className="shell-chip is-accent hidden md:inline-flex">
+                    {session.role.canEdit ? "Edit mode" : "Preview"}
+                  </span>
+                  <span className="shell-chip hidden lg:inline-flex">
+                    <Clock3Icon className="size-3" />
+                    {clockLabel}
+                  </span>
                   <InstallPrompt />
                   <ThemeToggle />
                 </div>
-              </div>
-            </header>
+              </header>
 
-            <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden p-4 pb-[max(1rem,calc(env(safe-area-inset-bottom)+4.5rem))] md:p-6 md:pb-6">
-              <div className="@container/main page-enter flex flex-col gap-4 md:gap-6">
-                <div className="flex flex-wrap items-start justify-between gap-3 print:hidden">
-                  <div className="grid min-w-0 gap-1">
-                    {eyebrow ? (
-                      <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">{eyebrow}</p>
-                    ) : null}
-                    <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{pageTitle}</h1>
-                    {description ? <p className="max-w-2xl text-sm text-muted-foreground">{description}</p> : null}
+              <div className="shell-desktop">
+                <div className="@container/main shell-window">
+                  <div className="shell-window-head print:hidden">
+                    <div className="min-w-0">
+                      {eyebrow ? <p className="shell-window-eyebrow">{eyebrow}</p> : null}
+                      <h1>{displayHeading}</h1>
+                      {description ? <p className="shell-window-desc">{description}</p> : null}
+                    </div>
+                    {actions ? <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{actions}</div> : null}
                   </div>
-                  {actions ? <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{actions}</div> : null}
+                  <div className="shell-window-body">{body}</div>
                 </div>
-                <div className="page-enter grid min-w-0 gap-4 md:gap-6 [animation-delay:40ms]">{children}</div>
               </div>
-            </div>
-          </SidebarInset>
-        </SidebarProvider>
+
+              <footer className="shell-statusbar print:hidden">
+                <span>
+                  Path <strong>{pathname}</strong>
+                </span>
+                <span>
+                  Role <strong>{session.role.name}</strong>
+                </span>
+                <span>
+                  Access <strong>{session.role.canEdit ? "Can edit" : "Preview only"}</strong>
+                </span>
+                <span className="ml-auto inline-flex items-center gap-1">
+                  <Clock3Icon className="size-3" />
+                  {clockLabel}
+                </span>
+              </footer>
+
+              <MobileBottomNav pathname={pathname} isAdmin={session.role.slug === "system_admin"} />
+            </SidebarInset>
+          </SidebarProvider>
+        </div>
       </TooltipProvider>
       <MobileInstallBanner />
     </OfficeContext.Provider>
+  );
+}
+
+function MobileBottomNav({ pathname, isAdmin }: { pathname: string; isAdmin: boolean }) {
+  const items = [
+    {
+      href: "/",
+      label: "Home",
+      icon: LayoutDashboardIcon,
+      active: pathname === "/",
+    },
+    {
+      href: "/employees",
+      label: "People",
+      icon: UsersIcon,
+      active: pathname.startsWith("/employees"),
+    },
+    {
+      href: "/attendance",
+      label: "Attend",
+      icon: CalendarCheckIcon,
+      active: pathname.startsWith("/attendance"),
+    },
+    {
+      href: "/documents",
+      label: "Files",
+      icon: FileArchiveIcon,
+      active: pathname.startsWith("/documents"),
+    },
+    isAdmin
+      ? {
+          href: "/settings",
+          label: "Settings",
+          icon: SettingsIcon,
+          active:
+            pathname.startsWith("/settings") ||
+            pathname.startsWith("/admin") ||
+            pathname.startsWith("/users"),
+        }
+      : {
+          href: "/payroll",
+          label: "Payroll",
+          icon: WalletIcon,
+          active: pathname.startsWith("/payroll"),
+        },
+  ] as const;
+
+  return (
+    <nav className="shell-mobile-nav print:hidden" aria-label="Primary">
+      {items.map((item) => {
+        const Icon = item.icon;
+        return (
+          <a key={item.href} href={item.href} className={cn(item.active && "is-active")} aria-current={item.active ? "page" : undefined}>
+            <Icon aria-hidden />
+            <span>{item.label}</span>
+          </a>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -458,11 +701,29 @@ export function WhenEditing({ children }: { children: ReactNode }) {
   return children;
 }
 
-export function Banner({ message, error = false }: { message: string | null; error?: boolean }) {
+export function Banner({
+  message,
+  error = false,
+  tone,
+}: {
+  message: string | null;
+  error?: boolean;
+  tone?: "default" | "info" | "success" | "warning" | "destructive";
+}) {
   if (!message) return null;
+  const variant = tone ?? (error ? "destructive" : "info");
+  const Icon =
+    variant === "destructive"
+      ? OctagonXIcon
+      : variant === "success"
+        ? CircleCheckIcon
+        : variant === "warning"
+          ? TriangleAlertIcon
+          : InfoIcon;
   return (
-    <Alert variant={error ? "destructive" : "default"} role={error ? "alert" : "status"}>
-      <AlertDescription className={error ? undefined : "text-foreground"}>{message}</AlertDescription>
+    <Alert variant={variant} role={variant === "destructive" ? "alert" : "status"}>
+      <Icon aria-hidden="true" />
+      <AlertDescription className={variant === "default" ? "text-foreground" : undefined}>{message}</AlertDescription>
     </Alert>
   );
 }

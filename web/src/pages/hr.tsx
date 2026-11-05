@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { TextField } from "@/components/field";
 import { Banner, Loading, Shell, WhenEditing } from "@/components/shell";
 import { getJson, postJson } from "@/lib/api";
+import { formatDateTime } from "@/lib/dates";
 
 type CompanyFields = {
   legalName: string;
@@ -251,7 +252,7 @@ export function HrPage() {
               {model.employees.length ? (
                 model.employees.map((employee) => (
                   <p key={employee.id}>
-                    <a className="underline underline-offset-4" href={`/work-permits/${employee.id}`}>
+                    <a className="underline underline-offset-4" href={`/employees?edit=${employee.id}`}>
                       {employee.legalName}
                     </a>
                     <span className="text-muted-foreground"> · {employee.companyName}</span>
@@ -261,7 +262,7 @@ export function HrPage() {
                 <p className="text-muted-foreground">No work permits yet.</p>
               )}
               <Button variant="outline" className="mt-2 w-fit" asChild>
-                <a href="/work-permits/new">New work permit</a>
+                <a href="/employees?new=1">New employee</a>
               </Button>
             </CardContent>
           </Card>
@@ -279,7 +280,7 @@ export function HrPage() {
                     </p>
                     <p className="text-sm">{item.snapshot.registeredAddress ?? "No address"}</p>
                     <p className="text-sm text-muted-foreground">
-                      Saved {new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Indian/Maldives" }).format(new Date(item.createdAt))}. This copy stays as it was when saved.
+                      Saved {formatDateTime(item.createdAt)}. This copy stays as it was when saved.
                     </p>
                   </article>
                 ))
@@ -296,14 +297,14 @@ export function HrPage() {
 
 function AlertBlock({ items }: { items: string[] }) {
   return (
-    <div className="mb-4 rounded-lg border border-border bg-muted px-3 py-2 text-sm">
-      <p>This company cannot issue a document yet.</p>
+    <div className="mb-4 rounded-lg border border-amber-500/35 bg-amber-500/12 px-3 py-2 text-sm text-amber-950 dark:border-amber-400/35 dark:bg-amber-400/10 dark:text-amber-50">
+      <p className="font-medium">This company cannot issue a document yet.</p>
       <ul className="mt-2 list-disc pl-5">
         {items.map((item) => (
           <li key={item}>{item}</li>
         ))}
       </ul>
-      <p className="mt-2 text-muted-foreground">Letterhead artwork was not included with the handoff, so none is stored.</p>
+      <p className="mt-2 opacity-80">Letterhead artwork was not included with the handoff, so none is stored.</p>
     </div>
   );
 }

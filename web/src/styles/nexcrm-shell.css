@@ -1,0 +1,509 @@
+/* NEXCRM office shell — app chrome (sidebar + titlebar + desktop + status) */
+
+.nexcrm-shell,
+.nexcrm-shell *,
+.nexcrm-shell *::before,
+.nexcrm-shell *::after {
+  animation: unset !important;
+  transition: unset !important;
+}
+
+.nexcrm-shell {
+  --shell-accent: oklch(0.62 0.14 240);
+  --shell-accent-soft: oklch(0.94 0.03 240);
+  --shell-warm: oklch(0.78 0.12 85);
+  --shell-lift: 0 12px 32px -20px color-mix(in oklch, var(--foreground) 30%, transparent);
+  --shell-inset: inset 0 1px 0 color-mix(in oklch, white 50%, transparent);
+  min-height: 100dvh;
+}
+
+.dark .nexcrm-shell {
+  --shell-accent-soft: oklch(0.28 0.05 240);
+  --shell-inset: inset 0 1px 0 color-mix(in oklch, white 8%, transparent);
+}
+
+.nexcrm-shell [data-slot="sidebar"] {
+  border-right: 1px solid color-mix(in oklch, var(--sidebar-border) 80%, transparent);
+  background:
+    radial-gradient(120% 70% at 0% 0%, color-mix(in oklch, var(--shell-accent) 14%, transparent), transparent 55%),
+    var(--sidebar);
+}
+
+.nexcrm-shell [data-slot="sidebar-header"] {
+  border-bottom: 1px solid color-mix(in oklch, var(--sidebar-border) 75%, transparent);
+  padding-top: 0.65rem;
+  padding-bottom: 0.65rem;
+}
+
+.nexcrm-shell .shell-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.7rem;
+  background: linear-gradient(160deg, color-mix(in oklch, var(--shell-accent) 75%, white), var(--shell-accent));
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, white 35%, transparent),
+    0 8px 16px -10px color-mix(in oklch, var(--shell-accent) 70%, transparent);
+}
+
+.nexcrm-shell .shell-brand-copy {
+  display: grid;
+  gap: 0.05rem;
+  line-height: 1.15;
+}
+
+.nexcrm-shell .shell-brand-copy strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.nexcrm-shell .shell-brand-copy span {
+  color: var(--muted-foreground);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nexcrm-shell .shell-kicker {
+  margin: 0.35rem 0.5rem 0.15rem;
+  padding: 0 0.35rem;
+  color: var(--muted-foreground);
+  font-size: 0.65rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nexcrm-shell .shell-search-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin: 0.35rem 0 0.5rem;
+  border: 1px solid color-mix(in oklch, var(--sidebar-border) 85%, transparent);
+  border-radius: 0.75rem;
+  background: color-mix(in oklch, var(--sidebar-accent) 55%, transparent);
+  color: var(--muted-foreground);
+  cursor: pointer;
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+  font-size: 0.8rem;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease !important;
+}
+
+.nexcrm-shell .shell-search-chip:hover {
+  background: var(--sidebar-accent);
+  border-color: color-mix(in oklch, var(--shell-accent) 30%, var(--sidebar-border));
+  color: var(--foreground);
+}
+
+.nexcrm-shell .shell-search-chip kbd {
+  margin-left: auto;
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  border-radius: 0.35rem;
+  background: color-mix(in oklch, var(--background) 70%, transparent);
+  padding: 0.05rem 0.35rem;
+  font-size: 0.65rem;
+  font-family: inherit;
+}
+
+.nexcrm-shell [data-slot="sidebar-menu-button"][data-active="true"] {
+  background: linear-gradient(
+    105deg,
+    color-mix(in oklch, var(--shell-accent) 18%, transparent),
+    color-mix(in oklch, var(--sidebar-accent) 70%, transparent)
+  );
+  box-shadow: var(--shell-inset);
+  font-weight: 650;
+}
+
+.nexcrm-shell .shell-pin-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.15rem 0.35rem 0.55rem;
+}
+
+.nexcrm-shell .shell-pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid color-mix(in oklch, var(--sidebar-border) 80%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--sidebar-accent) 50%, transparent);
+  color: var(--sidebar-foreground);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.68rem;
+  text-decoration: none;
+  transition: transform 140ms ease, background-color 140ms ease !important;
+}
+
+.nexcrm-shell .shell-pin:hover {
+  transform: translateY(-1px);
+  background: var(--sidebar-accent);
+}
+
+.nexcrm-shell .shell-pin.is-active {
+  border-color: color-mix(in oklch, var(--shell-accent) 40%, var(--sidebar-border));
+  background: color-mix(in oklch, var(--shell-accent) 16%, transparent);
+  font-weight: 650;
+}
+
+.nexcrm-shell .shell-titlebar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3.15rem;
+  height: calc(3.15rem + env(safe-area-inset-top, 0px));
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--card) 92%, transparent), color-mix(in oklch, var(--background) 88%, transparent));
+  box-shadow: 0 8px 20px -18px color-mix(in oklch, var(--foreground) 35%, transparent);
+  padding: env(safe-area-inset-top, 0px) 0.75rem 0;
+}
+
+@media (min-width: 1024px) {
+  .nexcrm-shell .shell-titlebar {
+    padding: env(safe-area-inset-top, 0px) 1.15rem 0;
+    gap: 0.65rem;
+  }
+}
+
+.nexcrm-shell .shell-titlebar-left,
+.nexcrm-shell .shell-titlebar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.nexcrm-shell .shell-titlebar-left {
+  flex: 1;
+}
+
+.nexcrm-shell .shell-crumbs {
+  display: none;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+}
+
+@media (min-width: 768px) {
+  .nexcrm-shell .shell-crumbs {
+    display: flex;
+  }
+}
+
+.nexcrm-shell .shell-crumbs a {
+  color: inherit;
+  text-decoration: none;
+  border-radius: 0.35rem;
+  padding: 0.1rem 0.3rem;
+}
+
+.nexcrm-shell .shell-crumbs a:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.nexcrm-shell .shell-crumbs strong {
+  color: var(--foreground);
+  font-weight: 650;
+}
+
+.nexcrm-shell .shell-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--muted) 40%, transparent);
+  padding: 0.2rem 0.6rem;
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.nexcrm-shell .shell-chip.is-accent {
+  border-color: color-mix(in oklch, var(--shell-accent) 35%, var(--border));
+  background: color-mix(in oklch, var(--shell-accent) 12%, transparent);
+  color: var(--foreground);
+}
+
+.nexcrm-shell .shell-chip.is-live::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: oklch(0.7 0.17 145);
+  box-shadow: 0 0 0 3px color-mix(in oklch, oklch(0.7 0.17 145) 20%, transparent);
+}
+
+.nexcrm-shell .shell-desktop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow-x: hidden;
+  background:
+    radial-gradient(90% 60% at 100% 0%, color-mix(in oklch, var(--shell-warm) 10%, transparent), transparent 50%),
+    radial-gradient(80% 50% at 0% 100%, color-mix(in oklch, var(--shell-accent) 8%, transparent), transparent 45%),
+    var(--background);
+  padding: 0.75rem;
+  padding-bottom: max(0.75rem, calc(env(safe-area-inset-bottom, 0px) + 4.75rem));
+}
+
+@media (min-width: 768px) {
+  .nexcrm-shell .shell-desktop {
+    padding: 1.25rem 1.35rem;
+    padding-bottom: 1.35rem;
+  }
+}
+
+.nexcrm-shell .shell-window {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  flex: 1;
+}
+
+@media (min-width: 768px) {
+  .nexcrm-shell .shell-window {
+    gap: 1.25rem;
+  }
+}
+
+.nexcrm-shell .shell-window-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+  border-radius: 0.9rem;
+  background:
+    radial-gradient(120% 100% at 0% 0%, color-mix(in oklch, var(--shell-accent) 10%, transparent), transparent 55%),
+    color-mix(in oklch, var(--card) 92%, transparent);
+  box-shadow: var(--shell-inset), var(--shell-lift);
+  padding: 0.8rem 0.9rem;
+}
+
+@media (min-width: 768px) {
+  .nexcrm-shell .shell-window-head {
+    gap: 0.85rem;
+    border-radius: 1rem;
+    padding: 0.95rem 1.05rem;
+  }
+}
+
+.nexcrm-shell .shell-window-head h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+@media (min-width: 640px) {
+  .nexcrm-shell .shell-window-head h1 {
+    font-size: 1.45rem;
+  }
+}
+
+.nexcrm-shell .shell-window-eyebrow {
+  margin: 0 0 0.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nexcrm-shell .shell-window-desc {
+  margin: 0.35rem 0 0;
+  max-width: 42rem;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .nexcrm-shell .shell-window-desc {
+    font-size: 0.875rem;
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+  }
+}
+
+.nexcrm-shell .shell-window-body {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .nexcrm-shell .shell-window-body {
+    gap: 1.25rem;
+  }
+}
+
+/* Shared module surface (same chrome as Employees / Documents) */
+.nexcrm-shell .shell-module {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  padding: 0.85rem;
+}
+
+@media (min-width: 768px) {
+  .nexcrm-shell .shell-module {
+    gap: 1.25rem;
+    padding: 1rem;
+  }
+}
+
+.nexcrm-shell .shell-module.is-flush {
+  gap: 0;
+  padding: 0;
+}
+
+.nexcrm-shell .shell-statusbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 40;
+  display: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+  border-top: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
+  background: color-mix(in oklch, var(--card) 90%, var(--muted));
+  padding: 0.4rem 0.85rem;
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 768px) {
+  .nexcrm-shell .shell-statusbar {
+    display: flex;
+    padding: 0.45rem 1.15rem;
+  }
+}
+
+/* Phone / PWA bottom navigation */
+.nexcrm-shell .shell-mobile-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.15rem;
+  border-top: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
+  background: color-mix(in oklch, var(--card) 94%, transparent);
+  box-shadow: 0 -10px 28px -22px color-mix(in oklch, var(--foreground) 40%, transparent);
+  padding: 0.35rem 0.35rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .nexcrm-shell .shell-mobile-nav {
+    display: none;
+  }
+}
+
+.nexcrm-shell .shell-mobile-nav a {
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+  min-height: 2.85rem;
+  border-radius: 0.7rem;
+  color: var(--muted-foreground);
+  padding: 0.35rem 0.2rem;
+  text-decoration: none;
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.nexcrm-shell .shell-mobile-nav a svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.nexcrm-shell .shell-mobile-nav a.is-active {
+  color: var(--foreground);
+  background: color-mix(in oklch, var(--shell-accent) 14%, transparent);
+}
+
+.nexcrm-shell .shell-mobile-nav a:active {
+  background: color-mix(in oklch, var(--muted) 70%, transparent);
+}
+
+.nexcrm-shell .shell-statusbar strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.nexcrm-shell .shell-dock {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.45rem;
+  border: 1px solid color-mix(in oklch, var(--sidebar-border) 80%, transparent);
+  border-radius: 0.85rem;
+  background: color-mix(in oklch, var(--sidebar-accent) 40%, transparent);
+}
+
+.nexcrm-shell .shell-dock a {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.6rem;
+  background: color-mix(in oklch, var(--background) 55%, transparent);
+  color: var(--sidebar-foreground);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  transition: transform 140ms ease, background-color 140ms ease !important;
+}
+
+.nexcrm-shell .shell-dock a:hover {
+  transform: translateY(-1px) scale(1.04);
+}
+
+.nexcrm-shell .shell-dock a.is-active {
+  background: var(--shell-accent);
+  color: white;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexcrm-shell,
+  .nexcrm-shell *,
+  .nexcrm-shell *::before,
+  .nexcrm-shell *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

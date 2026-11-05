@@ -86,6 +86,10 @@ assert.equal(filled?.slots[0].employeeName, "Aisha");
 assert.equal(filled?.pools[0].used, 1);
 
 await pool.query("delete from projects where id = any($1::uuid[])", [[project.id, parallelProject.id]]);
+await pool.query(
+  "delete from employments where employee_id in (select id from employees where company_id = any($1::uuid[]))",
+  [[company.id, other.id]],
+);
 await pool.query("delete from employees where company_id = any($1::uuid[])", [[company.id, other.id]]);
 await pool.query("delete from companies where id = any($1::uuid[])", [[company.id, other.id]]);
 

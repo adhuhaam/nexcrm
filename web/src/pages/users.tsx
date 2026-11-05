@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { UsersIcon } from "lucide-react";
-import { Banner, Loading, Shell, useOffice } from "@/components/shell";
+import { Banner, Loading, useOffice } from "@/components/shell";
 import { SelectField, TextField } from "@/components/field";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getJson, postJson } from "@/lib/api";
+import { getJson, sendJson } from "@/lib/api";
 
 type Role = {
   id: string;
@@ -45,19 +46,7 @@ function initials(name: string): string {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
-export function UsersPage() {
-  return (
-    <Shell
-      title="NEXCRM · Users"
-      eyebrow="Access"
-      description="Create office accounts, assign roles, and reset passwords."
-    >
-      <UsersBody />
-    </Shell>
-  );
-}
-
-function UsersBody() {
+export function UsersPanel() {
   const office = useOffice();
   const [model, setModel] = useState<AccessModel | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -66,15 +55,14 @@ function UsersBody() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Person | null>(null);
 
-  function reload() {
-    getJson<AccessModel>("/api/v1/admin/access")
-      .then(setModel)
-      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not load users."));
+  async function reload() {
+    const data = await getJson<AccessModel>("/api/v1/admin/access");
+    setModel(data);
   }
 
   useEffect(() => {
     if (office.role?.slug !== "system_admin") return;
-    reload();
+    reload().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not load users."));
   }, [office.role?.slug]);
 
   const filtered = useMemo(() => {
@@ -94,13 +82,22 @@ function UsersBody() {
   }
   if (!model) return error ? <Banner message={error} error /> : <Loading />;
 
-  function save(url: string, body: Record<string, string>) {
+  async function save(url: string, body: Record<string, string>, success: string) {
     setPending(true);
     setError(null);
-    void postJson(url, { ...body, returnTo: "/users" }).catch((reason: unknown) => {
-      setError(reason instanceof Error ? reason.message : "Could not save.");
+    try {
+      await sendJson(url, "POST", body);
+      toast.success(success);
+      setCreateOpen(false);
+      setEditing(null);
+      await reload();
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : "Could not save.";
+      setError(message);
+      toast.error(message);
+    } finally {
       setPending(false);
-    });
+    }
   }
 
   return (
@@ -114,7 +111,8 @@ function UsersBody() {
               Office users
             </CardTitle>
             <CardDescription>
-              {model.users.length} account{model.users.length === 1 ? "" : "s"} · {model.users.filter((u) => u.active).length} active
+              {model.users.length} account{model.users.length === 1 ? "" : "s"} ·{" "}
+              {model.users.filter((u) => u.active).length} active
             </CardDescription>
           </div>
           <Button type="button" onClick={() => setCreateOpen(true)}>
@@ -122,7 +120,12 @@ function UsersBody() {
           </Button>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <Input value={q} onChange={(event) => setQ(event.target.value)} placeholder="Search name, email or role" aria-label="Search users" />
+          <Input
+            value={q}
+            onChange={(event) => setQ(event.target.value)}
+            placeholder="Search name, email or role"
+            aria-label="Search users"
+          />
           {filtered.length ? (
             <Table>
               <TableHeader>
@@ -149,7 +152,9 @@ function UsersBody() {
                     </TableCell>
                     <TableCell>{person.role.name}</TableCell>
                     <TableCell>
-                      <Badge variant={person.active ? "secondary" : "outline"}>{person.active ? "Active" : "Inactive"}</Badge>
+                      <Badge variant={person.active ? "secondary" : "outline"}>
+                        {person.active ? "Active" : "Inactive"}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button type="button" size="sm" variant="outline" onClick={() => setEditing(person)}>
@@ -171,7 +176,7 @@ function UsersBody() {
         roles={model.roles}
         pending={pending}
         onOpenChange={setCreateOpen}
-        onSave={save}
+        onSave={(url, body) => void save(url, body, "User created")}
       />
       <EditUserDialog
         person={editing}
@@ -181,7 +186,7 @@ function UsersBody() {
         onOpenChange={(open) => {
           if (!open) setEditing(null);
         }}
-        onSave={save}
+        onSave={(url, body) => void save(url, body, "User saved")}
       />
     </>
   );
@@ -218,7 +223,9 @@ function CreateUserDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add user</DialogTitle>
-          <DialogDescription>They sign in with email and password. Choose a role that matches their office work.</DialogDescription>
+          <DialogDescription>
+            They sign in with email and password. Choose a role that matches their office work.
+          </DialogDescription>
         </DialogHeader>
         <form
           className="grid gap-4"
@@ -229,7 +236,14 @@ function CreateUserDialog({
         >
           <TextField id="new-user-name" label="Name" value={name} onChange={setName} />
           <TextField id="new-user-email" label="Email" value={email} onChange={setEmail} />
-          <TextField id="new-user-password" label="Password" type="password" value={password} onChange={setPassword} hint="At least 8 characters." />
+          <TextField
+            id="new-user-password"
+            label="Password"
+            type="password"
+            value={password}
+            onChange={setPassword}
+            hint="At least 8 characters."
+          />
           <SelectField id="new-user-role" label="Role" value={roleId} onChange={setRoleId}>
             {roles.map((role) => (
               <option key={role.id} value={role.id}>

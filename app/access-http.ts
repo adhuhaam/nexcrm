@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { isExpoDevOrigin } from "../lib/cors.ts";
 import {
   AccessError,
+  accessCatalog,
   authorize,
   closeSession,
   createRole,
@@ -15,7 +16,13 @@ import {
   userForToken,
   type OfficeUser,
 } from "../modules/access/access.ts";
-import { getOpenAiSettingsView, saveOpenAiSettings } from "../modules/settings/settings.ts";
+import type { ModulePermission } from "../modules/access/permissions.ts";
+import { getSystemHealth } from "../lib/health.ts";
+import {
+  getSystemSettingsView,
+  saveSystemSettings,
+  settingsCatalog,
+} from "../modules/settings/settings.ts";
 
 const cookieName = "nexcrm_session";
 
@@ -87,6 +94,25 @@ function text(value: unknown): string {
 
 function flag(value: unknown): boolean {
   return value === true || value === "true" || value === "on" || value === "1";
+}
+
+function readPermissions(value: unknown): ModulePermission[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const rows: ModulePermission[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const row = item as Record<string, unknown>;
+    const module = text(row.module);
+    if (!module) continue;
+    rows.push({
+      module,
+      canView: flag(row.canView),
+      canCreate: flag(row.canCreate),
+      canEdit: flag(row.canEdit),
+      canDelete: flag(row.canDelete),
+    });
+  }
+  return rows.length ? rows : undefined;
 }
 
 function publicView(user: OfficeUser | null) {
@@ -168,11 +194,23 @@ export async function guardAccess(request: IncomingMessage, response: ServerResp
 async function handleAdmin(request: IncomingMessage, response: ServerResponse, url: URL, user: OfficeUser): Promise<boolean> {
   const method = request.method ?? "GET";
   if (method === "GET" && url.pathname === "/api/v1/admin/access") {
-    sendJson(response, 200, { roles: await listRoles(), users: await listUsers(), actorId: user.id });
+    sendJson(response, 200, {
+      roles: await listRoles(),
+      users: await listUsers(),
+      actorId: user.id,
+      catalog: accessCatalog(),
+    });
     return true;
   }
   if (method === "GET" && url.pathname === "/api/v1/admin/settings") {
-    sendJson(response, 200, await getOpenAiSettingsView());
+    sendJson(response, 200, {
+      ...(await getSystemSettingsView()),
+      catalog: settingsCatalog(),
+    });
+    return true;
+  }
+  if (method === "GET" && url.pathname === "/api/v1/admin/health") {
+    sendJson(response, 200, await getSystemHealth());
     return true;
   }
   if (method === "POST" && url.pathname === "/api/v1/admin/settings") {
@@ -185,12 +223,18 @@ async function handleAdmin(request: IncomingMessage, response: ServerResponse, u
       const clearApiKey = flag(body.clearApiKey);
       const apiKey = body.apiKey === undefined ? undefined : text(body.apiKey);
       const model = body.model === undefined ? undefined : text(body.model);
-      const settings = await saveOpenAiSettings({
+      const settings = await saveSystemSettings({
         apiKey: clearApiKey ? null : apiKey,
         clearApiKey,
         model,
+        officeName: body.officeName === undefined ? undefined : text(body.officeName),
+        supportEmail: body.supportEmail === undefined ? undefined : text(body.supportEmail),
+        timeZone: body.timeZone === undefined ? undefined : text(body.timeZone),
+        currency: body.currency === undefined ? undefined : text(body.currency),
+        dateFormat: body.dateFormat === undefined ? undefined : text(body.dateFormat),
+        weekStartsOn: body.weekStartsOn === undefined ? undefined : text(body.weekStartsOn),
       });
-      sendJson(response, 200, settings);
+      sendJson(response, 200, { ...settings, catalog: settingsCatalog() });
     } catch (error) {
       const message = error instanceof AccessError || error instanceof SyntaxError ? error.message : "Could not save settings.";
       sendJson(response, 400, { error: message });
@@ -208,13 +252,18 @@ async function handleAdmin(request: IncomingMessage, response: ServerResponse, u
   try {
     const body = await readRecord(request);
     if (url.pathname === "/api/v1/admin/roles") {
-      await createRole({
+      const created = await createRole({
         name: text(body.name),
         canPreview: flag(body.canPreview),
         canEdit: flag(body.canEdit),
         canDelete: flag(body.canDelete),
+        permissions: readPermissions(body.permissions),
       });
-      sendJson(response, 200, { location: text(body.returnTo) === "/users" ? "/users" : "/admin" });
+      sendJson(response, 200, {
+        ok: true,
+        role: created,
+        location: text(body.returnTo) === "/users" ? "/users" : "/admin",
+      });
       return true;
     }
     const roleId = url.pathname.match(/^\/api\/v1\/admin\/roles\/([0-9a-f-]{36})$/i)?.[1];
@@ -224,8 +273,9 @@ async function handleAdmin(request: IncomingMessage, response: ServerResponse, u
         canPreview: flag(body.canPreview),
         canEdit: flag(body.canEdit),
         canDelete: flag(body.canDelete),
+        permissions: readPermissions(body.permissions),
       });
-      sendJson(response, 200, { location: text(body.returnTo) === "/users" ? "/users" : "/admin" });
+      sendJson(response, 200, { ok: true, location: text(body.returnTo) === "/users" ? "/users" : "/admin" });
       return true;
     }
     const deleteId = url.pathname.match(/^\/api\/v1\/admin\/roles\/([0-9a-f-]{36})\/delete$/i)?.[1];

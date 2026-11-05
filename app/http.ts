@@ -5,8 +5,12 @@ import {
   getCompanyDetail,
   listCompanies,
   listCompaniesWithCounts,
+  setCompanyBrandingFile,
   updateCompany,
+  type CompanyBrandingSlot,
 } from "../modules/companies/companies.ts";
+import { userForToken } from "../modules/access/access.ts";
+import { FileError, readMultipart, storeBuffer } from "../modules/files/storage.ts";
 import {
   editorCompanyId,
   getPreferences,
@@ -20,11 +24,14 @@ import { getWorkPermit, listWorkPermits } from "../modules/hr/work-permits.ts";
 import { getProjectView, listProjects } from "../modules/projects/projects.ts";
 import { guardAccess } from "./access-http.ts";
 import { handleAgencyApi } from "./agency-http.ts";
+import { handleAttendanceApi } from "./attendance-http.ts";
 import { handleExpensesApi } from "./expenses-http.ts";
+import { handleOtApi } from "./ot-http.ts";
 import { handleHrApi } from "./hr-http.ts";
 import { noticeText, renderPage, type PageModel } from "./page.ts";
 import { handleProjectRequest } from "./projects-http.ts";
 import { handleWorkPermitRequest } from "./work-permits-http.ts";
+import { handleXpatApi } from "./xpat-http.ts";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -100,6 +107,7 @@ async function pageModel(search: URLSearchParams, error: string | null, draft: C
           kind: "employer",
           legalName: "",
           registrationNumber: null,
+          tinNumber: null,
           registeredAddress: null,
           country: null,
           businessActivity: null,
@@ -114,7 +122,7 @@ async function pageModel(search: URLSearchParams, error: string | null, draft: C
     preferences,
     editor,
     snapshots: await listSnapshots(),
-    employees: await listEmployees(),
+    employees: (await listEmployees()).employees,
     notice: noticeText(search.get("notice")),
     error,
   };
@@ -133,6 +141,7 @@ function draftFrom(record: Record<string, unknown>): CompanyInput {
     kind: kindRaw === "client" ? "client" : "employer",
     legalName: text("legalName"),
     registrationNumber: orNull("registrationNumber"),
+    tinNumber: orNull("tinNumber"),
     registeredAddress: orNull("registeredAddress"),
     country: orNull("country"),
     businessActivity: orNull("businessActivity"),
@@ -150,7 +159,10 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
   if (await guardAccess(request, response, url)) return;
 
   if (await handleAgencyApi(request, response, url)) return;
+  if (await handleAttendanceApi(request, response, url)) return;
+  if (await handleOtApi(request, response, url)) return;
   if (await handleExpensesApi(request, response, url)) return;
+  if (await handleXpatApi(request, response, url)) return;
   if (await handleHrApi(request, response, url)) return;
 
   if (method === "GET" && url.pathname === "/api/v1/hr") {
@@ -172,7 +184,7 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
     return;
   }
   if (method === "GET" && url.pathname === "/api/v1/projects") {
-    sendJson(response, 200, { projects: await listProjects(), companies: await listCompanies() });
+    sendJson(response, 200, { projects: await listProjects(), companies: await listCompanies("employer") });
     return;
   }
   const projectApiId = companyIdFromPath(url.pathname, "/api/v1/projects/");
@@ -242,6 +254,69 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
       }
       sendJson(response, 200, detail);
       return;
+    }
+
+    const brandingMatch = url.pathname.match(
+      /^\/api\/v1\/companies\/([0-9a-f-]{36})\/assets\/(letterhead|seal|signature)$/i,
+    );
+    if (brandingMatch) {
+      const brandCompanyId = brandingMatch[1];
+      const slot = brandingMatch[2].toLowerCase() as CompanyBrandingSlot;
+      if (!sameOrigin(request)) {
+        sendJson(response, 403, { error: "Cross-origin request rejected" });
+        return;
+      }
+      const existing = await getCompany(brandCompanyId);
+      if (!existing) {
+        sendJson(response, 404, { error: "Company not found" });
+        return;
+      }
+      if (method === "DELETE") {
+        const updated = await setCompanyBrandingFile(brandCompanyId, slot, null);
+        sendJson(response, 200, { company: updated });
+        return;
+      }
+      if (method === "POST") {
+        try {
+          const multipart = await readMultipart(request);
+          if (!multipart.file) {
+            sendJson(response, 400, { error: "Upload an image file" });
+            return;
+          }
+          if (!multipart.file.mimeType.startsWith("image/") && multipart.file.mimeType !== "application/pdf") {
+            sendJson(response, 400, { error: "Branding asset must be an image (or PDF for letterhead)" });
+            return;
+          }
+          if (slot !== "letterhead" && !multipart.file.mimeType.startsWith("image/")) {
+            sendJson(response, 400, { error: "Seal and signature must be images" });
+            return;
+          }
+          const cookie = request.headers.cookie ?? "";
+          const token = cookie.match(/(?:^|;\s*)nexcrm_session=([^;]+)/)?.[1] ?? null;
+          const user = token ? await userForToken(decodeURIComponent(token)) : null;
+          const kind =
+            slot === "letterhead" ? "company_letterhead" : slot === "seal" ? "company_seal" : "company_signature";
+          const stored = await storeBuffer({
+            buffer: multipart.file.buffer,
+            originalName: multipart.file.filename,
+            mimeType: multipart.file.mimeType,
+            kind,
+            uploadedBy: user?.id ?? null,
+            entityType: "company",
+            entityId: brandCompanyId,
+            label: slot === "letterhead" ? "Letterhead" : slot === "seal" ? "Stamp / seal" : "Authorized signature",
+          });
+          const updated = await setCompanyBrandingFile(brandCompanyId, slot, stored.id);
+          sendJson(response, 201, { company: updated, file: stored });
+          return;
+        } catch (reason) {
+          if (reason instanceof FileError) {
+            sendJson(response, 400, { error: reason.message });
+            return;
+          }
+          throw reason;
+        }
+      }
     }
 
     if (method === "POST" && (url.pathname === "/companies" || url.pathname === "/api/v1/companies")) {

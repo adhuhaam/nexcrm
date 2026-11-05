@@ -1,7 +1,12 @@
+import { formatDate } from "@/lib/dates";
 import type { LetterSnapshot } from "./loa-types";
 
 function cell(value: string | null | undefined): string {
   return value?.trim() ? value : "—";
+}
+
+function assetSrc(id: string | null | undefined): string | null {
+  return id ? `/api/v1/files/${id}/download` : null;
 }
 
 export function LoaDocument({ snapshot }: { snapshot: LetterSnapshot }) {
@@ -10,11 +15,17 @@ export function LoaDocument({ snapshot }: { snapshot: LetterSnapshot }) {
   const terms = snapshot.terms;
   const name = employee.legalName || "";
   const position = employee.occupation || "the stated position";
+  const letterhead = assetSrc(snapshot.letterheadFileId ?? company.letterheadFileId);
+  const seal = assetSrc(snapshot.sealFileId ?? company.sealFileId);
+  const signature = assetSrc(snapshot.signatureFileId ?? company.signatureFileId);
 
   return (
     <article className="loa-sheet bg-white text-black shadow-sm">
       <p className="loa-bismillah">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
       <header className="loa-letterhead">
+        {letterhead ? (
+          <img src={letterhead} alt={`${company.legalName || "Company"} letterhead`} className="loa-letterhead-art" />
+        ) : null}
         <h1>{cell(company.legalName)}</h1>
         <p>
           Company Registration No. {cell(company.registrationNumber)}
@@ -30,7 +41,7 @@ export function LoaDocument({ snapshot }: { snapshot: LetterSnapshot }) {
         <strong>Document No:</strong> {snapshot.documentNumber}
       </p>
       <p className="loa-meta">
-        <strong>Date:</strong> {formatDisplayDate(snapshot.letterDate)}
+        <strong>Date:</strong> {formatDate(snapshot.letterDate)}
       </p>
 
       <p>Dear {name || "………………"},</p>
@@ -83,7 +94,7 @@ export function LoaDocument({ snapshot }: { snapshot: LetterSnapshot }) {
           <tr>
             <th>Nationality and date of birth</th>
             <td>
-              {cell(employee.nationality)} · {cell(employee.dateOfBirth)}
+              {cell(employee.nationality)} · {formatDate(employee.dateOfBirth)}
             </td>
           </tr>
           <tr>
@@ -157,30 +168,21 @@ export function LoaDocument({ snapshot }: { snapshot: LetterSnapshot }) {
       <div className="loa-signatures">
         <div>
           <p>For {company.legalName || "the company"}</p>
+          {signature ? <img src={signature} alt="Authorized signature" className="loa-signature-art" /> : null}
+          {seal ? <img src={seal} alt="Company seal" className="loa-seal-art" /> : null}
           <p className="loa-sign-name">{cell(snapshot.signatoryName)}</p>
           <p>{cell(snapshot.signatoryTitle)}</p>
-          <p>Date: {formatDisplayDate(snapshot.letterDate)}</p>
-          <p>Signature: ____________________</p>
+          <p>Date: {formatDate(snapshot.letterDate)}</p>
+          {!signature ? <p>Signature: ____________________</p> : null}
         </div>
         <div>
           <p>Employee Acceptance</p>
           <p className="loa-sign-name">{cell(employee.legalName)}</p>
           <p>Passport No. {cell(employee.passportNumber)}</p>
-          <p>Date: {formatDisplayDate(snapshot.letterDate)}</p>
+          <p>Date: {formatDate(snapshot.letterDate)}</p>
           <p>Signature: ____________________</p>
         </div>
       </div>
     </article>
   );
-}
-
-function formatDisplayDate(value: string): string {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return value || "—";
-  const date = new Date(`${value}T12:00:00`);
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "Indian/Maldives",
-  }).format(date);
 }

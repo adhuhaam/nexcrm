@@ -81,12 +81,14 @@ export function SelectField({
   value,
   onChange,
   children,
+  disabled = false,
 }: {
   id: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
   children: ReactNode;
+  disabled?: boolean;
 }) {
   return (
     <Field id={id} label={label}>
@@ -94,10 +96,12 @@ export function SelectField({
         id={id}
         name={id}
         value={value}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         className={cn(
           "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none",
           "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+          disabled && "cursor-not-allowed opacity-60",
         )}
       >
         {children}
