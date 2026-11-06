@@ -6,9 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { TextField } from "@/components/field";
 import { Banner, Loading, useOffice } from "@/components/shell";
 import { getJson, sendJson } from "@/lib/api";
+import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import type { ModulePermission } from "@/lib/session";
-import "@/styles/nexcrm-surface.css";
 import "./admin.css";
 
 type Role = {
@@ -303,10 +303,10 @@ export function RolesPanel() {
                 {lockedAdmin ? <Badge>Full access</Badge> : null}
                 {!creating && selected ? (
                   <span className="text-xs text-muted-foreground">
-                    {usersOnRole} user{usersOnRole === 1 ? "" : "s"} · {granted} permissions on
+                    {usersOnRole} user{usersOnRole === 1 ? "" : "s"} · {granted} permissions enabled
                   </span>
                 ) : (
-                  <span className="text-xs text-muted-foreground">{granted} permissions on</span>
+                  <span className="text-xs text-muted-foreground">{granted} permissions enabled</span>
                 )}
               </div>
             </div>
@@ -415,6 +415,236 @@ export function RolesPanel() {
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+type FeeSettings = {
+  id: string;
+  workPermitMonthly: string;
+  insuranceYearly: string;
+  medicalYearly: string;
+  currency: string;
+};
+
+type DepositRate = {
+  id: string;
+  countryName: string;
+  isoCode: string;
+  amount: string;
+};
+
+export function FinanceRatesPanel() {
+  const office = useOffice();
+  const [fees, setFees] = useState<FeeSettings | null>(null);
+  const [rates, setRates] = useState<DepositRate[]>([]);
+  const [q, setQ] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [wp, setWp] = useState("");
+  const [insurance, setInsurance] = useState("");
+  const [medical, setMedical] = useState("");
+  const [newCountry, setNewCountry] = useState("");
+  const [newIso, setNewIso] = useState("");
+  const [newAmount, setNewAmount] = useState("");
+  const [editAmounts, setEditAmounts] = useState<Record<string, string>>({});
+
+  async function reloadRates(search = q) {
+    const data = await getJson<{ rates: DepositRate[] }>(
+      `/api/v1/admin/deposit-rates${search.trim() ? `?q=${encodeURIComponent(search.trim())}` : ""}`,
+    );
+    setRates(data.rates);
+    setEditAmounts(Object.fromEntries(data.rates.map((row) => [row.id, row.amount])));
+  }
+
+  useEffect(() => {
+    if (office.role?.slug !== "system_admin") return;
+    Promise.all([
+      getJson<FeeSettings>("/api/v1/admin/finance-rates"),
+      getJson<{ rates: DepositRate[] }>("/api/v1/admin/deposit-rates"),
+    ])
+      .then(([feeData, rateData]) => {
+        setFees(feeData);
+        setWp(feeData.workPermitMonthly);
+        setInsurance(feeData.insuranceYearly);
+        setMedical(feeData.medicalYearly);
+        setRates(rateData.rates);
+        setEditAmounts(Object.fromEntries(rateData.rates.map((row) => [row.id, row.amount])));
+        setError(null);
+      })
+      .catch((reason: unknown) => {
+        setError(reason instanceof Error ? reason.message : "Could not load finance rates.");
+      });
+  }, [office.role?.slug]);
+
+  if (office.role?.slug !== "system_admin") {
+    return <Banner message="Only a system admin can edit finance rates." error />;
+  }
+  if (!fees && !error) return <Loading />;
+  if (error && !fees) return <Banner message={error} error />;
+
+  async function saveFees() {
+    setPending(true);
+    try {
+      const next = await sendJson<FeeSettings>("/api/v1/admin/finance-rates", "POST", {
+        workPermitMonthly: wp,
+        insuranceYearly: insurance,
+        medicalYearly: medical,
+      });
+      setFees(next);
+      setWp(next.workPermitMonthly);
+      setInsurance(next.insuranceYearly);
+      setMedical(next.medicalYearly);
+      toast.success("Finance fee rates saved");
+    } catch (reason) {
+      toast.error(reason instanceof Error ? reason.message : "Could not save fee rates");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function saveDeposit(row: DepositRate) {
+    setPending(true);
+    try {
+      await sendJson("/api/v1/admin/deposit-rates", "POST", {
+        id: row.id,
+        countryName: row.countryName,
+        isoCode: row.isoCode,
+        amount: editAmounts[row.id] ?? row.amount,
+      });
+      toast.success(`Updated ${row.countryName}`);
+      await reloadRates();
+    } catch (reason) {
+      toast.error(reason instanceof Error ? reason.message : "Could not update deposit rate");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function addDeposit() {
+    setPending(true);
+    try {
+      await sendJson("/api/v1/admin/deposit-rates", "POST", {
+        countryName: newCountry,
+        isoCode: newIso,
+        amount: newAmount,
+      });
+      toast.success("Deposit rate added");
+      setNewCountry("");
+      setNewIso("");
+      setNewAmount("");
+      await reloadRates();
+    } catch (reason) {
+      toast.error(reason instanceof Error ? reason.message : "Could not add deposit rate");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-4">
+      <Banner message={error} error />
+      <section className="rounded-xl border bg-card p-4 shadow-sm">
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h2 className="text-base font-semibold">Staff fee rates</h2>
+            <p className="text-sm text-muted-foreground">
+              Defaults used when posting work permits and annual insurance/medical.
+            </p>
+          </div>
+          <Button type="button" disabled={pending} onClick={() => void saveFees()}>
+            <CheckIcon />
+            Save fee rates
+          </Button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <TextField id="fee-wp" label="Work permit / month (MVR)" value={wp} onChange={setWp} />
+          <TextField
+            id="fee-ins"
+            label="Insurance / year (MVR)"
+            value={insurance}
+            onChange={setInsurance}
+          />
+          <TextField id="fee-med" label="Medical / year (MVR)" value={medical} onChange={setMedical} />
+        </div>
+      </section>
+
+      <section className="rounded-xl border bg-card p-4 shadow-sm">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold">WP deposit rates (XPAT)</h2>
+            <p className="text-sm text-muted-foreground">
+              One-time deposit by nationality when an employee is created or onboarded.
+            </p>
+          </div>
+          <TextField id="deposit-q" label="Search countries" value={q} onChange={setQ} />
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={() => void reloadRates(q).catch((reason: unknown) => toast.error(String(reason)))}
+          >
+            Search
+          </Button>
+        </div>
+
+        <div className="mb-4 grid gap-3 sm:grid-cols-4">
+          <TextField id="new-country" label="Country" value={newCountry} onChange={setNewCountry} />
+          <TextField id="new-iso" label="ISO" value={newIso} onChange={setNewIso} />
+          <TextField id="new-amount" label="Amount (MVR)" value={newAmount} onChange={setNewAmount} />
+          <div className="flex items-end">
+            <Button type="button" className="w-full" disabled={pending} onClick={() => void addDeposit()}>
+              <PlusIcon />
+              Add country
+            </Button>
+          </div>
+        </div>
+
+        <div className="admin-table-wrap max-h-[28rem] overflow-auto">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Country</th>
+                <th>ISO</th>
+                <th>Amount</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {rates.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.countryName}</td>
+                  <td className="font-mono text-xs">{row.isoCode}</td>
+                  <td>
+                    <input
+                      className="w-28 rounded-md border bg-background px-2 py-1 tabular-nums text-sm"
+                      value={editAmounts[row.id] ?? row.amount}
+                      onChange={(event) =>
+                        setEditAmounts((current) => ({ ...current, [row.id]: event.target.value }))
+                      }
+                      aria-label={`Amount for ${row.countryName}`}
+                    />
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      {formatMoney(editAmounts[row.id] ?? row.amount, fees?.currency ?? "MVR")}
+                    </span>
+                  </td>
+                  <td className="text-right">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={pending}
+                      onClick={() => void saveDeposit(row)}
+                    >
+                      Save
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }

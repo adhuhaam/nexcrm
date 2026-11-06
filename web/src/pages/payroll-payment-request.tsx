@@ -13,6 +13,7 @@ import {
   AGENCY_PHONE,
   AGENCY_REG,
   buildTaxInvoice,
+  payrollPrintFilename,
   type TaxInvoiceSource,
 } from "@/lib/tax-invoice";
 
@@ -43,9 +44,14 @@ export function PayrollPaymentRequestPage({ payRunId }: { payRunId: string }) {
   const invoice = useMemo(() => (run ? buildTaxInvoice(run, formatDate) : null), [run]);
 
   useEffect(() => {
-    if (!invoice) return;
-    document.title = `Tax Invoice ${invoice.invoiceNo} · ${invoice.billToName}`;
-  }, [invoice]);
+    if (!invoice || !run) return;
+    document.title = payrollPrintFilename({
+      clientName: invoice.billToName,
+      docType: "Tax Invoice",
+      docNumber: invoice.invoiceNo,
+      periodStart: run.periodStart,
+    });
+  }, [invoice, run]);
 
   useEffect(() => {
     document.documentElement.classList.add("tax-invoice-print-root");

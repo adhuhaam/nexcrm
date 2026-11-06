@@ -1,41 +1,27 @@
-/* NEXCRM interactive surface theme (Documents drive look → shared modules) */
-
-.nexcrm-surface,
-.nexcrm-surface *,
-.nexcrm-surface *::before,
-.nexcrm-surface *::after {
-  animation: unset !important;
-  transition: unset !important;
-  scroll-behavior: smooth !important;
-}
+/* Directory / drive module layouts (employees, documents). Chrome is .nx-admin. */
 
 .nexcrm-surface {
-  --nx-accent: oklch(0.62 0.14 240);
-  --nx-accent-soft: oklch(0.94 0.03 240);
-  --nx-warm: oklch(0.78 0.12 85);
-  --nx-warm-deep: oklch(0.62 0.14 75);
-  --nx-lift: 0 10px 28px -18px color-mix(in oklch, var(--foreground) 28%, transparent);
-  --nx-inset: inset 0 1px 0 color-mix(in oklch, white 55%, transparent);
+  --nx-accent: var(--primary);
+  --nx-accent-soft: color-mix(in oklch, var(--primary) 12%, white);
+  --nx-warm: oklch(0.78 0.08 85);
+  --nx-warm-deep: oklch(0.58 0.1 75);
+  --nx-lift: 0 12px 28px -20px color-mix(in oklch, var(--foreground) 18%, transparent);
+  --nx-inset: inset 0 1px 0 color-mix(in oklch, white 70%, transparent);
   position: relative;
   isolation: isolate;
-  overflow: hidden;
+  overflow: visible;
   min-width: 0;
-  border-radius: calc(var(--radius) + 6px);
-  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
-  background:
-    radial-gradient(120% 80% at 0% 0%, color-mix(in oklch, var(--nx-accent) 10%, transparent), transparent 55%),
-    radial-gradient(90% 70% at 100% 0%, color-mix(in oklch, var(--nx-warm) 12%, transparent), transparent 50%),
-    var(--card);
-  box-shadow: var(--nx-lift);
+  scroll-behavior: smooth;
+}
+
+.nexcrm-surface .nx-layout,
+.nexcrm-surface [data-slot="card"] {
+  border-color: color-mix(in oklch, var(--border) 88%, transparent);
 }
 
 .dark .nexcrm-surface {
-  --nx-accent-soft: oklch(0.28 0.05 240);
+  --nx-accent-soft: color-mix(in oklch, var(--primary) 18%, transparent);
   --nx-inset: inset 0 1px 0 color-mix(in oklch, white 8%, transparent);
-  background:
-    radial-gradient(120% 80% at 0% 0%, color-mix(in oklch, var(--nx-accent) 16%, transparent), transparent 55%),
-    radial-gradient(90% 70% at 100% 0%, color-mix(in oklch, var(--nx-warm) 10%, transparent), transparent 50%),
-    var(--card);
 }
 
 .nx-layout {

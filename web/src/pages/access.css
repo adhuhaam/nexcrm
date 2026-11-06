@@ -2,20 +2,20 @@
   display: grid;
   gap: 0;
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .nexcrm-access .access-tabs {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(4.75rem, 1fr);
-  gap: 0.35rem;
+  gap: 0.4rem;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
-  border-bottom: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
-  background: color-mix(in oklch, var(--muted) 32%, transparent);
-  padding: 0.5rem;
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 85%, transparent);
+  background: color-mix(in oklch, var(--muted) 55%, transparent);
+  padding: 0.65rem;
   scrollbar-width: none;
 }
 
@@ -29,7 +29,7 @@
     grid-auto-columns: unset;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     overflow: visible;
-    padding: 0.65rem 0.75rem;
+    padding: 0.75rem;
   }
 }
 
@@ -42,13 +42,13 @@
   min-width: 0;
   min-height: 3.1rem;
   border: 1px solid transparent;
-  border-radius: 0.75rem;
+  border-radius: 999px;
   background: transparent;
   color: var(--foreground);
-  padding: 0.45rem 0.4rem;
+  padding: 0.5rem 0.65rem;
   text-decoration: none;
   text-align: center;
-  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease !important;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
 }
 
 @media (min-width: 768px) {
@@ -57,19 +57,21 @@
     justify-content: flex-start;
     gap: 0.55rem;
     min-height: 0;
-    padding: 0.55rem 0.65rem;
+    border-radius: 0.9rem;
+    padding: 0.65rem 0.8rem;
     text-align: left;
   }
 }
 
 .nexcrm-access .access-tab:hover {
-  background: color-mix(in oklch, var(--background) 70%, transparent);
+  background: color-mix(in oklch, var(--card) 80%, transparent);
 }
 
 .nexcrm-access .access-tab.is-active {
-  border-color: color-mix(in oklch, var(--nx-accent) 40%, var(--border));
-  background: color-mix(in oklch, var(--nx-accent) 12%, var(--background));
-  box-shadow: var(--nx-inset);
+  border-color: color-mix(in oklch, var(--primary) 28%, var(--border));
+  background: var(--card);
+  color: var(--primary);
+  box-shadow: 0 8px 20px -16px color-mix(in oklch, var(--foreground) 30%, transparent);
 }
 
 .nexcrm-access .access-tab-copy {
@@ -103,12 +105,12 @@
 
 .nexcrm-access .access-panel {
   min-width: 0;
-  padding: 0.75rem;
+  padding: 0.85rem;
 }
 
 @media (min-width: 768px) {
   .nexcrm-access .access-panel {
-    padding: 1rem;
+    padding: 1.1rem;
   }
 }
 
@@ -122,11 +124,9 @@
   }
 }
 
-/* Roles panel already brings its own surface layout — nest flush */
 .nexcrm-access .access-panel > .nexcrm-admin {
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
 }
-

@@ -49,7 +49,8 @@ import { getLetter } from "../modules/documents/letters.ts";
 import { eq } from "drizzle-orm";
 import { db } from "../lib/db.ts";
 import { letters } from "../lib/schema.ts";
-import { userForToken } from "../modules/access/access.ts";
+import { userForToken, type OfficeUser } from "../modules/access/access.ts";
+import { clientScopeForUser, isClientAllowed, type ClientScope } from "../modules/access/client-scope.ts";
 import { EmployeeError, getEmployee, updateEmployee } from "../modules/hr/employees.ts";
 import {
   AccommodationError,
@@ -99,11 +100,24 @@ function readCookie(request: IncomingMessage): string | null {
   return null;
 }
 
-async function actorId(request: IncomingMessage): Promise<string | null> {
+async function actor(request: IncomingMessage): Promise<OfficeUser | null> {
   const token = readCookie(request);
   if (!token) return null;
-  const user = await userForToken(token);
-  return user?.id ?? null;
+  return userForToken(token);
+}
+
+async function actorId(request: IncomingMessage): Promise<string | null> {
+  return (await actor(request))?.id ?? null;
+}
+
+async function actorClientScope(request: IncomingMessage): Promise<ClientScope> {
+  const user = await actor(request);
+  if (!user) return [];
+  return clientScopeForUser(user);
+}
+
+function clientFilter(scope: ClientScope): { ids?: string[] | null } {
+  return scope === null ? {} : { ids: scope };
 }
 
 async function readJson(request: IncomingMessage): Promise<Record<string, unknown>> {
@@ -356,7 +370,10 @@ export async function handleAgencyApi(request: IncomingMessage, response: Server
     }
 
     if (method === "GET" && path === "/api/v1/clients") {
-      sendJson(response, 200, { clients: await listCompaniesWithCounts({ kind: "client" }) });
+      const scope = await actorClientScope(request);
+      sendJson(response, 200, {
+        clients: await listCompaniesWithCounts({ kind: "client", ...clientFilter(scope) }),
+      });
       return true;
     }
     if (method === "GET" && path === "/api/v1/employers") {
@@ -422,17 +439,21 @@ export async function handleAgencyApi(request: IncomingMessage, response: Server
     }
 
     if (method === "GET" && path === "/api/v1/allocations") {
+      const scope = await actorClientScope(request);
+      const allocations = await listAllocations({
+        clientCompanyId: url.searchParams.get("clientCompanyId"),
+        clientIds: scope === null ? null : scope,
+        employerCompanyId: url.searchParams.get("employerCompanyId"),
+        employeeId: url.searchParams.get("employeeId"),
+        status: url.searchParams.get("status"),
+        q: url.searchParams.get("q"),
+      });
+      const headcount = await headcountByClient();
       sendJson(response, 200, {
-        allocations: await listAllocations({
-          clientCompanyId: url.searchParams.get("clientCompanyId"),
-          employerCompanyId: url.searchParams.get("employerCompanyId"),
-          employeeId: url.searchParams.get("employeeId"),
-          status: url.searchParams.get("status"),
-          q: url.searchParams.get("q"),
-        }),
-        clients: await listCompanies("client"),
+        allocations,
+        clients: await listCompanies("client", clientFilter(scope)),
         employers: await listCompanies("employer"),
-        headcount: await headcountByClient(),
+        headcount: scope === null ? headcount : headcount.filter((row) => isClientAllowed(scope, row.clientCompanyId)),
       });
       return true;
     }
@@ -589,15 +610,21 @@ export async function handleAgencyApi(request: IncomingMessage, response: Server
     }
 
     if (method === "GET" && path === "/api/v1/pay-runs") {
+      const scope = await actorClientScope(request);
       sendJson(response, 200, {
-        payRuns: await listPayRuns(),
-        clients: await listCompanies("client"),
+        payRuns: await listPayRuns({ clientIds: scope === null ? null : scope }),
+        clients: await listCompanies("client", clientFilter(scope)),
         employers: await listCompanies("employer"),
       });
       return true;
     }
     if (method === "GET" && path === "/api/v1/pay-runs/employers-for-client") {
+      const scope = await actorClientScope(request);
       const clientCompanyId = url.searchParams.get("clientCompanyId") ?? "";
+      if (!isClientAllowed(scope, clientCompanyId)) {
+        sendJson(response, 403, { error: "That client is outside your restaurant access." });
+        return true;
+      }
       sendJson(response, 200, { employers: await listEmployersForClient(clientCompanyId) });
       return true;
     }
@@ -606,7 +633,13 @@ export async function handleAgencyApi(request: IncomingMessage, response: Server
         sendJson(response, 403, { error: "Cross-origin request rejected" });
         return true;
       }
+      const scope = await actorClientScope(request);
       const body = await readJson(request);
+      const clientCompanyId = typeof body.clientCompanyId === "string" ? body.clientCompanyId : "";
+      if (clientCompanyId && !isClientAllowed(scope, clientCompanyId)) {
+        sendJson(response, 403, { error: "That client is outside your restaurant access." });
+        return true;
+      }
       const created = await createPayRuns({
         mode: body.mode,
         clientCompanyId: body.clientCompanyId,
@@ -620,27 +653,56 @@ export async function handleAgencyApi(request: IncomingMessage, response: Server
     }
     const payRunId = idFrom(path, "/api/v1/pay-runs/");
     if (method === "GET" && payRunId && path === `/api/v1/pay-runs/${payRunId}/payment-request`) {
+      const scope = await actorClientScope(request);
       const run = await getPayRunForPaymentRequest(payRunId);
       if (!run) {
         sendJson(response, 404, { error: "Pay run not found" });
+        return true;
+      }
+      if (!isClientAllowed(scope, run.clientCompanyId)) {
+        sendJson(response, 403, { error: "That pay run is outside your restaurant access." });
         return true;
       }
       sendJson(response, 200, run);
       return true;
     }
     if (method === "GET" && payRunId && path === `/api/v1/pay-runs/${payRunId}/salary-sheet`) {
+      const scope = await actorClientScope(request);
       const run = await getPayRunForSalarySheet(payRunId);
       if (!run) {
         sendJson(response, 404, { error: "Pay run not found" });
+        return true;
+      }
+      if (!isClientAllowed(scope, run.clientCompanyId)) {
+        sendJson(response, 403, { error: "That pay run is outside your restaurant access." });
+        return true;
+      }
+      sendJson(response, 200, run);
+      return true;
+    }
+    if (method === "GET" && payRunId && path === `/api/v1/pay-runs/${payRunId}/payslips`) {
+      const scope = await actorClientScope(request);
+      const run = await getPayRunForSalarySheet(payRunId);
+      if (!run) {
+        sendJson(response, 404, { error: "Pay run not found" });
+        return true;
+      }
+      if (!isClientAllowed(scope, run.clientCompanyId)) {
+        sendJson(response, 403, { error: "That pay run is outside your restaurant access." });
         return true;
       }
       sendJson(response, 200, run);
       return true;
     }
     if (method === "GET" && payRunId && path === `/api/v1/pay-runs/${payRunId}`) {
+      const scope = await actorClientScope(request);
       const run = await getPayRun(payRunId);
       if (!run) {
         sendJson(response, 404, { error: "Pay run not found" });
+        return true;
+      }
+      if (!isClientAllowed(scope, run.clientCompanyId)) {
+        sendJson(response, 403, { error: "That pay run is outside your restaurant access." });
         return true;
       }
       sendJson(response, 200, run);

@@ -1,0 +1,601 @@
+/* Payroll board — uses app Geist / admin tokens only (no extra typefaces). */
+
+.payroll-board {
+  --pay-client: var(--nx-blue, #2d5cfe);
+  --pay-staff: #c2410c;
+  --pay-balance: #067647;
+  --pay-balance-neg: #b42318;
+  --pay-line: var(--nx-line, var(--border));
+  --pay-card: var(--nx-card, var(--card));
+  --pay-ink: var(--nx-ink, var(--foreground));
+  --pay-muted: var(--nx-muted, var(--muted-foreground));
+  --pay-shadow: var(--nx-shadow, 0 10px 30px -18px rgb(26 43 107 / 28%));
+  font-family: inherit;
+  color: var(--pay-ink);
+  display: grid;
+  gap: 1rem;
+}
+
+.payroll-board *,
+.payroll-board *::before,
+.payroll-board *::after {
+  font-family: inherit;
+}
+
+.payroll-kpi-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 900px) {
+  .payroll-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.payroll-kpi {
+  position: relative;
+  display: grid;
+  gap: 0.4rem;
+  overflow: hidden;
+  text-align: left;
+  border: 0;
+  border-radius: 1rem;
+  padding: 1.05rem 1.15rem 1rem;
+  background: var(--pay-card);
+  color: var(--pay-ink);
+  outline: 1px solid var(--pay-line);
+  box-shadow: var(--pay-shadow);
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    outline-color 160ms ease;
+}
+
+.payroll-kpi::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  opacity: 0.9;
+}
+
+.payroll-kpi.is-client::after {
+  background: var(--pay-client);
+}
+
+.payroll-kpi.is-staff::after {
+  background: var(--pay-staff);
+}
+
+.payroll-kpi.is-balance::after {
+  background: var(--pay-balance);
+}
+
+.payroll-kpi.is-balance.is-negative::after {
+  background: var(--pay-balance-neg);
+}
+
+.payroll-kpi:hover,
+.payroll-kpi.is-sorted {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px -20px rgb(45 92 254 / 28%);
+}
+
+.payroll-kpi:focus-visible {
+  outline: 2px solid var(--pay-client);
+  outline-offset: 2px;
+}
+
+.payroll-kpi.is-client {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pay-client) 8%, var(--pay-card)), var(--pay-card));
+}
+
+.payroll-kpi.is-staff {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pay-staff) 8%, var(--pay-card)), var(--pay-card));
+}
+
+.payroll-kpi.is-balance {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pay-balance) 8%, var(--pay-card)), var(--pay-card));
+}
+
+.payroll-kpi.is-balance.is-negative {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pay-balance-neg) 8%, var(--pay-card)), var(--pay-card));
+}
+
+.payroll-kpi-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--pay-muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.payroll-kpi-value {
+  margin: 0;
+  font-size: clamp(1.35rem, 1.8vw, 1.7rem);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.payroll-kpi-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  margin: 0;
+  color: var(--pay-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.payroll-kpi-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pay-client) 10%, transparent);
+  color: var(--pay-client);
+  padding: 0.12rem 0.5rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.payroll-kpi.is-staff .payroll-kpi-chip {
+  background: color-mix(in srgb, var(--pay-staff) 12%, transparent);
+  color: var(--pay-staff);
+}
+
+.payroll-kpi.is-balance .payroll-kpi-chip {
+  background: color-mix(in srgb, var(--pay-balance) 12%, transparent);
+  color: var(--pay-balance);
+}
+
+.payroll-kpi.is-balance.is-negative .payroll-kpi-chip {
+  background: color-mix(in srgb, var(--pay-balance-neg) 12%, transparent);
+  color: var(--pay-balance-neg);
+}
+
+.payroll-panel {
+  overflow: hidden;
+  border-radius: 1.1rem;
+  background: var(--pay-card);
+  outline: 1px solid var(--pay-line);
+  box-shadow: var(--pay-shadow);
+}
+
+.payroll-panel [data-slot="card"] {
+  border: 0;
+  box-shadow: none;
+  outline: 0;
+  background: transparent;
+}
+
+.payroll-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.payroll-status-chip {
+  border-radius: 999px !important;
+}
+
+.payroll-share {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 8.5rem;
+}
+
+.payroll-share-track {
+  display: flex;
+  overflow: hidden;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pay-muted) 14%, transparent);
+}
+
+.payroll-share-track > span {
+  display: block;
+  height: 100%;
+  min-width: 0;
+}
+
+.payroll-share-track .is-client {
+  background: var(--pay-client);
+}
+
+.payroll-share-track .is-staff {
+  background: var(--pay-staff);
+}
+
+.payroll-share-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--pay-muted);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.payroll-table-wrap {
+  overflow: auto;
+  max-height: min(28rem, 60vh);
+  border-top: 1px solid var(--pay-line);
+}
+
+.payroll-table-wrap table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(180deg, var(--nx-navy, #1a2b6b) 0%, var(--nx-navy-deep, #142456) 100%) !important;
+  color: #fff !important;
+  backdrop-filter: none;
+}
+
+/* Color grades apply to body cells only — keep header navy */
+.payroll-table-wrap tbody td.payroll-col-client,
+tbody td.payroll-col-client {
+  background: color-mix(in srgb, var(--pay-client) 8%, transparent) !important;
+  color: color-mix(in srgb, var(--pay-client) 55%, var(--pay-ink));
+}
+
+.payroll-table-wrap tbody td.payroll-col-staff,
+tbody td.payroll-col-staff {
+  background: color-mix(in srgb, var(--pay-staff) 9%, transparent) !important;
+  color: color-mix(in srgb, var(--pay-staff) 55%, var(--pay-ink));
+}
+
+.payroll-table-wrap tbody td.payroll-col-balance,
+tbody td.payroll-col-balance {
+  background: color-mix(in srgb, var(--pay-balance) 9%, transparent) !important;
+  color: color-mix(in srgb, var(--pay-balance) 50%, var(--pay-ink));
+}
+
+.payroll-table-wrap tbody td.payroll-col-balance.is-negative,
+tbody td.payroll-col-balance.is-negative {
+  background: color-mix(in srgb, var(--pay-balance-neg) 11%, transparent) !important;
+  color: var(--pay-balance-neg);
+}
+
+.dark .payroll-table-wrap tbody td.payroll-col-client,
+.dark .payroll-table-wrap tbody td.payroll-col-staff,
+.dark .payroll-table-wrap tbody td.payroll-col-balance,
+.dark tbody td.payroll-col-client,
+.dark tbody td.payroll-col-staff,
+.dark tbody td.payroll-col-balance {
+  color: inherit;
+}
+
+.payroll-total-row,
+.payroll-run-row {
+  transition: background-color 120ms ease;
+}
+
+.payroll-total-row:hover,
+.payroll-run-row:hover,
+.payroll-total-row.is-active,
+.payroll-run-row.is-active {
+  background: color-mix(in srgb, var(--pay-client) 7%, transparent);
+}
+
+.payroll-total-footer td {
+  border-top: 1px solid var(--pay-line);
+  background: color-mix(in srgb, var(--muted) 55%, var(--pay-card));
+}
+
+.payroll-run-actions {
+  opacity: 0.72;
+  transition: opacity 120ms ease;
+}
+
+.payroll-run-row:hover .payroll-run-actions,
+.payroll-run-row.is-active .payroll-run-actions {
+  opacity: 1;
+}
+
+.payroll-money {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.payroll-empty-hint {
+  padding: 1.5rem;
+  color: var(--pay-muted);
+  font-size: 0.9rem;
+}
+
+.payroll-detail-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .payroll-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .payroll-detail-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.payroll-detail-card {
+  border-radius: 1rem;
+  border: 1px solid var(--pay-line);
+  background: color-mix(in srgb, var(--muted) 35%, var(--pay-card));
+  padding: 0.9rem 1rem;
+}
+
+.payroll-detail-card.is-client {
+  background: color-mix(in srgb, var(--pay-client) 7%, var(--pay-card));
+  border-color: color-mix(in srgb, var(--pay-client) 22%, var(--pay-line));
+}
+
+.payroll-detail-card.is-staff {
+  background: color-mix(in srgb, var(--pay-staff) 7%, var(--pay-card));
+  border-color: color-mix(in srgb, var(--pay-staff) 22%, var(--pay-line));
+}
+
+.payroll-detail-card.is-balance {
+  background: color-mix(in srgb, var(--pay-balance) 7%, var(--pay-card));
+  border-color: color-mix(in srgb, var(--pay-balance) 22%, var(--pay-line));
+}
+
+.payroll-detail-card.is-balance.is-negative {
+  background: color-mix(in srgb, var(--pay-balance-neg) 8%, var(--pay-card));
+  border-color: color-mix(in srgb, var(--pay-balance-neg) 24%, var(--pay-line));
+}
+
+.payroll-detail-card h3 {
+  margin: 0;
+  color: var(--pay-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.payroll-detail-card dl {
+  margin: 0.65rem 0 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.payroll-detail-card dt {
+  color: var(--pay-muted);
+}
+
+.payroll-detail-card dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.payroll-detail-card .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.payroll-detail-card .row.is-total {
+  margin-top: 0.15rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--pay-line);
+  font-weight: 700;
+}
+
+/* —— Live board motion —— */
+
+.payroll-livebar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+  border-radius: 0.95rem;
+  padding: 0.55rem 0.85rem;
+  background:
+    linear-gradient(
+      105deg,
+      color-mix(in srgb, var(--pay-client) 10%, var(--pay-card)),
+      color-mix(in srgb, var(--pay-balance) 6%, var(--pay-card)) 55%,
+      var(--pay-card)
+    );
+  outline: 1px solid color-mix(in srgb, var(--pay-client) 18%, var(--pay-line));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 55%, transparent);
+}
+
+.payroll-live-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: #12b76a;
+  box-shadow: 0 0 0 0 color-mix(in srgb, #12b76a 55%, transparent);
+  animation: payroll-live-pulse 1.8s ease-out infinite;
+}
+
+.payroll-live-label {
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--pay-client) 70%, var(--pay-ink));
+}
+
+.payroll-live-clock {
+  font-size: 0.82rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--pay-ink);
+}
+
+.payroll-live-meta {
+  margin-left: auto;
+  color: var(--pay-muted);
+  font-size: 0.75rem;
+}
+
+.payroll-rise {
+  animation: payroll-rise-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.payroll-board.is-live .payroll-kpi::before {
+  content: "";
+  position: absolute;
+  inset: -40% auto auto -20%;
+  width: 55%;
+  height: 120%;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    color-mix(in srgb, white 28%, transparent) 48%,
+    transparent 62%
+  );
+  transform: translateX(-120%) rotate(8deg);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.payroll-board.is-live[data-pulse] .payroll-kpi::before {
+  animation: payroll-sheen 4s ease-in-out infinite;
+}
+
+.payroll-board.is-live .payroll-kpi.is-staff::before {
+  animation-delay: 0.35s;
+}
+
+.payroll-board.is-live .payroll-kpi.is-balance::before {
+  animation-delay: 0.7s;
+}
+
+.payroll-share-track > span {
+  transition: width 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.payroll-total-row,
+.payroll-run-row {
+  transition:
+    background-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.payroll-total-row:hover,
+.payroll-run-row:hover {
+  transform: translateX(2px);
+}
+
+.payroll-run-row.payroll-rise,
+.payroll-total-row.payroll-rise {
+  animation: payroll-row-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.payroll-status-chip {
+  transition:
+    transform 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.payroll-status-chip:hover {
+  transform: translateY(-1px);
+}
+
+.payroll-status-chip.is-active {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pay-client) 18%, transparent);
+}
+
+.payroll-kpi-value {
+  transition: color 220ms ease;
+}
+
+.payroll-board.is-live .payroll-kpi.is-sorted {
+  outline-color: color-mix(in srgb, var(--pay-client) 45%, var(--pay-line));
+}
+
+@keyframes payroll-live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, #12b76a 50%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@keyframes payroll-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes payroll-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes payroll-sheen {
+  0%,
+  62% {
+    opacity: 0;
+    transform: translateX(-120%) rotate(8deg);
+  }
+  72% {
+    opacity: 0.7;
+  }
+  88%,
+  100% {
+    opacity: 0;
+    transform: translateX(220%) rotate(8deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payroll-live-dot,
+  .payroll-rise,
+  .payroll-run-row.payroll-rise,
+  .payroll-total-row.payroll-rise,
+  .payroll-board.is-live .payroll-kpi::before {
+    animation: none !important;
+  }
+
+  .payroll-share-track > span,
+  .payroll-total-row,
+  .payroll-run-row,
+  .payroll-status-chip {
+    transition: none !important;
+  }
+
+  .payroll-total-row:hover,
+  .payroll-run-row:hover,
+  .payroll-kpi:hover,
+  .payroll-kpi.is-sorted {
+    transform: none;
+  }
+}

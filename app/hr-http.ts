@@ -22,6 +22,7 @@ import {
   updateEmployee,
 } from "../modules/hr/employees.ts";
 import { headcountByClient } from "../modules/hr/allocations.ts";
+import { getDashboardFinance } from "../modules/hr/dashboard-finance.ts";
 import { readMultipart, storeBuffer } from "../modules/files/storage.ts";
 import { userForToken } from "../modules/access/access.ts";
 
@@ -113,12 +114,13 @@ export async function handleHrApi(request: IncomingMessage, response: ServerResp
   try {
     if (method === "GET" && path === "/api/v1/hr/dashboard") {
       const [employers, clients] = await Promise.all([listCompanies("employer"), listCompanies("client")]);
-      const [employeeCount, letterCount, recent, headcount, expiring] = await Promise.all([
+      const [employeeCount, letterCount, recent, headcount, expiring, finance] = await Promise.all([
         countEmployees(),
         countLetters(),
         recentLetters(8),
         headcountByClient(),
         listExpiringWorkPermits(3),
+        getDashboardFinance(),
       ]);
       sendJson(response, 200, {
         counts: {
@@ -131,6 +133,7 @@ export async function handleHrApi(request: IncomingMessage, response: ServerResp
         headcount,
         expiring,
         recentLetters: recent,
+        finance,
         preferences: await getPreferences(),
         companies: employers.map((company) => ({ id: company.id, legalName: company.legalName })),
       });

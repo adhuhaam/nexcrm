@@ -47,40 +47,40 @@
     --font-sans: 'Geist Variable', sans-serif;
 }
 
-/* Studio Admin default: shadcn neutral */
+/* NEXCRM admin — Busza-style blue sidebar + light canvas */
 :root {
-    --radius: 0.625rem;
+    --radius: 0.85rem;
+    --background: oklch(0.965 0.01 255);
+    --foreground: oklch(0.24 0.03 260);
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
+    --card-foreground: oklch(0.24 0.03 260);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
+    --popover-foreground: oklch(0.24 0.03 260);
+    --primary: oklch(0.55 0.22 265);
+    --primary-foreground: oklch(0.99 0.01 255);
+    --secondary: oklch(0.95 0.02 255);
+    --secondary-foreground: oklch(0.3 0.05 260);
+    --muted: oklch(0.95 0.015 255);
+    --muted-foreground: oklch(0.5 0.03 260);
+    --accent: oklch(0.94 0.04 265);
+    --accent-foreground: oklch(0.32 0.1 265);
+    --destructive: oklch(0.55 0.2 25);
+    --border: oklch(0.9 0.015 255);
+    --input: oklch(0.92 0.015 255);
+    --ring: oklch(0.55 0.22 265);
+    --chart-1: oklch(0.55 0.22 265);
+    --chart-2: oklch(0.68 0.14 230);
+    --chart-3: oklch(0.72 0.12 160);
+    --chart-4: oklch(0.7 0.12 85);
+    --chart-5: oklch(0.6 0.08 300);
+    --sidebar: oklch(0.32 0.1 265);
+    --sidebar-foreground: oklch(0.94 0.02 255);
+    --sidebar-primary: oklch(1 0 0);
+    --sidebar-primary-foreground: oklch(0.4 0.18 265);
+    --sidebar-accent: oklch(0.4 0.1 265);
+    --sidebar-accent-foreground: oklch(0.98 0.01 255);
+    --sidebar-border: oklch(1 0 0 / 12%);
+    --sidebar-ring: oklch(0.7 0.14 265);
     --toast-success-bg: oklch(0.96 0.04 155);
     --toast-success-text: oklch(0.28 0.07 155);
     --toast-success-border: oklch(0.78 0.09 155);
@@ -90,43 +90,43 @@
     --toast-warning-bg: oklch(0.97 0.04 90);
     --toast-warning-text: oklch(0.38 0.08 70);
     --toast-warning-border: oklch(0.84 0.1 85);
-    --toast-info-bg: oklch(0.96 0.03 230);
-    --toast-info-text: oklch(0.35 0.08 240);
-    --toast-info-border: oklch(0.8 0.08 230);
+    --toast-info-bg: oklch(0.96 0.03 265);
+    --toast-info-text: oklch(0.35 0.12 265);
+    --toast-info-border: oklch(0.8 0.08 265);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --background: oklch(0.18 0.03 260);
+    --foreground: oklch(0.96 0.01 255);
+    --card: oklch(0.23 0.035 260);
+    --card-foreground: oklch(0.96 0.01 255);
+    --popover: oklch(0.23 0.035 260);
+    --popover-foreground: oklch(0.96 0.01 255);
+    --primary: oklch(0.68 0.18 265);
+    --primary-foreground: oklch(0.18 0.04 265);
+    --secondary: oklch(0.28 0.03 260);
+    --secondary-foreground: oklch(0.95 0.01 255);
+    --muted: oklch(0.28 0.03 260);
+    --muted-foreground: oklch(0.72 0.02 255);
+    --accent: oklch(0.3 0.05 265);
+    --accent-foreground: oklch(0.95 0.01 255);
+    --destructive: oklch(0.68 0.17 22);
+    --border: oklch(1 0 0 / 12%);
+    --input: oklch(1 0 0 / 14%);
+    --ring: oklch(0.68 0.18 265);
+    --chart-1: oklch(0.68 0.18 265);
+    --chart-2: oklch(0.7 0.12 230);
+    --chart-3: oklch(0.72 0.1 160);
+    --chart-4: oklch(0.7 0.1 85);
+    --chart-5: oklch(0.65 0.08 300);
+    --sidebar: oklch(0.2 0.05 265);
+    --sidebar-foreground: oklch(0.95 0.01 255);
+    --sidebar-primary: oklch(0.75 0.14 265);
+    --sidebar-primary-foreground: oklch(0.18 0.04 265);
+    --sidebar-accent: oklch(0.28 0.06 265);
+    --sidebar-accent-foreground: oklch(0.96 0.01 255);
+    --sidebar-border: oklch(1 0 0 / 12%);
+    --sidebar-ring: oklch(0.68 0.18 265);
     --toast-success-bg: oklch(0.26 0.05 155);
     --toast-success-text: oklch(0.9 0.05 155);
     --toast-success-border: oklch(0.42 0.08 155);
@@ -136,9 +136,9 @@
     --toast-warning-bg: oklch(0.28 0.05 80);
     --toast-warning-text: oklch(0.93 0.04 90);
     --toast-warning-border: oklch(0.48 0.08 80);
-    --toast-info-bg: oklch(0.26 0.05 240);
-    --toast-info-text: oklch(0.9 0.04 230);
-    --toast-info-border: oklch(0.42 0.08 240);
+    --toast-info-bg: oklch(0.26 0.05 265);
+    --toast-info-text: oklch(0.9 0.04 265);
+    --toast-info-border: oklch(0.42 0.1 265);
 }
 
 @layer base {
@@ -151,11 +151,15 @@
     text-size-adjust: 100%;
     }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans), system-ui, sans-serif;
+    letter-spacing: -0.011em;
     min-height: 100dvh;
     overflow-x: hidden;
     }
+  h1, h2, h3 {
+    letter-spacing: -0.03em;
+  }
   /* Prefer larger tap targets on coarse pointers */
   @media (pointer: coarse) {
     button,
@@ -177,19 +181,7 @@
   }
 }
 
-/* Instant UI: no transitions, animations, or blur paints */
-*,
-*::before,
-*::after {
-  animation: none !important;
-  animation-duration: 0s !important;
-  animation-delay: 0s !important;
-  transition: none !important;
-  transition-duration: 0s !important;
-  transition-delay: 0s !important;
-  scroll-behavior: auto !important;
-}
-
+/* Keep heavy paints cheap; allow short chrome motion via shell/surface CSS */
 .backdrop-blur,
 .backdrop-blur-sm,
 .backdrop-blur-md,
@@ -197,8 +189,18 @@
 .backdrop-blur-xl,
 .backdrop-blur-xs,
 [class*="backdrop-blur"] {
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @layer utilities {
@@ -212,8 +214,8 @@
 
 /* Mobile: keep card tables swipeable */
 @media (max-width: 767px) {
-  .nexcrm-shell [data-slot="card-content"],
-  .nexcrm-shell [data-slot="table-container"] {
+  .nx-admin [data-slot="card-content"],
+  .nx-admin [data-slot="table-container"] {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
@@ -394,6 +396,39 @@
 
   .loa-preview-pane {
     overflow: visible;
+  }
+
+  /* Keep dark table headers when printing app screens */
+  .nx-admin [data-slot="table-head"],
+  .nx-admin table thead th,
+  [data-slot="table-head"] {
+    background: #1a2b6b !important;
+    color: #fff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .nx-admin [data-slot="table-container"],
+  .nx-admin .table-scroll,
+  .nx-admin .payroll-table-wrap,
+  .table-scroll {
+    overflow: visible !important;
+    max-height: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  .nx-admin [data-slot="table-body"] [data-slot="table-row"]:hover,
+  .nx-admin [data-slot="table-body"] [data-slot="table-row"]:nth-child(even),
+  .nx-admin [data-slot="table-body"] [data-slot="table-row"][data-state="selected"],
+  .nx-admin [data-slot="table-body"] [data-slot="table-row"].is-active {
+    background: transparent !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .nx-admin [data-slot="table-row"] {
+    transition: none !important;
   }
 
   /* Tax invoice / client payment request — plain A4, no chrome frame */

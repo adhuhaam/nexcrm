@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { getJson } from "@/lib/api";
 import { formatDate, formatDateRange } from "@/lib/dates";
 import { formatAmount } from "@/lib/money";
-import { AGENCY_LEGAL_NAME, AGENCY_NAME } from "@/lib/tax-invoice";
+import { AGENCY_LEGAL_NAME, AGENCY_NAME, payrollPrintFilename } from "@/lib/tax-invoice";
 
 type PayRunItem = {
   id: string;
@@ -97,8 +97,13 @@ export function PayrollSalarySheetPage({ payRunId }: { payRunId: string }) {
 
   useEffect(() => {
     if (!run) return;
-    document.title = `Salary sheet ${sheetNo} · ${month}`;
-  }, [run, sheetNo, month]);
+    document.title = payrollPrintFilename({
+      clientName: run.clientName,
+      docType: "Salary Sheet",
+      docNumber: sheetNo,
+      periodStart: run.periodStart,
+    });
+  }, [run, sheetNo]);
 
   if (error) {
     return (

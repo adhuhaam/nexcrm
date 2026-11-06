@@ -1,44 +1,191 @@
-/* Allocations module — staffing board + bench */
+/* Allocations board — assigned vs unassigned, Busza tokens */
 
-.nexcrm-alloc .nx-layout {
-  max-height: min(82vh, 920px);
+.nexcrm-alloc {
+  --alloc-on: #067647;
+  --alloc-off: #c2410c;
+  --alloc-ended: #6b7289;
+  --alloc-bill: var(--nx-blue, #2d5cfe);
+  --alloc-line: var(--nx-line, var(--border));
+  --alloc-card: var(--nx-card, var(--card));
+  --alloc-ink: var(--nx-ink, var(--foreground));
+  --alloc-muted: var(--nx-muted, var(--muted-foreground));
+  --alloc-shadow: var(--nx-shadow, 0 10px 30px -18px rgb(26 43 107 / 28%));
+  display: grid;
+  gap: 1rem;
+  color: var(--alloc-ink);
+}
+
+.nexcrm-alloc .alloc-kpi-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 900px) {
+  .nexcrm-alloc .alloc-kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.nexcrm-alloc .alloc-kpi {
+  position: relative;
+  display: grid;
+  gap: 0.25rem;
+  overflow: hidden;
+  border: 0;
+  border-radius: 1rem;
+  padding: 0.95rem 1rem 0.9rem;
+  background: var(--alloc-card);
+  outline: 1px solid var(--alloc-line);
+  box-shadow: var(--alloc-shadow);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    outline-color 160ms ease;
+}
+
+.nexcrm-alloc .alloc-kpi::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+}
+
+.nexcrm-alloc .alloc-kpi.is-on::after {
+  background: var(--alloc-on);
+}
+
+.nexcrm-alloc .alloc-kpi.is-off::after {
+  background: var(--alloc-off);
+}
+
+.nexcrm-alloc .alloc-kpi.is-clients::after {
+  background: var(--alloc-bill);
+}
+
+.nexcrm-alloc .alloc-kpi.is-ended::after {
+  background: var(--alloc-ended);
+}
+
+.nexcrm-alloc .alloc-kpi.is-on {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--alloc-on) 9%, var(--alloc-card)), var(--alloc-card));
+}
+
+.nexcrm-alloc .alloc-kpi.is-off {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--alloc-off) 9%, var(--alloc-card)), var(--alloc-card));
+}
+
+.nexcrm-alloc .alloc-kpi:hover,
+.nexcrm-alloc .alloc-kpi.is-active {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px -20px rgb(45 92 254 / 28%);
+}
+
+.nexcrm-alloc .alloc-kpi.is-active {
+  outline-color: color-mix(in srgb, var(--alloc-bill) 40%, var(--alloc-line));
+}
+
+.nexcrm-alloc .alloc-kpi strong {
+  font-size: clamp(1.35rem, 2vw, 1.7rem);
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.nexcrm-alloc .alloc-kpi span {
+  color: var(--alloc-muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.nexcrm-alloc .alloc-kpi em {
+  color: var(--alloc-muted);
+  font-size: 0.68rem;
+  font-style: normal;
 }
 
 .nexcrm-alloc .alloc-toolbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 0.55rem;
+  align-items: end;
+  gap: 0.65rem;
   justify-content: space-between;
+  border-radius: 1rem;
+  background: var(--alloc-card);
+  outline: 1px solid var(--alloc-line);
+  box-shadow: var(--alloc-shadow);
+  padding: 0.85rem 1rem;
 }
 
-.nexcrm-alloc .alloc-stats {
+.nexcrm-alloc .alloc-toolbar-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.55rem;
+  align-items: end;
+  flex: 1;
+  min-width: 0;
 }
 
-.nexcrm-alloc .alloc-stat {
+.nexcrm-alloc .alloc-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.nexcrm-alloc .alloc-chip {
+  border-radius: 999px !important;
+}
+
+.nexcrm-alloc .alloc-chip.is-on {
+  background: color-mix(in srgb, var(--alloc-on) 14%, transparent) !important;
+  color: var(--alloc-on) !important;
+  border-color: color-mix(in srgb, var(--alloc-on) 35%, transparent) !important;
+}
+
+.nexcrm-alloc .alloc-chip.is-off {
+  background: color-mix(in srgb, var(--alloc-off) 14%, transparent) !important;
+  color: var(--alloc-off) !important;
+  border-color: color-mix(in srgb, var(--alloc-off) 35%, transparent) !important;
+}
+
+.nexcrm-alloc .alloc-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  color: var(--alloc-muted);
+  font-size: 0.75rem;
+}
+
+.nexcrm-alloc .alloc-legend i {
+  display: inline-block;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 0.2rem;
+  margin-right: 0.35rem;
+  vertical-align: -0.05rem;
+}
+
+.nexcrm-alloc .alloc-legend .is-on {
+  background: var(--alloc-on);
+}
+
+.nexcrm-alloc .alloc-legend .is-off {
+  background: var(--alloc-off);
+}
+
+.nexcrm-alloc .alloc-workspace {
   display: grid;
-  gap: 0.05rem;
-  min-width: 5.5rem;
-  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
-  border-radius: 0.75rem;
-  background: color-mix(in oklch, var(--muted) 35%, transparent);
-  padding: 0.45rem 0.65rem;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
 }
 
-.nexcrm-alloc .alloc-stat strong {
-  font-size: 1.05rem;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-}
-
-.nexcrm-alloc .alloc-stat span {
-  color: var(--muted-foreground);
-  font-size: 0.65rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+@media (min-width: 1180px) {
+  .nexcrm-alloc .alloc-workspace.has-bench {
+    grid-template-columns: minmax(0, 1.55fr) minmax(18rem, 0.85fr);
+  }
 }
 
 .nexcrm-alloc .alloc-board {
@@ -53,168 +200,218 @@
   }
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 1400px) {
   .nexcrm-alloc .alloc-board.is-wide {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-.nexcrm-alloc .alloc-column {
+.nexcrm-alloc .alloc-column,
+.nexcrm-alloc .alloc-bench {
   display: grid;
   align-content: start;
   gap: 0.55rem;
   min-width: 0;
-  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
-  border-radius: 0.95rem;
+  border-radius: 1.05rem;
+  background: var(--alloc-card);
+  outline: 1px solid var(--alloc-line);
+  box-shadow: var(--alloc-shadow);
+  padding: 0.8rem;
+}
+
+.nexcrm-alloc .alloc-column.is-allocated {
   background:
-    radial-gradient(120% 80% at 0% 0%, color-mix(in oklch, var(--nx-accent) 8%, transparent), transparent 55%),
-    color-mix(in oklch, var(--card) 88%, transparent);
-  padding: 0.7rem;
-  box-shadow: var(--nx-inset);
+    linear-gradient(180deg, color-mix(in srgb, var(--alloc-on) 7%, var(--alloc-card)), var(--alloc-card));
+  outline-color: color-mix(in srgb, var(--alloc-on) 22%, var(--alloc-line));
 }
 
-.nexcrm-alloc .alloc-column.is-active {
-  border-color: color-mix(in oklch, var(--nx-accent) 45%, var(--border));
-  box-shadow: var(--nx-inset), 0 0 0 1px color-mix(in oklch, var(--nx-accent) 18%, transparent);
+.nexcrm-alloc .alloc-bench {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--alloc-off) 8%, var(--alloc-card)), var(--alloc-card));
+  outline-color: color-mix(in srgb, var(--alloc-off) 24%, var(--alloc-line));
+  max-height: min(78vh, 920px);
+  overflow: auto;
 }
 
-.nexcrm-alloc .alloc-column-head {
+.nexcrm-alloc .alloc-column-head,
+.nexcrm-alloc .alloc-bench-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.5rem;
+  margin-bottom: 0.15rem;
 }
 
-.nexcrm-alloc .alloc-column-head h3 {
+.nexcrm-alloc .alloc-column-head h3,
+.nexcrm-alloc .alloc-bench-head h3 {
   margin: 0;
-  font-size: 0.92rem;
-  font-weight: 700;
-  letter-spacing: -0.015em;
+  font-size: 0.95rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
   line-height: 1.25;
 }
 
-.nexcrm-alloc .alloc-column-head p {
-  margin: 0.15rem 0 0;
-  color: var(--muted-foreground);
+.nexcrm-alloc .alloc-column-head p,
+.nexcrm-alloc .alloc-bench-head p {
+  margin: 0.2rem 0 0;
+  color: var(--alloc-muted);
   font-size: 0.72rem;
+  line-height: 1.35;
 }
 
-.nexcrm-alloc .alloc-person {
+.nexcrm-alloc .alloc-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  padding: 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.nexcrm-alloc .alloc-count.is-on {
+  background: color-mix(in srgb, var(--alloc-on) 14%, transparent);
+  color: var(--alloc-on);
+}
+
+.nexcrm-alloc .alloc-count.is-off {
+  background: color-mix(in srgb, var(--alloc-off) 14%, transparent);
+  color: var(--alloc-off);
+}
+
+.nexcrm-alloc .alloc-person,
+.nexcrm-alloc .alloc-bench-card {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 0.55rem;
   align-items: center;
   width: 100%;
-  border: 1px solid color-mix(in oklch, var(--border) 75%, transparent);
-  border-radius: 0.75rem;
-  background: color-mix(in oklch, var(--background) 70%, transparent);
-  padding: 0.55rem 0.6rem;
+  border: 1px solid color-mix(in srgb, var(--alloc-line) 90%, transparent);
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--alloc-card) 88%, white);
+  padding: 0.6rem 0.65rem;
   text-align: left;
   cursor: pointer;
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease !important;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease,
+    background 160ms ease;
 }
 
-.nexcrm-alloc .alloc-person:hover {
-  border-color: color-mix(in oklch, var(--nx-accent) 40%, var(--border));
+.nexcrm-alloc .alloc-person.is-allocated {
+  border-left: 3px solid var(--alloc-on);
+  background: color-mix(in srgb, var(--alloc-on) 5%, var(--alloc-card));
+}
+
+.nexcrm-alloc .alloc-bench-card,
+.nexcrm-alloc .alloc-person.is-unallocated {
+  border-left: 3px solid var(--alloc-off);
+  background: color-mix(in srgb, var(--alloc-off) 6%, var(--alloc-card));
+}
+
+.nexcrm-alloc .alloc-person:hover,
+.nexcrm-alloc .alloc-bench-card:hover {
   transform: translateY(-1px);
-  box-shadow: var(--nx-lift);
+  box-shadow: 0 12px 24px -18px rgb(26 43 107 / 35%);
 }
 
-.nexcrm-alloc .alloc-person.is-selected {
-  border-color: color-mix(in oklch, var(--nx-accent) 55%, var(--border));
-  box-shadow: 0 0 0 1px color-mix(in oklch, var(--nx-accent) 25%, transparent);
+.nexcrm-alloc .alloc-person.is-selected,
+.nexcrm-alloc .alloc-bench-card.is-picked {
+  outline: 2px solid color-mix(in srgb, var(--alloc-bill) 55%, transparent);
+  outline-offset: 1px;
 }
 
-.nexcrm-alloc .alloc-person strong {
+.nexcrm-alloc .alloc-person strong,
+.nexcrm-alloc .alloc-bench-card strong {
   display: block;
-  font-size: 0.84rem;
-  font-weight: 650;
+  font-size: 0.86rem;
+  font-weight: 700;
   line-height: 1.25;
+  letter-spacing: -0.015em;
 }
 
-.nexcrm-alloc .alloc-person em {
+.nexcrm-alloc .alloc-person em,
+.nexcrm-alloc .alloc-bench-card em {
   display: block;
-  margin-top: 0.1rem;
-  color: var(--muted-foreground);
+  margin-top: 0.12rem;
+  color: var(--alloc-muted);
   font-size: 0.7rem;
   font-style: normal;
+  line-height: 1.3;
+}
+
+.nexcrm-alloc .alloc-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.12rem 0.45rem;
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.nexcrm-alloc .alloc-status.is-on {
+  background: color-mix(in srgb, var(--alloc-on) 14%, transparent);
+  color: var(--alloc-on);
+}
+
+.nexcrm-alloc .alloc-status.is-off {
+  background: color-mix(in srgb, var(--alloc-off) 14%, transparent);
+  color: var(--alloc-off);
 }
 
 .nexcrm-alloc .alloc-margin {
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
-  font-weight: 650;
-  color: color-mix(in oklch, var(--nx-warm-deep) 80%, var(--foreground));
+  font-weight: 750;
+  color: var(--alloc-on);
 }
 
-.nexcrm-alloc .alloc-bench-grid {
-  display: grid;
-  gap: 0.55rem;
-  grid-template-columns: repeat(auto-fill, minmax(14.5rem, 1fr));
+.nexcrm-alloc .alloc-margin.is-neg {
+  color: #b42318;
 }
 
-.nexcrm-alloc .alloc-bench-card {
-  display: grid;
-  gap: 0.55rem;
-  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
-  border-radius: 0.85rem;
-  background: color-mix(in oklch, var(--card) 90%, transparent);
-  padding: 0.7rem;
-  transition: border-color 160ms ease, box-shadow 160ms ease !important;
-}
-
-.nexcrm-alloc .alloc-bench-card.is-picked {
-  border-color: color-mix(in oklch, var(--nx-accent) 50%, var(--border));
-  box-shadow: 0 0 0 1px color-mix(in oklch, var(--nx-accent) 20%, transparent);
-}
-
-.nexcrm-alloc .alloc-timeline {
-  display: grid;
-  gap: 0.45rem;
-}
-
-.nexcrm-alloc .alloc-event {
-  display: grid;
-  gap: 0.15rem;
-  border-left: 2px solid color-mix(in oklch, var(--nx-accent) 45%, transparent);
-  padding: 0.2rem 0 0.2rem 0.65rem;
-}
-
-.nexcrm-alloc .alloc-event strong {
-  font-size: 0.78rem;
-}
-
-.nexcrm-alloc .alloc-event span {
-  color: var(--muted-foreground);
-  font-size: 0.68rem;
-}
-
-.nexcrm-alloc .alloc-pick-row {
+.nexcrm-alloc .alloc-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-  max-height: 10rem;
-  overflow: auto;
-  padding: 0.35rem;
-  border: 1px solid var(--border);
-  border-radius: 0.7rem;
-  background: color-mix(in oklch, var(--muted) 25%, transparent);
+  padding-top: 0.2rem;
 }
 
-.nexcrm-alloc .alloc-pick {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: color-mix(in oklch, var(--background) 80%, transparent);
-  padding: 0.2rem 0.55rem;
-  font-size: 0.72rem;
-  cursor: pointer;
+.nexcrm-alloc .alloc-bench-list {
+  display: grid;
+  gap: 0.5rem;
 }
 
-.nexcrm-alloc .alloc-pick.is-on {
-  border-color: color-mix(in oklch, var(--nx-accent) 40%, transparent);
-  background: color-mix(in oklch, var(--nx-accent) 14%, transparent);
-  font-weight: 600;
+.nexcrm-alloc .alloc-empty {
+  border: 1px dashed color-mix(in srgb, var(--alloc-muted) 35%, transparent);
+  border-radius: 0.85rem;
+  padding: 1rem;
+  color: var(--alloc-muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.nexcrm-alloc .alloc-search {
+  min-width: min(100%, 14rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexcrm-alloc .alloc-kpi,
+  .nexcrm-alloc .alloc-person,
+  .nexcrm-alloc .alloc-bench-card {
+    transition: none !important;
+  }
+
+  .nexcrm-alloc .alloc-kpi:hover,
+  .nexcrm-alloc .alloc-kpi.is-active,
+  .nexcrm-alloc .alloc-person:hover,
+  .nexcrm-alloc .alloc-bench-card:hover {
+    transform: none;
+  }
 }

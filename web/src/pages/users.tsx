@@ -29,21 +29,62 @@ type Role = {
   systemRole: boolean;
 };
 
+type ClientOption = { id: string; legalName: string };
+
 type Person = {
   id: string;
   name: string;
   email: string;
   active: boolean;
   role: Role;
+  scopedClientIds: string[] | null;
 };
 
-type AccessModel = { roles: Role[]; users: Person[]; actorId: string };
+type AccessModel = { roles: Role[]; users: Person[]; clients: ClientOption[]; actorId: string };
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return "?";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`;
+}
+
+function ClientScopePicker({
+  clients,
+  selected,
+  onChange,
+}: {
+  clients: ClientOption[];
+  selected: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  return (
+    <fieldset className="grid gap-2 rounded-lg border p-3">
+      <legend className="px-1 text-sm font-medium">Restaurant clients</legend>
+      <p className="text-xs text-muted-foreground">
+        Limit this person to selected clients (restaurants). Leave empty for no client data. System admin ignores this.
+      </p>
+      <div className="max-h-40 space-y-1 overflow-auto">
+        {clients.map((client) => {
+          const checked = selected.includes(client.id);
+          return (
+            <label key={client.id} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(event) => {
+                  if (event.target.checked) onChange([...selected, client.id]);
+                  else onChange(selected.filter((id) => id !== client.id));
+                }}
+              />
+              <span className="truncate">{client.legalName}</span>
+            </label>
+          );
+        })}
+        {!clients.length ? <p className="text-xs text-muted-foreground">No client companies yet.</p> : null}
+      </div>
+    </fieldset>
+  );
 }
 
 export function UsersPanel() {
@@ -65,6 +106,12 @@ export function UsersPanel() {
     reload().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not load users."));
   }, [office.role?.slug]);
 
+  const clientsById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const client of model?.clients ?? []) map.set(client.id, client.legalName);
+    return map;
+  }, [model]);
+
   const filtered = useMemo(() => {
     if (!model) return [];
     const needle = q.trim().toLowerCase();
@@ -82,7 +129,7 @@ export function UsersPanel() {
   }
   if (!model) return error ? <Banner message={error} error /> : <Loading />;
 
-  async function save(url: string, body: Record<string, string>, success: string) {
+  async function save(url: string, body: Record<string, unknown>, success: string) {
     setPending(true);
     setError(null);
     try {
@@ -132,6 +179,7 @@ export function UsersPanel() {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Restaurants</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -151,6 +199,13 @@ export function UsersPanel() {
                       </div>
                     </TableCell>
                     <TableCell>{person.role.name}</TableCell>
+                    <TableCell className="max-w-[14rem] text-xs text-muted-foreground">
+                      {person.scopedClientIds === null
+                        ? "All (admin)"
+                        : person.scopedClientIds.length
+                          ? person.scopedClientIds.map((id) => clientsById.get(id) ?? id).join(", ")
+                          : "None assigned"}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={person.active ? "secondary" : "outline"}>
                         {person.active ? "Active" : "Inactive"}
@@ -174,6 +229,7 @@ export function UsersPanel() {
       <CreateUserDialog
         open={createOpen}
         roles={model.roles}
+        clients={model.clients}
         pending={pending}
         onOpenChange={setCreateOpen}
         onSave={(url, body) => void save(url, body, "User created")}
@@ -181,6 +237,7 @@ export function UsersPanel() {
       <EditUserDialog
         person={editing}
         roles={model.roles}
+        clients={model.clients}
         actorId={model.actorId}
         pending={pending}
         onOpenChange={(open) => {
@@ -195,27 +252,31 @@ export function UsersPanel() {
 function CreateUserDialog({
   open,
   roles,
+  clients,
   pending,
   onOpenChange,
   onSave,
 }: {
   open: boolean;
   roles: Role[];
+  clients: ClientOption[];
   pending: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (url: string, body: Record<string, string>) => void;
+  onSave: (url: string, body: Record<string, unknown>) => void;
 }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [roleId, setRoleId] = useState(roles.find((role) => role.slug === "hr_staff")?.id ?? roles[0]?.id ?? "");
+  const [roleId, setRoleId] = useState(roles.find((role) => role.slug === "manager")?.id ?? roles[0]?.id ?? "");
+  const [clientIds, setClientIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open) return;
     setName("");
     setEmail("");
     setPassword("");
-    setRoleId(roles.find((role) => role.slug === "hr_staff")?.id ?? roles[0]?.id ?? "");
+    setRoleId(roles.find((role) => role.slug === "manager")?.id ?? roles[0]?.id ?? "");
+    setClientIds([]);
   }, [open, roles]);
 
   return (
@@ -224,14 +285,14 @@ function CreateUserDialog({
         <DialogHeader>
           <DialogTitle>Add user</DialogTitle>
           <DialogDescription>
-            They sign in with email and password. Choose a role that matches their office work.
+            Assign restaurant clients so managers only see their own payroll and staff.
           </DialogDescription>
         </DialogHeader>
         <form
           className="grid gap-4"
           onSubmit={(event) => {
             event.preventDefault();
-            onSave("/api/v1/admin/users", { name, email, password, roleId });
+            onSave("/api/v1/admin/users", { name, email, password, roleId, clientCompanyIds: clientIds });
           }}
         >
           <TextField id="new-user-name" label="Name" value={name} onChange={setName} />
@@ -251,6 +312,7 @@ function CreateUserDialog({
               </option>
             ))}
           </SelectField>
+          <ClientScopePicker clients={clients} selected={clientIds} onChange={setClientIds} />
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
@@ -268,6 +330,7 @@ function CreateUserDialog({
 function EditUserDialog({
   person,
   roles,
+  clients,
   actorId,
   pending,
   onOpenChange,
@@ -275,15 +338,17 @@ function EditUserDialog({
 }: {
   person: Person | null;
   roles: Role[];
+  clients: ClientOption[];
   actorId: string;
   pending: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (url: string, body: Record<string, string>) => void;
+  onSave: (url: string, body: Record<string, unknown>) => void;
 }) {
   const [name, setName] = useState("");
   const [roleId, setRoleId] = useState("");
   const [active, setActive] = useState(true);
   const [password, setPassword] = useState("");
+  const [clientIds, setClientIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!person) return;
@@ -291,6 +356,7 @@ function EditUserDialog({
     setRoleId(person.role.id);
     setActive(person.active);
     setPassword("");
+    setClientIds(person.scopedClientIds ?? []);
   }, [person]);
 
   return (
@@ -313,6 +379,7 @@ function EditUserDialog({
                 roleId,
                 active: String(active),
                 password,
+                clientCompanyIds: clientIds,
               });
             }}
           >
@@ -328,6 +395,7 @@ function EditUserDialog({
               <input type="checkbox" checked={active} onChange={(event) => setActive(event.target.checked)} />
               Active account
             </label>
+            <ClientScopePicker clients={clients} selected={clientIds} onChange={setClientIds} />
             <TextField
               id={`edit-password-${person.id}`}
               label="Reset password"

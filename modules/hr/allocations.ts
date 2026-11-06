@@ -112,6 +112,7 @@ async function mapRow(id: string): Promise<AllocationRecord | null> {
 
 export async function listAllocations(filters?: {
   clientCompanyId?: string | null;
+  clientIds?: string[] | null;
   employerCompanyId?: string | null;
   employeeId?: string | null;
   status?: string | null;
@@ -119,6 +120,11 @@ export async function listAllocations(filters?: {
 }): Promise<AllocationRecord[]> {
   const params: unknown[] = [];
   const where: string[] = [];
+  if (filters?.clientIds) {
+    if (!filters.clientIds.length) return [];
+    params.push(filters.clientIds);
+    where.push(`a.client_company_id = any($${params.length}::uuid[])`);
+  }
   if (filters?.clientCompanyId) {
     params.push(filters.clientCompanyId);
     where.push(`a.client_company_id = $${params.length}`);

@@ -20,6 +20,7 @@ function person(slug: string, canPreview: boolean, canEdit: boolean, canDelete: 
     name: "Test",
     email: "test@nexcrm.local",
     active: true,
+    scopedClientIds: slug === "system_admin" ? null : [],
     role: {
       id: "00000000-0000-4000-8000-000000000002",
       slug,

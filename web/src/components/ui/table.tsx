@@ -3,7 +3,7 @@ import { cn } from "cn"
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
-    <div data-slot="table-container" className="table-scroll relative w-full">
+    <div data-slot="table-container" className="table-scroll relative w-full rounded-xl">
       <table
         data-slot="table"
         className={cn("w-full caption-bottom text-sm", className)}
@@ -17,7 +17,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("[&_tr]:border-b", className)}
+      className={cn("[&_tr]:border-b [&_tr]:border-transparent [&_tr]:hover:bg-transparent", className)}
       {...props}
     />
   )
@@ -51,7 +51,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+        "border-b transition-colors hover:bg-muted/60 has-aria-expanded:bg-muted/60 data-[state=selected]:bg-muted",
         className
       )}
       {...props}
@@ -64,7 +64,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
+        "h-10 px-2.5 text-left align-middle whitespace-nowrap bg-[#1a2b6b] text-white font-semibold tracking-[0.06em] uppercase text-[0.68rem] [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}

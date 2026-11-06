@@ -736,6 +736,18 @@ export async function createEmployeeRecord(record: Record<string, unknown>): Pro
   }
   const created = await getEmployee(id);
   if (!created) throw new EmployeeError("Could not save employee");
+  try {
+    const { attachEmployeeFinanceOnCreate } = await import("../expenses/finance.ts");
+    await attachEmployeeFinanceOnCreate({
+      employeeId: created.id,
+      employeeName: created.legalName,
+      nationality: created.nationality,
+    });
+  } catch (reason) {
+    console.error(
+      reason instanceof Error ? reason.message : "Could not attach employee finance expenses",
+    );
+  }
   return created;
 }
 

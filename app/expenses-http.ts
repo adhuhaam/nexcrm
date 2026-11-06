@@ -8,6 +8,11 @@ import {
   listExpenses,
   updateExpense,
 } from "../modules/expenses/expenses.ts";
+import {
+  getFinanceSummary,
+  postAnnualFees,
+  postWorkPermitMonth,
+} from "../modules/expenses/finance.ts";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const cookieName = "nexcrm_session";
@@ -79,6 +84,39 @@ export async function handleExpensesApi(
   if (!path.startsWith("/api/v1/expenses")) return false;
 
   try {
+    if (method === "GET" && path === "/api/v1/expenses/finance-summary") {
+      sendJson(response, 200, await getFinanceSummary());
+      return true;
+    }
+
+    if (method === "POST" && path === "/api/v1/expenses/post-month") {
+      if (!sameOrigin(request)) {
+        sendJson(response, 403, { error: "Cross-origin request rejected" });
+        return true;
+      }
+      const body = await readJson(request);
+      const yearMonth =
+        typeof body.yearMonth === "string" && body.yearMonth.trim()
+          ? body.yearMonth.trim()
+          : new Date().toISOString().slice(0, 7);
+      sendJson(response, 200, await postWorkPermitMonth(yearMonth, await actorId(request)));
+      return true;
+    }
+
+    if (method === "POST" && path === "/api/v1/expenses/post-annual") {
+      if (!sameOrigin(request)) {
+        sendJson(response, 403, { error: "Cross-origin request rejected" });
+        return true;
+      }
+      const body = await readJson(request);
+      const year =
+        typeof body.year === "string" || typeof body.year === "number"
+          ? body.year
+          : new Date().getFullYear();
+      sendJson(response, 200, await postAnnualFees(year, await actorId(request)));
+      return true;
+    }
+
     if (method === "GET" && path === "/api/v1/expenses") {
       sendJson(
         response,
@@ -88,6 +126,7 @@ export async function handleExpensesApi(
           from: url.searchParams.get("from"),
           to: url.searchParams.get("to"),
           clientId: url.searchParams.get("clientId"),
+          employeeId: url.searchParams.get("employeeId"),
           q: url.searchParams.get("q"),
         }),
       );

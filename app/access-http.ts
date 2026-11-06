@@ -23,6 +23,13 @@ import {
   saveSystemSettings,
   settingsCatalog,
 } from "../modules/settings/settings.ts";
+import { ExpenseError } from "../modules/expenses/expenses.ts";
+import {
+  getFinanceFeeSettings,
+  listDepositRates,
+  updateFinanceFeeSettings,
+  upsertDepositRate,
+} from "../modules/expenses/finance.ts";
 
 const cookieName = "nexcrm_session";
 
@@ -96,6 +103,17 @@ function flag(value: unknown): boolean {
   return value === true || value === "true" || value === "on" || value === "1";
 }
 
+function readClientIds(value: unknown): string[] {
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean);
+  }
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => text(item)).filter(Boolean);
+}
+
 function readPermissions(value: unknown): ModulePermission[] | undefined {
   if (!Array.isArray(value)) return undefined;
   const rows: ModulePermission[] = [];
@@ -120,6 +138,7 @@ function publicView(user: OfficeUser | null) {
   return {
     user: { id: user.id, name: user.name, email: user.email },
     role: user.role,
+    scopedClientIds: user.scopedClientIds,
   };
 }
 
@@ -194,9 +213,11 @@ export async function guardAccess(request: IncomingMessage, response: ServerResp
 async function handleAdmin(request: IncomingMessage, response: ServerResponse, url: URL, user: OfficeUser): Promise<boolean> {
   const method = request.method ?? "GET";
   if (method === "GET" && url.pathname === "/api/v1/admin/access") {
+    const { listCompanies } = await import("../modules/companies/companies.ts");
     sendJson(response, 200, {
       roles: await listRoles(),
       users: await listUsers(),
+      clients: await listCompanies("client"),
       actorId: user.id,
       catalog: accessCatalog(),
     });
@@ -211,6 +232,60 @@ async function handleAdmin(request: IncomingMessage, response: ServerResponse, u
   }
   if (method === "GET" && url.pathname === "/api/v1/admin/health") {
     sendJson(response, 200, await getSystemHealth());
+    return true;
+  }
+  if (method === "GET" && url.pathname === "/api/v1/admin/finance-rates") {
+    sendJson(response, 200, await getFinanceFeeSettings());
+    return true;
+  }
+  if (method === "GET" && url.pathname === "/api/v1/admin/deposit-rates") {
+    sendJson(response, 200, { rates: await listDepositRates(url.searchParams.get("q")) });
+    return true;
+  }
+  if (method === "POST" && url.pathname === "/api/v1/admin/finance-rates") {
+    if (!sameOrigin(request)) {
+      sendJson(response, 403, { error: "This change must come from this site." });
+      return true;
+    }
+    try {
+      const body = await readRecord(request);
+      sendJson(response, 200, await updateFinanceFeeSettings(body));
+    } catch (error) {
+      const message =
+        error instanceof ExpenseError || error instanceof AccessError || error instanceof SyntaxError
+          ? error.message
+          : "Could not save finance rates.";
+      sendJson(response, 400, { error: message });
+    }
+    return true;
+  }
+  if (
+    (method === "PUT" || method === "POST") &&
+    url.pathname === "/api/v1/admin/deposit-rates"
+  ) {
+    if (!sameOrigin(request)) {
+      sendJson(response, 403, { error: "This change must come from this site." });
+      return true;
+    }
+    try {
+      const body = await readRecord(request);
+      sendJson(
+        response,
+        200,
+        await upsertDepositRate({
+          id: typeof body.id === "string" ? body.id : null,
+          countryName: text(body.countryName),
+          isoCode: text(body.isoCode),
+          amount: text(body.amount),
+        }),
+      );
+    } catch (error) {
+      const message =
+        error instanceof ExpenseError || error instanceof AccessError || error instanceof SyntaxError
+          ? error.message
+          : "Could not save deposit rate.";
+      sendJson(response, 400, { error: message });
+    }
     return true;
   }
   if (method === "POST" && url.pathname === "/api/v1/admin/settings") {
@@ -290,6 +365,7 @@ async function handleAdmin(request: IncomingMessage, response: ServerResponse, u
         email: text(body.email),
         password: text(body.password),
         roleId: text(body.roleId),
+        clientCompanyIds: readClientIds(body.clientCompanyIds),
       });
       const returnTo = text(body.returnTo) === "/admin" ? "/admin" : "/users";
       sendJson(response, 200, { location: returnTo });
@@ -302,6 +378,7 @@ async function handleAdmin(request: IncomingMessage, response: ServerResponse, u
         active: flag(body.active),
         name: body.name === undefined ? undefined : text(body.name),
         password: body.password === undefined ? undefined : text(body.password),
+        clientCompanyIds: body.clientCompanyIds === undefined ? undefined : readClientIds(body.clientCompanyIds),
       });
       const returnTo = text(body.returnTo) === "/admin" ? "/admin" : "/users";
       sendJson(response, 200, { location: returnTo });

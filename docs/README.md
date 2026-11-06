@@ -10,7 +10,7 @@ Ship these with the codebase so humans and agents share one orientation surface.
 4. [ARCHITECTURE.md](ARCHITECTURE.md) — layout, auth, how to extend  
 5. [API.md](API.md) — `/api/v1` contract for web + mobile  
 
-Ops / remote work: [DEPLOY.md](DEPLOY.md), [REMOTE.md](REMOTE.md).
+Ops / remote work: [DEPLOY.md](DEPLOY.md), [REMOTE.md](REMOTE.md), [CLOUDFLARE_TUNNEL.md](CLOUDFLARE_TUNNEL.md).
 
 ## Index
 
@@ -22,6 +22,7 @@ Ops / remote work: [DEPLOY.md](DEPLOY.md), [REMOTE.md](REMOTE.md).
 | [API.md](API.md) | Shared `/api/v1` for React + Expo |
 | [PRODUCT.md](PRODUCT.md) | Agency tools + finance apps map |
 | [DEPLOY.md](DEPLOY.md) | nginx, systemd, Postgres over LAN/Tailscale |
+| [CLOUDFLARE_TUNNEL.md](CLOUDFLARE_TUNNEL.md) | Public HTTPS via Cloudflare Tunnel (no port-forward) |
 | [REMOTE.md](REMOTE.md) | Tailscale SSH + Cursor from anywhere |
 | [mobile/AGENTS.md](../mobile/AGENTS.md) | Expo-specific agent notes |
 

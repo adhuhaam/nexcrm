@@ -30,6 +30,7 @@ const PayrollPaymentRequestPage = lazyNamed(
   "PayrollPaymentRequestPage",
 );
 const PayrollSalarySheetPage = lazyNamed(() => import("@/pages/payroll-salary-sheet"), "PayrollSalarySheetPage");
+const PayrollPayslipsPage = lazyNamed(() => import("@/pages/payroll-payslips"), "PayrollPayslipsPage");
 const DocumentsPage = lazyNamed(() => import("@/pages/documents"), "DocumentsPage");
 const EmployeeListPage = lazyNamed(() => import("@/pages/employees"), "EmployeeListPage");
 const EmployeeFormPage = lazyNamed(() => import("@/pages/employees"), "EmployeeFormPage");
@@ -87,6 +88,10 @@ function routeFor(path: string): ReactNode {
     const id = path.slice("/payroll/".length, -"/salary-sheet".length).replace(/\/$/, "");
     return uuid.test(id) ? <PayrollSalarySheetPage payRunId={id} /> : <Missing />;
   }
+  if (path.startsWith("/payroll/") && path.endsWith("/payslips")) {
+    const id = path.slice("/payroll/".length, -"/payslips".length).replace(/\/$/, "");
+    return uuid.test(id) ? <PayrollPayslipsPage payRunId={id} /> : <Missing />;
+  }
   if (path === "/payroll") return <PayrollPage />;
   if (path === "/documents") return <DocumentsPage />;
   if (path === "/employees") return <EmployeeListPage />;
@@ -141,7 +146,7 @@ function Missing() {
             <a href="/loas">LOAs</a>
           </Button>
           <Button variant="outline" asChild>
-            <a href="/apps/expenses">Expenses</a>
+            <a href="/apps/expenses">Finance</a>
           </Button>
         </CardContent>
       </Card>

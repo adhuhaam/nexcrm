@@ -20,6 +20,8 @@ export type OfficeSession = {
     systemRole: boolean;
     permissions?: ModulePermission[];
   };
+  /** null = unrestricted admin; otherwise assigned restaurant client ids */
+  scopedClientIds?: string[] | null;
 };
 
 const TTL_MS = 90_000;

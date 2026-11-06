@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   ActivityIcon,
   DatabaseIcon,
+  FolderOpenIcon,
   HardDriveIcon,
   HeartPulseIcon,
   RefreshCwIcon,
@@ -110,22 +111,20 @@ function formatDuration(seconds: number): string {
   return `${secs}s`;
 }
 
-function Meter({ value, tone }: { value: number | null; tone: HealthStatus }) {
+function Meter({ value }: { value: number | null }) {
   const width = Math.max(0, Math.min(100, value ?? 0));
-  const color =
-    tone === "down" ? "bg-destructive" : tone === "degraded" ? "bg-amber-500" : "bg-emerald-500";
   return (
-    <div className="h-2 overflow-hidden rounded-full bg-muted">
-      <div className={`h-full rounded-full ${color}`} style={{ width: `${width}%` }} />
+    <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+      <div className="h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${width}%` }} />
     </div>
   );
 }
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-lg border bg-background/80 px-3 py-2">
-      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="mt-0.5 text-sm font-semibold tabular-nums">{value}</div>
+    <div className="rounded-xl border border-border bg-muted/30 px-3 py-2.5">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mt-1 text-sm font-semibold tabular-nums">{value}</div>
       {hint ? <div className="mt-0.5 text-xs text-muted-foreground">{hint}</div> : null}
     </div>
   );
@@ -169,27 +168,19 @@ export function HealthPanel() {
   }
   if (!model && !error) return <Loading />;
 
-  const memTone: HealthStatus =
-    (model?.host.memory.usedPercent ?? 0) >= 95
-      ? "down"
-      : (model?.host.memory.usedPercent ?? 0) >= 85
-        ? "degraded"
-        : "ok";
-  const diskTone = model?.disk.status ?? "degraded";
-
   return (
     <>
       <Banner message={error} error />
       {model ? (
         <div className="grid gap-4">
-          <Card>
-            <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
+          <Card className="overflow-hidden border-border shadow-sm">
+            <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0 bg-primary/[0.04]">
               <div className="flex items-start gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
                   <HeartPulseIcon className="size-5" />
                 </span>
                 <div>
-                  <CardTitle className="flex flex-wrap items-center gap-2">
+                  <CardTitle className="flex flex-wrap items-center gap-2 text-xl">
                     Overall
                     <Badge variant={statusVariant(model.overall)}>{statusLabel(model.overall)}</Badge>
                   </CardTitle>
@@ -208,24 +199,24 @@ export function HealthPanel() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            <CardContent className="grid gap-3 pt-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
               {model.checks.map((check) => (
-                <div key={check.name} className="rounded-xl border bg-muted/20 p-3">
+                <div key={check.name} className="rounded-2xl border border-border bg-card p-3.5 shadow-xs">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium">{check.name}</span>
+                    <span className="text-sm font-semibold">{check.name}</span>
                     <Badge variant={statusVariant(check.status)}>{statusLabel(check.status)}</Badge>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{check.detail}</p>
+                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{check.detail}</p>
                 </div>
               ))}
             </CardContent>
           </Card>
 
           <div className="grid gap-4 xl:grid-cols-2">
-            <Card>
+            <Card className="shadow-sm">
               <CardHeader className="gap-3">
                 <div className="flex items-start gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <ServerIcon className="size-5" />
                   </span>
                   <div>
@@ -248,28 +239,28 @@ export function HealthPanel() {
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Memory</span>
-                    <span className="tabular-nums font-medium">
+                    <span className="font-medium tabular-nums">
                       {formatBytes(model.host.memory.usedBytes)} / {formatBytes(model.host.memory.totalBytes)} (
                       {model.host.memory.usedPercent}%)
                     </span>
                   </div>
-                  <Meter value={model.host.memory.usedPercent} tone={memTone} />
+                  <Meter value={model.host.memory.usedPercent} />
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="shadow-sm">
               <CardHeader className="gap-3">
                 <div className="flex items-start gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <HardDriveIcon className="size-5" />
                   </span>
                   <div>
                     <CardTitle className="flex flex-wrap items-center gap-2">
                       Disk
-                      <Badge variant={statusVariant(diskTone)}>{statusLabel(diskTone)}</Badge>
+                      <Badge variant={statusVariant(model.disk.status)}>{statusLabel(model.disk.status)}</Badge>
                     </CardTitle>
-                    <CardDescription>{model.disk.path}</CardDescription>
+                    <CardDescription className="break-all">{model.disk.path}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -279,15 +270,15 @@ export function HealthPanel() {
                   <Stat label="Available" value={formatBytes(model.disk.availableBytes)} />
                   <Stat label="Total" value={formatBytes(model.disk.totalBytes)} />
                 </div>
-                <Meter value={model.disk.usedPercent} tone={diskTone} />
+                <Meter value={model.disk.usedPercent} />
                 {model.disk.error ? <p className="text-xs text-destructive">{model.disk.error}</p> : null}
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="shadow-sm">
               <CardHeader className="gap-3">
                 <div className="flex items-start gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <DatabaseIcon className="size-5" />
                   </span>
                   <div>
@@ -314,18 +305,37 @@ export function HealthPanel() {
                 {model.database.error ? (
                   <p className="sm:col-span-2 text-xs text-destructive">{model.database.error}</p>
                 ) : null}
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm">
+              <CardHeader className="gap-3">
+                <div className="flex items-start gap-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <FolderOpenIcon className="size-5" />
+                  </span>
+                  <div>
+                    <CardTitle className="flex flex-wrap items-center gap-2">
+                      File storage
+                      <Badge variant={statusVariant(model.files.status)}>{statusLabel(model.files.status)}</Badge>
+                    </CardTitle>
+                    <CardDescription className="break-all">{model.files.root ?? "FILE_ROOT"}</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
                 <Stat
-                  label="File storage"
+                  label="Status"
                   value={statusLabel(model.files.status)}
-                  hint={model.files.root ?? model.files.error ?? "—"}
+                  hint={model.files.error ?? "Writable file vault"}
                 />
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="shadow-sm xl:col-span-2">
               <CardHeader className="gap-3">
                 <div className="flex items-start gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <ActivityIcon className="size-5" />
                   </span>
                   <div>
@@ -336,7 +346,7 @@ export function HealthPanel() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="grid gap-2 sm:grid-cols-2">
+              <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <Stat label="Process uptime" value={formatDuration(model.app.uptimeSec)} />
                 <Stat label="Environment" value={model.app.env} hint={model.app.displayTimeZone} />
                 <Stat label="RSS" value={formatBytes(model.app.memory.rssBytes)} />

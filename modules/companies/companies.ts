@@ -60,7 +60,18 @@ function rowToCompany(row: typeof companies.$inferSelect): CompanyRecord {
   };
 }
 
-export async function listCompanies(kind?: CompanyKind | null): Promise<CompanyRecord[]> {
+export async function listCompanies(
+  kind?: CompanyKind | null,
+  filters?: { ids?: string[] | null },
+): Promise<CompanyRecord[]> {
+  if (filters?.ids) {
+    if (!filters.ids.length) return [];
+    const rows = await db.select().from(companies).orderBy(companies.legalName);
+    const allowed = new Set(filters.ids);
+    return rows
+      .filter((row) => allowed.has(row.id) && (!kind || row.kind === kind))
+      .map(rowToCompany);
+  }
   const rows = kind
     ? await db.select().from(companies).where(eq(companies.kind, kind)).orderBy(companies.legalName)
     : await db.select().from(companies).orderBy(companies.legalName);
@@ -70,9 +81,15 @@ export async function listCompanies(kind?: CompanyKind | null): Promise<CompanyR
 export async function listCompaniesWithCounts(filters?: {
   kind?: CompanyKind | null;
   q?: string | null;
+  ids?: string[] | null;
 }): Promise<CompanyListItem[]> {
   const params: unknown[] = [];
   const where: string[] = [];
+  if (filters?.ids) {
+    if (!filters.ids.length) return [];
+    params.push(filters.ids);
+    where.push(`c.id = any($${params.length}::uuid[])`);
+  }
   if (filters?.kind === "employer" || filters?.kind === "client") {
     params.push(filters.kind);
     where.push(`c.kind = $${params.length}`);

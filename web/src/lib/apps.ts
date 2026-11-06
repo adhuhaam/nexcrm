@@ -9,8 +9,8 @@ export type OfficeApp = {
 export const officeApps: OfficeApp[] = [
   {
     id: "expenses",
-    label: "Expenses",
-    short: "EX",
+    label: "Finance",
+    short: "FN",
     href: "/apps/expenses",
     matchPrefix: "/apps/expenses",
   },

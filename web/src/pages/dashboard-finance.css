@@ -1,0 +1,805 @@
+/* Dashboard finance comparison — Busza tokens, Geist inherit */
+
+.dash-smart {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  border-radius: 0.85rem;
+  padding: 0.55rem 0.75rem;
+  background:
+    linear-gradient(
+      105deg,
+      color-mix(in srgb, var(--nx-blue, #2d5cfe) 8%, var(--nx-card, var(--card))),
+      var(--nx-card, var(--card))
+    );
+  outline: 1px solid var(--nx-line, var(--border));
+  box-shadow: var(--nx-shadow, 0 10px 30px -18px rgb(26 43 107 / 28%));
+}
+
+.dash-smart-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--nx-blue, #2d5cfe) 70%, var(--nx-ink, var(--foreground)));
+}
+
+.dash-smart-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: #12b76a;
+  box-shadow: 0 0 0 0 color-mix(in srgb, #12b76a 55%, transparent);
+  animation: dash-live-pulse 1.8s ease-out infinite;
+}
+
+.dash-smart-clock {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  font-size: 0.8rem;
+  letter-spacing: -0.02em;
+}
+
+.dash-smart-insights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-smart-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.22rem 0.55rem;
+  background: color-mix(in srgb, var(--nx-blue, #2d5cfe) 10%, transparent);
+  color: var(--nx-ink, var(--foreground));
+  font-size: 0.7rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    background 140ms ease;
+}
+
+.dash-smart-chip:hover,
+.dash-smart-chip.is-on {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--nx-blue, #2d5cfe) 18%, transparent);
+}
+
+.dash-smart-chip.is-risk {
+  background: color-mix(in srgb, #c2410c 12%, transparent);
+}
+
+.dash-smart-chip.is-risk.is-on,
+.dash-smart-chip.is-risk:hover {
+  background: color-mix(in srgb, #c2410c 20%, transparent);
+}
+
+.dash-smart-chip.is-ok {
+  background: color-mix(in srgb, #067647 12%, transparent);
+}
+
+.dash-smart-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.dash-section {
+  transition:
+    opacity 180ms ease,
+    filter 180ms ease;
+}
+
+.dash-section.is-dim {
+  opacity: 0.38;
+  filter: grayscale(0.25);
+}
+
+.dash-section.is-focus {
+  outline: 2px solid color-mix(in srgb, var(--nx-blue, #2d5cfe) 28%, transparent);
+  outline-offset: 4px;
+  border-radius: 1.1rem;
+}
+
+
+.dash-series {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.dash-series button {
+  border-radius: 999px !important;
+}
+
+.dash-series button.is-off {
+  opacity: 0.45;
+}
+
+.dash-finance {
+  --df-expenses: #c2410c;
+  --df-bill: var(--nx-blue, #2d5cfe);
+  --df-staff: #7c3aed;
+  --df-fund: #067647;
+  --df-fund-neg: #b42318;
+  --df-line: var(--nx-line, var(--border));
+  --df-card: var(--nx-card, var(--card));
+  --df-ink: var(--nx-ink, var(--foreground));
+  --df-muted: var(--nx-muted, var(--muted-foreground));
+  display: grid;
+  gap: 1rem;
+}
+
+@keyframes dash-live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, #12b76a 50%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.dash-finance-kpis {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 720px) {
+  .dash-finance-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .dash-finance-kpis {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.dash-finance-kpi {
+  position: relative;
+  display: grid;
+  gap: 0.35rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  padding: 1rem 1.05rem 0.95rem;
+  background: var(--df-card);
+  outline: 1px solid var(--df-line);
+  box-shadow: var(--nx-shadow, 0 10px 30px -18px rgb(26 43 107 / 28%));
+  text-decoration: none;
+  color: inherit;
+  animation: dash-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    outline-color 160ms ease;
+}
+
+.dash-finance-kpi.is-expenses {
+  animation-delay: 60ms;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--df-expenses) 9%, var(--df-card)), var(--df-card));
+}
+
+.dash-finance-kpi.is-bill {
+  animation-delay: 110ms;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--df-bill) 9%, var(--df-card)), var(--df-card));
+}
+
+.dash-finance-kpi.is-staff {
+  animation-delay: 160ms;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--df-staff) 9%, var(--df-card)), var(--df-card));
+}
+
+.dash-finance-kpi.is-fund {
+  animation-delay: 210ms;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--df-fund) 9%, var(--df-card)), var(--df-card));
+}
+
+.dash-finance-kpi.is-after {
+  animation-delay: 260ms;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--df-fund) 7%, var(--df-card)), var(--df-card));
+}
+
+.dash-finance-kpi::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+}
+
+.dash-finance-kpi.is-expenses::after {
+  background: var(--df-expenses);
+}
+
+.dash-finance-kpi.is-bill::after {
+  background: var(--df-bill);
+}
+
+.dash-finance-kpi.is-staff::after {
+  background: var(--df-staff);
+}
+
+.dash-finance-kpi.is-fund::after {
+  background: var(--df-fund);
+}
+
+.dash-finance-kpi.is-fund.is-negative::after,
+.dash-finance-kpi.is-after.is-negative::after {
+  background: var(--df-fund-neg);
+}
+
+.dash-finance-kpi.is-after::after {
+  background: var(--df-fund);
+}
+
+.dash-finance-kpi:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 34px -20px rgb(45 92 254 / 28%);
+}
+
+.dash-finance-kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.dash-finance-kpi-chip {
+  border-radius: 999px;
+  padding: 0.12rem 0.45rem;
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--df-muted) 12%, transparent);
+  color: var(--df-muted);
+}
+
+.dash-finance-kpi.is-expenses .dash-finance-kpi-chip {
+  background: color-mix(in srgb, var(--df-expenses) 14%, transparent);
+  color: var(--df-expenses);
+}
+
+.dash-finance-kpi.is-bill .dash-finance-kpi-chip {
+  background: color-mix(in srgb, var(--df-bill) 14%, transparent);
+  color: var(--df-bill);
+}
+
+.dash-finance-kpi.is-staff .dash-finance-kpi-chip {
+  background: color-mix(in srgb, var(--df-staff) 14%, transparent);
+  color: var(--df-staff);
+}
+
+.dash-finance-kpi.is-fund .dash-finance-kpi-chip,
+.dash-finance-kpi.is-after .dash-finance-kpi-chip {
+  background: color-mix(in srgb, var(--df-fund) 14%, transparent);
+  color: var(--df-fund);
+}
+
+.dash-finance-kpi.is-negative .dash-finance-kpi-chip {
+  background: color-mix(in srgb, var(--df-fund-neg) 14%, transparent);
+  color: var(--df-fund-neg);
+}
+
+.dash-finance-kpi-label {
+  margin: 0;
+  color: var(--df-muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.dash-finance-kpi-value {
+  margin: 0;
+  font-size: clamp(1.05rem, 1.4vw, 1.35rem);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.dash-finance-kpi-meta {
+  margin: 0;
+  color: var(--df-muted);
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
+.dash-finance-kpi.is-negative .dash-finance-kpi-value {
+  color: var(--df-fund-neg);
+}
+
+.dash-finance-panel {
+  border-radius: 1.1rem;
+  background: var(--df-card);
+  outline: 1px solid var(--df-line);
+  box-shadow: var(--nx-shadow, 0 10px 30px -18px rgb(26 43 107 / 28%));
+  overflow: hidden;
+}
+
+.dash-finance-panel [data-slot="card"] {
+  border: 0;
+  box-shadow: none;
+  outline: 0;
+  background: transparent;
+}
+
+.dash-range {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.dash-range button {
+  border-radius: 999px !important;
+}
+
+.dash-chart {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0.25rem 0 0.15rem;
+}
+
+.dash-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 1rem;
+  color: var(--df-muted);
+  font-size: 0.75rem;
+}
+
+.dash-chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.dash-chart-swatch {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 0.2rem;
+}
+
+.dash-chart-swatch.is-expenses {
+  background: var(--df-expenses);
+}
+
+.dash-chart-swatch.is-bill {
+  background: var(--df-bill);
+}
+
+.dash-chart-swatch.is-staff {
+  background: var(--df-staff);
+}
+
+.dash-chart-swatch.is-fund {
+  background: var(--df-fund);
+}
+
+.dash-chart-frame {
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.dash-chart-svg {
+  display: block;
+  min-width: 100%;
+  height: 280px;
+}
+
+.dash-chart-axis {
+  fill: var(--df-muted);
+  font-size: 10px;
+  font-family: inherit;
+}
+
+.dash-chart-grid {
+  stroke: color-mix(in srgb, var(--df-muted) 18%, transparent);
+  stroke-width: 1;
+}
+
+.dash-chart-bar {
+  transition:
+    opacity 140ms ease,
+    filter 140ms ease;
+  transform-origin: bottom;
+  animation: dash-bar-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.dash-chart-bar:hover,
+.dash-chart-bar.is-hot {
+  filter: brightness(1.08);
+  opacity: 1;
+}
+
+.dash-chart-frame:has(.dash-chart-bar:hover) .dash-chart-bar:not(:hover) {
+  opacity: 0.45;
+}
+
+.dash-chart-tip {
+  border-radius: 0.7rem;
+  border: 1px solid var(--df-line);
+  background: var(--df-card);
+  box-shadow: var(--nx-shadow, 0 10px 30px -18px rgb(26 43 107 / 28%));
+  padding: 0.55rem 0.7rem;
+  font-size: 0.75rem;
+  min-width: 11rem;
+}
+
+.dash-chart-tip strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.78rem;
+}
+
+.dash-chart-tip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--df-muted);
+}
+
+.dash-chart-tip-row b {
+  color: var(--df-ink);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.dash-overview {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 640px) {
+  .dash-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+}
+
+.dash-overview-card {
+  border-radius: 0.85rem;
+  background: var(--df-card);
+  outline: 1px solid var(--df-line);
+  box-shadow: var(--nx-shadow, 0 10px 30px -18px rgb(26 43 107 / 28%));
+  padding: 0.55rem 0.65rem 0.6rem;
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.dash-overview-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.dash-overview-head h3 {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.dash-overview-head p {
+  display: none;
+  margin: 0.1rem 0 0;
+  color: var(--df-muted);
+  font-size: 0.65rem;
+  line-height: 1.25;
+}
+
+@media (min-width: 900px) {
+  .dash-overview-head p {
+    display: block;
+  }
+}
+
+.dash-overview-link {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  font-weight: 750;
+  color: var(--df-bill);
+  text-decoration: none;
+}
+
+.dash-overview-link:hover {
+  text-decoration: underline;
+}
+
+.dash-overview-card .dash-alltime {
+  gap: 0.35rem;
+}
+
+.dash-overview-card .dash-alltime-head {
+  font-size: 0.68rem;
+}
+
+.dash-overview-card .dash-alltime-track {
+  height: 0.42rem;
+}
+
+.dash-overview-card .dash-compare-note {
+  font-size: 0.65rem;
+  margin: 0;
+}
+
+.dash-hc-bars {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.dash-hc-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(3.5rem, 38%) auto;
+  gap: 0.4rem;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 0.45rem;
+  padding: 0.28rem 0.3rem;
+  transition: background 140ms ease;
+}
+
+@media (min-width: 640px) {
+  .dash-hc-row {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) auto;
+  }
+}
+
+.dash-hc-row:hover,
+.dash-hc-row.is-hot {
+  background: color-mix(in srgb, var(--nx-blue, #2d5cfe) 8%, transparent);
+}
+
+.dash-hc-row.is-hot {
+  box-shadow: inset 2px 0 0 var(--df-bill);
+}
+
+.dash-hc-name {
+  min-width: 0;
+  font-size: 0.7rem;
+  font-weight: 650;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-hc-track {
+  overflow: hidden;
+  height: 0.38rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--df-muted) 12%, transparent);
+}
+
+.dash-hc-track > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0e7490, var(--df-bill));
+  transition: width 650ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dash-hc-meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dash-hc-meta strong {
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.dash-hc-meta em {
+  font-size: 0.6rem;
+  font-style: normal;
+  font-weight: 650;
+  color: var(--df-muted);
+}
+
+@media (max-width: 639px) {
+  .dash-overview-card {
+    padding: 0.5rem 0.55rem 0.55rem;
+  }
+
+  .dash-hc-meta em {
+    display: none;
+  }
+}
+
+@keyframes dash-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dash-bar-in {
+  from {
+    opacity: 0;
+    transform: scaleY(0.15);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+.dash-alltime {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.dash-alltime-row {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.dash-alltime-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--df-muted);
+  font-size: 0.78rem;
+}
+
+.dash-alltime-head strong {
+  color: var(--df-ink);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.dash-alltime-track {
+  overflow: hidden;
+  height: 0.7rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--df-muted) 12%, transparent);
+}
+
+.dash-alltime-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dash-alltime-track > span.is-expenses {
+  background: var(--df-expenses);
+}
+
+.dash-alltime-track > span.is-bill {
+  background: var(--df-bill);
+}
+
+.dash-alltime-track > span.is-staff {
+  background: var(--df-staff);
+}
+
+.dash-alltime-track > span.is-fund {
+  background: var(--df-fund);
+}
+
+.dash-alltime-track > span.is-fund.is-negative {
+  background: var(--df-fund-neg);
+}
+
+.dash-compare-note {
+  color: var(--df-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.dash-expense-mix {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+}
+
+.dash-expense-mix-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.dash-expense-mix-row span:last-child {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+.dash-expense-months {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(3.4rem, 1fr);
+  gap: 0.55rem;
+  overflow-x: auto;
+  padding: 0.25rem 0 0.15rem;
+  min-height: 9.5rem;
+}
+
+.dash-expense-month {
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  justify-items: center;
+  gap: 0.3rem;
+  min-width: 3.4rem;
+}
+
+.dash-expense-month-bar-wrap {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 6.5rem;
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--df-muted) 10%, transparent);
+  padding: 0.25rem;
+}
+
+.dash-expense-month-bar {
+  display: block;
+  width: 100%;
+  border-radius: 0.35rem 0.35rem 0.2rem 0.2rem;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--df-expenses) 85%, white), var(--df-expenses));
+  transition: height 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dash-expense-month-label {
+  color: var(--df-muted);
+  font-size: 0.65rem;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.dash-expense-month-value {
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-finance-kpi,
+  .dash-alltime-track > span,
+  .dash-expense-month-bar,
+  .dash-chart-bar,
+  .dash-hc-track > i {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .dash-finance-kpi:hover {
+    transform: none;
+  }
+}

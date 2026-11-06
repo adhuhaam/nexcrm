@@ -7,8 +7,9 @@
 | Node NEXCRM | `127.0.0.1:3000` | nginx, Tailscale Serve only |
 | nginx HTTP | `127.0.0.1`, `192.168.100.10`, `100.77.125.102` `:80` | Local, LAN, Tailscale |
 | nginx HTTPS | `192.168.100.10:443` | Office LAN (LAN TLS cert) |
-| Tailscale Serve | `https://server-1.snowy-pride.ts.net` | Tailnet (preferred mobile/remote HTTPS) |
-| PostgreSQL | `*:5432` (auth-limited) | Local, `192.168.100.0/24`, Tailscale `100.64.0.0/10` |
+| Tailscale Serve | `https://server-1.snowy-pride.ts.net` | Tailnet (admin SSH / optional) |
+| Cloudflare Tunnel | `https://<your-hostname>` | Public managers (preferred internet HTTPS) — see [CLOUDFLARE_TUNNEL.md](CLOUDFLARE_TUNNEL.md) |
+| PostgreSQL | `*:5432` (auth-limited) | Local, `192.168.100.0/24`, Tailscale `100.64.0.0/10` — never via Tunnel |
 
 ```mermaid
 flowchart LR

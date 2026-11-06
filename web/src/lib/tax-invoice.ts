@@ -55,6 +55,37 @@ export type TaxInvoiceSource = {
   totals: { netBill: string };
 };
 
+/** Browser Save-as-PDF uses document.title as the default filename. */
+export function payrollPrintFilename(input: {
+  clientName: string;
+  docType: string;
+  docNumber: string;
+  periodStart: string;
+}): string {
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  const match = input.periodStart.match(/^(\d{4})-(\d{2})/);
+  const monthYear = match ? `${months[Number(match[2]) - 1]}-${match[1]}` : input.periodStart;
+  const raw = `${input.clientName.trim()} - ${input.docType.trim()} ${input.docNumber.trim()} - ${monthYear}`;
+  return raw
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 180);
+}
+
 function periodMonthLabel(periodStart: string, formatDate: (value: string | Date) => string): string {
   const match = periodStart.match(/^(\d{4})-(\d{2})/);
   if (!match) return formatDate(periodStart);

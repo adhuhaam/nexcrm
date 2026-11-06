@@ -35,6 +35,8 @@ export type OfficeUser = {
   email: string;
   active: boolean;
   role: RoleRecord;
+  /** null = unrestricted (system admin). Otherwise assigned restaurant client ids. */
+  scopedClientIds: string[] | null;
 };
 
 const builtInRoles: Array<Omit<RoleRecord, "id" | "permissions"> & { accessModules?: "full" | "none" | "view" }> = [
@@ -322,6 +324,14 @@ export async function deleteRole(id: string): Promise<void> {
   await pool.query(`delete from roles where id = $1`, [id]);
 }
 
+async function attachScope(user: Omit<OfficeUser, "scopedClientIds">): Promise<OfficeUser> {
+  if (user.role.slug === "system_admin") {
+    return { ...user, scopedClientIds: null };
+  }
+  const { loadUserClientIds } = await import("./client-scope.ts");
+  return { ...user, scopedClientIds: await loadUserClientIds(user.id) };
+}
+
 export async function listUsers(): Promise<OfficeUser[]> {
   const result = await pool.query<RoleRow & { user_id: string; user_name: string; email: string; active: boolean }>(
     `select users.id as user_id, users.name as user_name, users.email, users.active,
@@ -330,13 +340,21 @@ export async function listUsers(): Promise<OfficeUser[]> {
      order by users.name`,
   );
   const permissions = await loadPermissionsForRoles(result.rows.map((row) => row.id));
-  return result.rows.map((row) => ({
-    id: row.user_id,
-    name: row.user_name,
-    email: row.email,
-    active: row.active,
-    role: roleFrom(row, permissions.get(row.id) ?? []),
-  }));
+  const { listUserClientsMap } = await import("./client-scope.ts");
+  const scopes = await listUserClientsMap(result.rows.map((row) => row.user_id));
+  return result.rows.map((row) => {
+    const base = {
+      id: row.user_id,
+      name: row.user_name,
+      email: row.email,
+      active: row.active,
+      role: roleFrom(row, permissions.get(row.id) ?? []),
+    };
+    return {
+      ...base,
+      scopedClientIds: base.role.slug === "system_admin" ? null : (scopes.get(row.user_id) ?? []),
+    };
+  });
 }
 
 export async function createUser(input: {
@@ -344,25 +362,38 @@ export async function createUser(input: {
   email: string;
   password: string;
   roleId: string;
+  clientCompanyIds?: string[];
 }): Promise<void> {
   const name = input.name.trim();
   const email = input.email.trim().toLowerCase();
   if (!name || !email || input.password.length < 8) throw new AccessError("Name, email, and a password of at least 8 characters are required.");
   const passwordHash = await hashPassword(input.password);
+  let userId = "";
   try {
-    await pool.query(
-      `insert into users (id, role_id, name, email, password_hash) values (gen_random_uuid(), $1, $2, $3, $4)`,
+    const inserted = await pool.query<{ id: string }>(
+      `insert into users (id, role_id, name, email, password_hash)
+       values (gen_random_uuid(), $1, $2, $3, $4)
+       returning id`,
       [input.roleId, name, email, passwordHash],
     );
+    userId = inserted.rows[0]?.id ?? "";
   } catch (error) {
     if (isUnique(error)) throw new AccessError("That email is already used.");
     throw error;
+  }
+  if (userId && input.clientCompanyIds?.length) {
+    const { setUserClients } = await import("./client-scope.ts");
+    try {
+      await setUserClients(userId, input.clientCompanyIds);
+    } catch (error) {
+      throw new AccessError(error instanceof Error ? error.message : "Could not assign restaurant clients.");
+    }
   }
 }
 
 export async function updateUser(
   id: string,
-  input: { roleId: string; active: boolean; name?: string; password?: string },
+  input: { roleId: string; active: boolean; name?: string; password?: string; clientCompanyIds?: string[] },
 ): Promise<void> {
   const role = await pool.query<{ slug: string }>(`select slug from roles where id = $1`, [input.roleId]);
   if (!role.rows[0]) throw new AccessError("Choose a role.");
@@ -394,14 +425,22 @@ export async function updateUser(
       name ?? null,
       passwordHash,
     ]);
-    return;
+  } else {
+    await pool.query(`update users set role_id = $2, active = $3, name = coalesce($4, name) where id = $1`, [
+      id,
+      input.roleId,
+      input.active,
+      name ?? null,
+    ]);
   }
-  await pool.query(`update users set role_id = $2, active = $3, name = coalesce($4, name) where id = $1`, [
-    id,
-    input.roleId,
-    input.active,
-    name ?? null,
-  ]);
+  if (input.clientCompanyIds !== undefined) {
+    const { setUserClients } = await import("./client-scope.ts");
+    try {
+      await setUserClients(id, input.clientCompanyIds);
+    } catch (error) {
+      throw new AccessError(error instanceof Error ? error.message : "Could not assign restaurant clients.");
+    }
+  }
 }
 
 export async function openSession(email: string, password: string): Promise<{ token: string; user: OfficeUser } | null> {
@@ -424,13 +463,13 @@ export async function openSession(email: string, password: string): Promise<{ to
   const permissions = await loadPermissionsForRoles([row.id]);
   return {
     token,
-    user: {
+    user: await attachScope({
       id: row.user_id,
       name: row.user_name,
       email: row.email,
       active: row.active,
       role: roleFrom(row, permissions.get(row.id) ?? []),
-    },
+    }),
   };
 }
 
@@ -448,13 +487,13 @@ export async function userForToken(token: string): Promise<OfficeUser | null> {
   const row = result.rows[0];
   if (!row || !row.active) return null;
   const permissions = await loadPermissionsForRoles([row.id]);
-  return {
+  return attachScope({
     id: row.user_id,
     name: row.user_name,
     email: row.email,
     active: row.active,
     role: roleFrom(row, permissions.get(row.id) ?? []),
-  };
+  });
 }
 
 export async function closeSession(token: string): Promise<void> {

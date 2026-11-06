@@ -238,6 +238,20 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const userClients = pgTable(
+  "user_clients",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    clientCompanyId: uuid("client_company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.clientCompanyId] })],
+);
+
 export const sessions = pgTable("sessions", {
   id: uuid("id").primaryKey(),
   userId: uuid("user_id")
@@ -417,13 +431,34 @@ export const payRunItems = pgTable("pay_run_items", {
   grossStaff: numeric("gross_staff", { precision: 12, scale: 2 }).notNull().default("0"),
   lopStaff: numeric("lop_staff", { precision: 12, scale: 2 }).notNull().default("0"),
   otStaff: numeric("ot_staff", { precision: 12, scale: 2 }).notNull().default("0"),
+  otherDeductStaff: numeric("other_deduct_staff", { precision: 12, scale: 2 }).notNull().default("0"),
   netStaff: numeric("net_staff", { precision: 12, scale: 2 }).notNull().default("0"),
   grossBill: numeric("gross_bill", { precision: 12, scale: 2 }).notNull().default("0"),
   lopBill: numeric("lop_bill", { precision: 12, scale: 2 }).notNull().default("0"),
   otBill: numeric("ot_bill", { precision: 12, scale: 2 }).notNull().default("0"),
+  otherDeductBill: numeric("other_deduct_bill", { precision: 12, scale: 2 }).notNull().default("0"),
+  deductionNote: text("deduction_note"),
   netBill: numeric("net_bill", { precision: 12, scale: 2 }).notNull().default("0"),
   snapshot: jsonb("snapshot").$type<Record<string, unknown>>().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const payrollPeriodDeductions = pgTable("payroll_period_deductions", {
+  id: uuid("id").primaryKey(),
+  clientCompanyId: uuid("client_company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
+  employeeId: uuid("employee_id")
+    .notNull()
+    .references(() => employees.id, { onDelete: "cascade" }),
+  periodStart: date("period_start").notNull(),
+  periodEnd: date("period_end").notNull(),
+  staffAmount: numeric("staff_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  billAmount: numeric("bill_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  note: text("note"),
+  breakdown: jsonb("breakdown").$type<Record<string, unknown>>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const letters = pgTable("letters", {
@@ -484,10 +519,29 @@ export const expenses = pgTable("expenses", {
   currency: text("currency").notNull().default("MVR"),
   category: text("category").notNull(),
   clientCompanyId: uuid("client_company_id").references(() => companies.id, { onDelete: "restrict" }),
+  employeeId: uuid("employee_id").references(() => employees.id, { onDelete: "set null" }),
   counterparty: text("counterparty"),
   note: text("note"),
+  recurrenceKey: text("recurrence_key"),
   createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const financeFeeSettings = pgTable("finance_fee_settings", {
+  id: uuid("id").primaryKey(),
+  workPermitMonthly: numeric("work_permit_monthly", { precision: 12, scale: 2 }).notNull().default("350"),
+  insuranceYearly: numeric("insurance_yearly", { precision: 12, scale: 2 }).notNull().default("800"),
+  medicalYearly: numeric("medical_yearly", { precision: 12, scale: 2 }).notNull().default("500"),
+  currency: text("currency").notNull().default("MVR"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const wpDepositRates = pgTable("wp_deposit_rates", {
+  id: uuid("id").primaryKey(),
+  countryName: text("country_name").notNull(),
+  isoCode: text("iso_code").notNull(),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

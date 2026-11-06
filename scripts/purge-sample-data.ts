@@ -25,6 +25,7 @@ async function main(): Promise<void> {
     truncate table
       pay_run_items,
       pay_runs,
+      payroll_period_deductions,
       ot_entries,
       ot_rates,
       attendance_records,

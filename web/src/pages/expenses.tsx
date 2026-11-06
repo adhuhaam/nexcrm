@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { PlusIcon, ReceiptIcon, Trash2Icon } from "lucide-react";
+import { CalendarPlusIcon, PlusIcon, ReceiptIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,7 +13,14 @@ import { getJson, sendJson } from "@/lib/api";
 import { formatDate } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
 
-type ExpenseCategory = "client_payment" | "investment" | "other";
+type ExpenseCategory =
+  | "client_payment"
+  | "investment"
+  | "other"
+  | "work_permit"
+  | "insurance"
+  | "medical"
+  | "deposit";
 
 type Expense = {
   id: string;
@@ -23,18 +30,39 @@ type Expense = {
   category: ExpenseCategory;
   clientCompanyId: string | null;
   clientName: string | null;
+  employeeId: string | null;
+  employeeName: string | null;
   counterparty: string | null;
   note: string | null;
+  recurrenceKey: string | null;
 };
 
 type Totals = {
   client_payment: string;
   investment: string;
   other: string;
+  work_permit: string;
+  insurance: string;
+  medical: string;
+  deposit: string;
   all: string;
 };
 
+type FinanceSummary = {
+  currency: string;
+  monthlyUnitCost: string;
+  activeEmployees: number;
+  projectedMonthlyStaffCost: string;
+  totals: Totals;
+  fees: {
+    workPermitMonthly: string;
+    insuranceYearly: string;
+    medicalYearly: string;
+  };
+};
+
 type Client = { id: string; legalName: string };
+type EmployeeOption = { id: string; legalName: string };
 
 type Draft = {
   id: string | null;
@@ -43,6 +71,7 @@ type Draft = {
   currency: string;
   category: ExpenseCategory;
   clientCompanyId: string;
+  employeeId: string;
   counterparty: string;
   note: string;
 };
@@ -51,6 +80,10 @@ const categoryLabels: Record<ExpenseCategory, string> = {
   client_payment: "Client payment",
   investment: "Investment",
   other: "Other",
+  work_permit: "Work permit",
+  insurance: "Insurance",
+  medical: "Medical",
+  deposit: "Deposit",
 };
 
 function emptyDraft(): Draft {
@@ -61,9 +94,14 @@ function emptyDraft(): Draft {
     currency: "MVR",
     category: "other",
     clientCompanyId: "",
+    employeeId: "",
     counterparty: "",
     note: "",
   };
+}
+
+function currentMonth(): string {
+  return new Date().toISOString().slice(0, 7);
 }
 
 export function ExpensesPage() {
@@ -74,9 +112,9 @@ export function ExpensesPage() {
 
   return (
     <Shell
-      title="NEXCRM · Expenses"
-      eyebrow="Apps"
-      description="Track money paid to clients, investments, and other organization outflows."
+      title="NEXCRM · Finance"
+      eyebrow="Apps · Expenses"
+      description="Employee cost ledger — work permit, insurance, medical, deposits — plus client payments and investments."
       actions={
         <WhenEditing>
           <Button
@@ -128,22 +166,27 @@ function ExpensesBody({
   const office = useOffice();
   const [rows, setRows] = useState<Expense[] | null>(null);
   const [totals, setTotals] = useState<Totals | null>(null);
+  const [summary, setSummary] = useState<FinanceSummary | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [category, setCategory] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [q, setQ] = useState("");
+  const [postMonth, setPostMonth] = useState(currentMonth());
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
     if (category) params.set("category", category);
+    if (employeeId) params.set("employeeId", employeeId);
     if (from) params.set("from", from);
     if (to) params.set("to", to);
     if (q.trim()) params.set("q", q.trim());
     const text = params.toString();
     return text ? `?${text}` : "";
-  }, [category, from, to, q]);
+  }, [category, employeeId, from, to, q]);
 
   function reload() {
     getJson<{ expenses: Expense[]; totals: Totals }>(`/api/v1/expenses${query}`)
@@ -157,6 +200,9 @@ function ExpensesBody({
         setRows([]);
         setTotals(null);
       });
+    getJson<FinanceSummary>("/api/v1/expenses/finance-summary")
+      .then(setSummary)
+      .catch(() => setSummary(null));
   }
 
   useEffect(() => {
@@ -167,6 +213,9 @@ function ExpensesBody({
     getJson<{ clients: Client[] }>("/api/v1/clients")
       .then((data) => setClients(data.clients))
       .catch(() => setClients([]));
+    getJson<{ employees: EmployeeOption[] }>("/api/v1/employees")
+      .then((data) => setEmployees(data.employees.map((row) => ({ id: row.id, legalName: row.legalName }))))
+      .catch(() => setEmployees([]));
   }, []);
 
   async function save() {
@@ -178,6 +227,7 @@ function ExpensesBody({
         currency: draft.currency,
         category: draft.category,
         clientCompanyId: draft.category === "client_payment" ? draft.clientCompanyId || null : null,
+        employeeId: draft.employeeId || null,
         counterparty: draft.counterparty || null,
         note: draft.note || null,
       };
@@ -208,59 +258,145 @@ function ExpensesBody({
     }
   }
 
+  async function runPostMonth() {
+    setPending(true);
+    try {
+      const result = await sendJson<{ created: number; skipped: number; yearMonth: string; amount: string }>(
+        "/api/v1/expenses/post-month",
+        "POST",
+        { yearMonth: postMonth },
+      );
+      toast.success(
+        `Posted ${result.created} work permit rows for ${result.yearMonth} (${result.skipped} already existed)`,
+      );
+      bumpReload();
+    } catch (reason) {
+      toast.error(reason instanceof Error ? reason.message : "Could not post month");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function runPostAnnual() {
+    setPending(true);
+    try {
+      const year = postMonth.slice(0, 4);
+      const result = await sendJson<{
+        insuranceCreated: number;
+        medicalCreated: number;
+        skipped: number;
+        year: string;
+      }>("/api/v1/expenses/post-annual", "POST", { year });
+      toast.success(
+        `Annual ${result.year}: +${result.insuranceCreated} insurance, +${result.medicalCreated} medical (${result.skipped} skipped)`,
+      );
+      bumpReload();
+    } catch (reason) {
+      toast.error(reason instanceof Error ? reason.message : "Could not post annual fees");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const currency = summary?.currency ?? "MVR";
+  const displayTotals = summary?.totals ?? totals;
+
   return (
     <>
       <Banner message={error} error />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>All</CardDescription>
-            <CardTitle className="tabular-nums text-xl">{totals?.all ?? "—"}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Client payments</CardDescription>
-            <CardTitle className="tabular-nums text-xl">{totals?.client_payment ?? "—"}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Investments</CardDescription>
-            <CardTitle className="tabular-nums text-xl">{totals?.investment ?? "—"}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Other</CardDescription>
-            <CardTitle className="tabular-nums text-xl">{totals?.other ?? "—"}</CardTitle>
-          </CardHeader>
-        </Card>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        {(
+          [
+            ["Work permit", displayTotals?.work_permit],
+            ["Insurance", displayTotals?.insurance],
+            ["Medical", displayTotals?.medical],
+            ["Deposits", displayTotals?.deposit],
+            ["Other", displayTotals?.other],
+            ["All time", displayTotals?.all],
+          ] as const
+        ).map(([label, value]) => (
+          <Card key={label}>
+            <CardHeader className="pb-2">
+              <CardDescription>{label}</CardDescription>
+              <CardTitle className="tabular-nums text-lg">
+                {value != null ? formatMoney(value, currency) : "—"}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+        ))}
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
+          <div>
+            <CardTitle>Staff cost posting</CardTitle>
+            <CardDescription>
+              {summary
+                ? `${summary.activeEmployees} active · ${formatMoney(summary.monthlyUnitCost, currency)}/employee/mo · projected ${formatMoney(summary.projectedMonthlyStaffCost, currency)}`
+                : "Post monthly work permits and backfill annual insurance/medical."}
+            </CardDescription>
+          </div>
+          <WhenEditing>
+            <div className="flex flex-wrap items-end gap-2">
+              <TextField
+                id="post-month"
+                label="Month"
+                type="month"
+                value={postMonth}
+                onChange={setPostMonth}
+              />
+              <Button type="button" disabled={pending} onClick={() => void runPostMonth()}>
+                <CalendarPlusIcon />
+                Post this month (WP)
+              </Button>
+              <Button type="button" variant="outline" disabled={pending} onClick={() => void runPostAnnual()}>
+                Post annual fees
+              </Button>
+            </div>
+          </WhenEditing>
+        </CardHeader>
+        {summary ? (
+          <CardContent className="text-sm text-muted-foreground">
+            Rates: WP {formatMoney(summary.fees.workPermitMonthly, currency)}/mo · Insurance{" "}
+            {formatMoney(summary.fees.insuranceYearly, currency)}/yr · Medical{" "}
+            {formatMoney(summary.fees.medicalYearly, currency)}/yr. Edit in Settings → Finance.
+          </CardContent>
+        ) : null}
+      </Card>
 
       <Card>
         <CardHeader>
           <CardTitle>Filters</CardTitle>
-          <CardDescription>Narrow by category, date range, or search.</CardDescription>
+          <CardDescription>Narrow by category, employee, date range, or search.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <SelectField id="filter-category" label="Category" value={category} onChange={setCategory}>
             <option value="">All categories</option>
-            <option value="client_payment">Client payment</option>
-            <option value="investment">Investment</option>
-            <option value="other">Other</option>
+            {(Object.keys(categoryLabels) as ExpenseCategory[]).map((key) => (
+              <option key={key} value={key}>
+                {categoryLabels[key]}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField id="filter-employee" label="Employee" value={employeeId} onChange={setEmployeeId}>
+            <option value="">All employees</option>
+            {employees.map((row) => (
+              <option key={row.id} value={row.id}>
+                {row.legalName}
+              </option>
+            ))}
           </SelectField>
           <TextField id="filter-from" label="From" type="date" value={from} onChange={setFrom} />
           <TextField id="filter-to" label="To" type="date" value={to} onChange={setTo} />
-          <TextField id="filter-q" label="Search" value={q} onChange={setQ} hint="Counterparty, note, or client" />
+          <TextField id="filter-q" label="Search" value={q} onChange={setQ} hint="Note, counterparty, employee" />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Expenses</CardTitle>
-          <CardDescription>Linked client payments and free-text counterparties for investments and other.</CardDescription>
+          <CardTitle>Ledger</CardTitle>
+          <CardDescription>Date, category, employee, amount, and recurrence notes.</CardDescription>
         </CardHeader>
         <CardContent>
           {!rows && !error ? <PageSkeleton cards={1} /> : null}
@@ -270,7 +406,8 @@ function ExpensesBody({
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead>Paid to</TableHead>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Detail</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead />
                 </TableRow>
@@ -282,12 +419,13 @@ function ExpensesBody({
                     <TableCell>
                       <Badge variant="secondary">{categoryLabels[row.category]}</Badge>
                     </TableCell>
+                    <TableCell className="font-medium">{row.employeeName ?? "—"}</TableCell>
                     <TableCell>
                       <div className="font-medium">{row.clientName ?? row.counterparty ?? "—"}</div>
-                      {row.clientName && row.counterparty ? (
-                        <div className="text-xs text-muted-foreground">{row.counterparty}</div>
-                      ) : null}
                       {row.note ? <div className="text-xs text-muted-foreground">{row.note}</div> : null}
+                      {row.recurrenceKey ? (
+                        <div className="text-xs text-muted-foreground font-mono">{row.recurrenceKey}</div>
+                      ) : null}
                     </TableCell>
                     <TableCell className="text-right tabular-nums whitespace-nowrap">
                       {formatMoney(row.amount, row.currency)}
@@ -307,6 +445,7 @@ function ExpensesBody({
                                 currency: row.currency,
                                 category: row.category,
                                 clientCompanyId: row.clientCompanyId ?? "",
+                                employeeId: row.employeeId ?? "",
                                 counterparty: row.counterparty ?? "",
                                 note: row.note ?? "",
                               });
@@ -339,7 +478,7 @@ function ExpensesBody({
             <ShellEmpty
               icon={<ReceiptIcon className="size-8 opacity-60" />}
               title="No expenses yet"
-              description="Record a client payment, investment, or other outflow."
+              description="Post work permits for the month, or record a client payment / investment."
             />
           ) : null}
         </CardContent>
@@ -349,7 +488,7 @@ function ExpensesBody({
         open={open}
         onOpenChange={setOpen}
         title={draft.id ? "Edit expense" : "Add expense"}
-        description="Client payments can optionally link to a client company."
+        description="Client payments can link to a client. Staff fees can link to an employee."
         pending={pending}
         submitLabel={draft.id ? "Save changes" : "Record expense"}
         onSubmit={save}
@@ -385,9 +524,11 @@ function ExpensesBody({
             }))
           }
         >
-          <option value="client_payment">Client payment</option>
-          <option value="investment">Investment</option>
-          <option value="other">Other</option>
+          {(Object.keys(categoryLabels) as ExpenseCategory[]).map((key) => (
+            <option key={key} value={key}>
+              {categoryLabels[key]}
+            </option>
+          ))}
         </SelectField>
         {draft.category === "client_payment" ? (
           <SelectField
@@ -404,18 +545,24 @@ function ExpensesBody({
             ))}
           </SelectField>
         ) : null}
+        <SelectField
+          id="expense-employee"
+          label="Employee (optional)"
+          value={draft.employeeId}
+          onChange={(value) => setDraft((current) => ({ ...current, employeeId: value }))}
+        >
+          <option value="">No linked employee</option>
+          {employees.map((row) => (
+            <option key={row.id} value={row.id}>
+              {row.legalName}
+            </option>
+          ))}
+        </SelectField>
         <TextField
           id="expense-counterparty"
           label={draft.category === "client_payment" ? "Payee note (optional)" : "Counterparty"}
           value={draft.counterparty}
           onChange={(value) => setDraft((current) => ({ ...current, counterparty: value }))}
-          hint={
-            draft.category === "investment"
-              ? "Investment name or vehicle"
-              : draft.category === "other"
-                ? "Who or what was paid"
-                : undefined
-          }
         />
         <div className="sm:col-span-2">
           <AreaField

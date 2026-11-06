@@ -32,10 +32,13 @@ export type PayRunItemRecord = {
   grossStaff: string;
   lopStaff: string;
   otStaff: string;
+  otherDeductStaff: string;
   netStaff: string;
   grossBill: string;
   lopBill: string;
   otBill: string;
+  otherDeductBill: string;
+  deductionNote: string | null;
   netBill: string;
 };
 
@@ -215,6 +218,84 @@ async function loadAttendanceMap(
   return map;
 }
 
+async function loadDeductionsByEmployee(
+  employeeIds: string[],
+  clientCompanyId: string,
+  periodStart: string,
+  periodEnd: string,
+): Promise<Map<string, { staff: number; bill: number; note: string | null; breakdown: Record<string, unknown> }>> {
+  const map = new Map<string, { staff: number; bill: number; note: string | null; breakdown: Record<string, unknown> }>();
+  if (!employeeIds.length) return map;
+  const result = await pool.query<{
+    employee_id: string;
+    staff_amount: string;
+    bill_amount: string;
+    note: string | null;
+    breakdown: Record<string, unknown> | null;
+  }>(
+    `select employee_id, staff_amount::text, bill_amount::text, note, breakdown
+     from payroll_period_deductions
+     where client_company_id = $1
+       and period_start = $2::date and period_end = $3::date
+       and employee_id = any($4::uuid[])`,
+    [clientCompanyId, periodStart, periodEnd, employeeIds],
+  );
+  for (const row of result.rows) {
+    map.set(row.employee_id, {
+      staff: Number(row.staff_amount),
+      bill: Number(row.bill_amount),
+      note: row.note,
+      breakdown: row.breakdown ?? {},
+    });
+  }
+  return map;
+}
+
+/** Upsert boat/meal/other deductions for one employee in a pay period. */
+export async function upsertPeriodDeduction(input: {
+  clientCompanyId: string;
+  employeeId: string;
+  periodStart: string;
+  periodEnd: string;
+  staffAmount: number | string;
+  billAmount?: number | string;
+  note?: string | null;
+  breakdown?: Record<string, unknown>;
+}): Promise<void> {
+  const staff = money(Number(input.staffAmount));
+  const bill = money(Number(input.billAmount ?? 0));
+  const note =
+    typeof input.note === "string" && input.note.trim() ? input.note.trim().slice(0, 1000) : null;
+  const breakdown = input.breakdown ?? {};
+  await pool.query(
+    `insert into payroll_period_deductions (
+       id, client_company_id, employee_id, period_start, period_end,
+       staff_amount, bill_amount, note, breakdown, created_at, updated_at
+     ) values (
+       $1::uuid, $2::uuid, $3::uuid, $4::date, $5::date,
+       $6::numeric, $7::numeric, $8, $9::jsonb, now(), now()
+     )
+     on conflict (client_company_id, employee_id, period_start, period_end)
+     do update set
+       staff_amount = excluded.staff_amount,
+       bill_amount = excluded.bill_amount,
+       note = excluded.note,
+       breakdown = excluded.breakdown,
+       updated_at = now()`,
+    [
+      randomUUID(),
+      input.clientCompanyId,
+      input.employeeId,
+      input.periodStart,
+      input.periodEnd,
+      staff,
+      bill,
+      note,
+      JSON.stringify(breakdown),
+    ],
+  );
+}
+
 async function loadOtByEmployee(
   employeeIds: string[],
   clientCompanyId: string,
@@ -259,10 +340,14 @@ type ComputedLine = {
   grossStaff: number;
   lopStaff: number;
   otStaff: number;
+  otherDeductStaff: number;
   netStaff: number;
   grossBill: number;
   lopBill: number;
   otBill: number;
+  otherDeductBill: number;
+  deductionNote: string | null;
+  deductionBreakdown: Record<string, unknown>;
   netBill: number;
   otEntryIds: string[];
 };
@@ -275,6 +360,7 @@ function computeLine(input: {
   dim: number;
   attendance: Map<string, string>;
   ot: { staff: number; bill: number; ids: string[] };
+  deduction: { staff: number; bill: number; note: string | null; breakdown: Record<string, unknown> };
 }): ComputedLine {
   // Allocation staff_salary / bill_rate are monthly rates.
   // Daily = monthly / daysInMonth (30 or 31 etc.). Full present month → full monthly.
@@ -315,12 +401,15 @@ function computeLine(input: {
   const grossStaff = Number(money((monthlyStaff * calendarDays) / input.dim));
   const lopStaff = Number(money((monthlyStaff * unpaidDays) / input.dim));
   const otStaff = input.ot.staff;
-  const netStaff = Number(money((monthlyStaff * paidDays) / input.dim)) + otStaff;
+  const otherDeductStaff = Number(money(input.deduction.staff));
+  const netStaff =
+    Number(money((monthlyStaff * paidDays) / input.dim)) + otStaff - otherDeductStaff;
 
   const grossBill = Number(money((monthlyBill * calendarDays) / input.dim));
   const lopBill = Number(money((monthlyBill * unpaidDays) / input.dim));
   const otBill = input.ot.bill;
-  const netBill = Number(money((monthlyBill * paidDays) / input.dim)) + otBill;
+  const otherDeductBill = Number(money(input.deduction.bill));
+  const netBill = Number(money((monthlyBill * paidDays) / input.dim)) + otBill - otherDeductBill;
 
   return {
     allocation: input.allocation,
@@ -335,10 +424,14 @@ function computeLine(input: {
     grossStaff,
     lopStaff,
     otStaff,
+    otherDeductStaff,
     netStaff,
     grossBill,
     lopBill,
     otBill,
+    otherDeductBill,
+    deductionNote: input.deduction.note,
+    deductionBreakdown: input.deduction.breakdown,
     netBill,
     otEntryIds: input.ot.ids,
   };
@@ -352,9 +445,10 @@ async function computeItemsForScope(input: {
   dim: number;
 }): Promise<ComputedLine[]> {
   const employeeIds = [...new Set(input.allocations.map((row) => row.employeeId))];
-  const [attendanceMap, otMap, names] = await Promise.all([
+  const [attendanceMap, otMap, deductionMap, names] = await Promise.all([
     loadAttendanceMap(employeeIds, input.periodStart, input.periodEnd),
     loadOtByEmployee(employeeIds, input.clientCompanyId, input.periodStart, input.periodEnd),
+    loadDeductionsByEmployee(employeeIds, input.clientCompanyId, input.periodStart, input.periodEnd),
     pool.query<{ id: string; legal_name: string }>(`select id, legal_name from employees where id = any($1::uuid[])`, [
       employeeIds,
     ]),
@@ -370,6 +464,12 @@ async function computeItemsForScope(input: {
       dim: input.dim,
       attendance: attendanceMap.get(allocation.employeeId) ?? new Map(),
       ot: otMap.get(allocation.employeeId) ?? { staff: 0, bill: 0, ids: [] },
+      deduction: deductionMap.get(allocation.employeeId) ?? {
+        staff: 0,
+        bill: 0,
+        note: null,
+        breakdown: {},
+      },
     }),
   );
 }
@@ -431,10 +531,13 @@ async function insertPayRunWithItems(input: {
       grossStaff: money(line.grossStaff),
       lopStaff: money(line.lopStaff),
       otStaff: money(line.otStaff),
+      otherDeductStaff: money(line.otherDeductStaff),
       netStaff: money(line.netStaff),
       grossBill: money(line.grossBill),
       lopBill: money(line.lopBill),
       otBill: money(line.otBill),
+      otherDeductBill: money(line.otherDeductBill),
+      deductionNote: line.deductionNote,
       netBill: money(line.netBill),
       snapshot: {
         formula: "calendar_month_rate_v1",
@@ -454,6 +557,10 @@ async function insertPayRunWithItems(input: {
         offDays: line.offDays,
         unmarkedDays: line.unmarkedDays,
         otEntryIds: line.otEntryIds,
+        otherDeductStaff: money(line.otherDeductStaff),
+        otherDeductBill: money(line.otherDeductBill),
+        deductionNote: line.deductionNote,
+        deductionBreakdown: line.deductionBreakdown,
       },
     });
   }
@@ -520,10 +627,13 @@ async function loadPayRun(id: string): Promise<PayRunRecord | null> {
     gross_staff: string;
     lop_staff: string;
     ot_staff: string;
+    other_deduct_staff: string;
     net_staff: string;
     gross_bill: string;
     lop_bill: string;
     ot_bill: string;
+    other_deduct_bill: string;
+    deduction_note: string | null;
     net_bill: string;
   }>(
     `select i.id, i.allocation_id, i.employee_id, i.employee_name, i.designation,
@@ -538,10 +648,13 @@ async function loadPayRun(id: string): Promise<PayRunRecord | null> {
             coalesce(i.gross_staff, i.staff_salary)::text as gross_staff,
             coalesce(i.lop_staff, 0)::text as lop_staff,
             coalesce(i.ot_staff, 0)::text as ot_staff,
+            coalesce(i.other_deduct_staff, 0)::text as other_deduct_staff,
             coalesce(i.net_staff, i.staff_salary)::text as net_staff,
             coalesce(i.gross_bill, i.bill_rate)::text as gross_bill,
             coalesce(i.lop_bill, 0)::text as lop_bill,
             coalesce(i.ot_bill, 0)::text as ot_bill,
+            coalesce(i.other_deduct_bill, 0)::text as other_deduct_bill,
+            i.deduction_note,
             coalesce(i.net_bill, i.bill_rate)::text as net_bill
      from pay_run_items i
      left join employees e on e.id = i.employee_id
@@ -580,10 +693,13 @@ async function loadPayRun(id: string): Promise<PayRunRecord | null> {
       grossStaff: item.gross_staff,
       lopStaff: item.lop_staff,
       otStaff: item.ot_staff,
+      otherDeductStaff: item.other_deduct_staff,
       netStaff: item.net_staff,
       grossBill: item.gross_bill,
       lopBill: item.lop_bill,
       otBill: item.ot_bill,
+      otherDeductBill: item.other_deduct_bill,
+      deductionNote: item.deduction_note,
       netBill: item.net_bill,
     };
   });
@@ -621,35 +737,88 @@ async function loadPayRun(id: string): Promise<PayRunRecord | null> {
   };
 }
 
-export async function listPayRuns(): Promise<Omit<PayRunRecord, "items" | "totals" | "warnings">[]> {
-  const result = await pool.query(
+export type PayRunListRecord = Omit<PayRunRecord, "items" | "totals" | "warnings" | "clientTinNumber" | "clientAddress"> & {
+  itemCount: number;
+  netStaff: string;
+  netBill: string;
+  balance: string;
+};
+
+export async function listPayRuns(filters?: { clientIds?: string[] | null }): Promise<PayRunListRecord[]> {
+  const params: unknown[] = [];
+  const where: string[] = [];
+  if (filters?.clientIds) {
+    if (!filters.clientIds.length) {
+      return [];
+    }
+    params.push(filters.clientIds);
+    where.push(`p.client_company_id = any($${params.length}::uuid[])`);
+  }
+  const result = await pool.query<{
+    id: string;
+    employer_company_id: string;
+    employer_name: string;
+    client_company_id: string;
+    client_name: string;
+    period_start: string;
+    period_end: string;
+    status: "draft" | "locked";
+    generation_mode: GenerationMode;
+    invoice_number: string | null;
+    salary_sheet_number: string | null;
+    locked_at: string | null;
+    created_at: string;
+    item_count: number;
+    net_staff: string;
+    net_bill: string;
+  }>(
     `select p.id, p.employer_company_id, emp.legal_name as employer_name,
             p.client_company_id, cli.legal_name as client_name,
             p.period_start::text, p.period_end::text, p.status,
             coalesce(p.generation_mode, 'employer_client') as generation_mode,
             p.invoice_number,
             p.salary_sheet_number,
-            p.locked_at::text, p.created_at::text
+            p.locked_at::text, p.created_at::text,
+            coalesce(agg.item_count, 0)::int as item_count,
+            coalesce(agg.net_staff, 0)::text as net_staff,
+            coalesce(agg.net_bill, 0)::text as net_bill
      from pay_runs p
      join companies emp on emp.id = p.employer_company_id
      join companies cli on cli.id = p.client_company_id
+     left join lateral (
+       select count(*)::int as item_count,
+              coalesce(sum(i.net_staff), 0) as net_staff,
+              coalesce(sum(i.net_bill), 0) as net_bill
+       from pay_run_items i
+       where i.pay_run_id = p.id
+     ) agg on true
+     ${where.length ? `where ${where.join(" and ")}` : ""}
      order by p.period_start desc, cli.legal_name, emp.legal_name`,
+    params,
   );
-  return result.rows.map((row) => ({
-    id: row.id,
-    employerCompanyId: row.employer_company_id,
-    employerName: row.employer_name,
-    clientCompanyId: row.client_company_id,
-    clientName: row.client_name,
-    periodStart: row.period_start,
-    periodEnd: row.period_end,
-    status: row.status,
-    generationMode: row.generation_mode,
-    invoiceNumber: row.invoice_number,
-    salarySheetNumber: row.salary_sheet_number,
-    lockedAt: row.locked_at,
-    createdAt: row.created_at,
-  }));
+  return result.rows.map((row) => {
+    const netStaff = Number(row.net_staff);
+    const netBill = Number(row.net_bill);
+    return {
+      id: row.id,
+      employerCompanyId: row.employer_company_id,
+      employerName: row.employer_name,
+      clientCompanyId: row.client_company_id,
+      clientName: row.client_name,
+      periodStart: row.period_start,
+      periodEnd: row.period_end,
+      status: row.status,
+      generationMode: row.generation_mode,
+      invoiceNumber: row.invoice_number,
+      salarySheetNumber: row.salary_sheet_number,
+      lockedAt: row.locked_at,
+      createdAt: row.created_at,
+      itemCount: Number(row.item_count),
+      netStaff: money(netStaff),
+      netBill: money(netBill),
+      balance: money(netBill - netStaff),
+    };
+  });
 }
 
 export async function getPayRun(id: string): Promise<PayRunRecord | null> {
@@ -886,10 +1055,13 @@ export async function recalculatePayRun(id: string): Promise<PayRunRecord> {
       grossStaff: money(line.grossStaff),
       lopStaff: money(line.lopStaff),
       otStaff: money(line.otStaff),
+      otherDeductStaff: money(line.otherDeductStaff),
       netStaff: money(line.netStaff),
       grossBill: money(line.grossBill),
       lopBill: money(line.lopBill),
       otBill: money(line.otBill),
+      otherDeductBill: money(line.otherDeductBill),
+      deductionNote: line.deductionNote,
       netBill: money(line.netBill),
       snapshot: {
         formula: "calendar_month_rate_v1",
@@ -909,6 +1081,10 @@ export async function recalculatePayRun(id: string): Promise<PayRunRecord> {
         offDays: line.offDays,
         unmarkedDays: line.unmarkedDays,
         otEntryIds: line.otEntryIds,
+        otherDeductStaff: money(line.otherDeductStaff),
+        otherDeductBill: money(line.otherDeductBill),
+        deductionNote: line.deductionNote,
+        deductionBreakdown: line.deductionBreakdown,
       },
     });
   }

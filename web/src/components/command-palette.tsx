@@ -52,6 +52,14 @@ const navigateItems: PaletteItem[] = [
   { id: "attendance", label: "Attendance", href: "/attendance", icon: CalendarCheckIcon, group: "Navigate", keywords: "present absent month sheet ot" },
   { id: "accommodations", label: "Accommodations", href: "/accommodations", icon: BedDoubleIcon, group: "Navigate" },
   { id: "payroll", label: "Payroll", href: "/payroll", icon: WalletIcon, group: "Navigate" },
+  {
+    id: "finance",
+    label: "Finance",
+    href: "/apps/expenses",
+    icon: ReceiptIcon,
+    group: "Navigate",
+    keywords: "expenses work permit insurance medical deposit",
+  },
   { id: "documents", label: "Documents", href: "/documents", icon: FileArchiveIcon, group: "Navigate" },
   { id: "projects", label: "Projects", href: "/projects", icon: FolderKanbanIcon, group: "Navigate" },
   {
@@ -94,7 +102,13 @@ function isMac(): boolean {
   return typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 }
 
-export function CommandPalette({ canEdit = true }: { canEdit?: boolean }) {
+export function CommandPalette({
+  canEdit = true,
+  hideTrigger = false,
+}: {
+  canEdit?: boolean;
+  hideTrigger?: boolean;
+}) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -108,8 +122,15 @@ export function CommandPalette({ canEdit = true }: { canEdit?: boolean }) {
         setOpen((value) => !value);
       }
     }
+    function onOpen() {
+      setOpen(true);
+    }
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("nexcrm:open-command", onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("nexcrm:open-command", onOpen);
+    };
   }, []);
 
   const appItems = useMemo<PaletteItem[]>(
@@ -138,20 +159,22 @@ export function CommandPalette({ canEdit = true }: { canEdit?: boolean }) {
 
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        className={cn(
-          "relative h-8 w-full justify-start rounded-lg bg-muted/50 text-sm font-normal text-muted-foreground shadow-none sm:pr-12 md:w-40 lg:w-56",
-        )}
-        onClick={() => setOpen(true)}
-      >
-        <SearchIcon className="size-4 opacity-70" />
-        <span className="inline-flex">Search</span>
-        <kbd className="pointer-events-none absolute top-1.5 right-1.5 hidden h-5 items-center gap-1 rounded border bg-background px-1.5 font-mono text-[10px] font-medium select-none sm:flex">
-          {shortcut}
-        </kbd>
-      </Button>
+      {hideTrigger ? null : (
+        <Button
+          type="button"
+          variant="outline"
+          className={cn(
+            "relative h-8 w-full justify-start rounded-lg bg-muted/50 text-sm font-normal text-muted-foreground shadow-none sm:pr-12 md:w-40 lg:w-56",
+          )}
+          onClick={() => setOpen(true)}
+        >
+          <SearchIcon className="size-4 opacity-70" />
+          <span className="inline-flex">Search</span>
+          <kbd className="pointer-events-none absolute top-1.5 right-1.5 hidden h-5 items-center gap-1 rounded border bg-background px-1.5 font-mono text-[10px] font-medium select-none sm:flex">
+            {shortcut}
+          </kbd>
+        </Button>
+      )}
 
       <CommandDialog open={open} onOpenChange={setOpen} title="Command Palette" description="Search for a command to run…">
         <Command>

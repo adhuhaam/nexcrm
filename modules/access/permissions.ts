@@ -45,7 +45,7 @@ export const ACCESS_CATEGORIES: AccessCategory[] = [
       { key: "payroll", label: "Payroll", description: "Pay runs, salary sheets, payment requests" },
       { key: "documents", label: "Documents", description: "Company file drive and uploads" },
       { key: "projects", label: "Projects", description: "Projects, sites, pools, and slots" },
-      { key: "expenses", label: "Expenses", description: "Expense claims app" },
+      { key: "expenses", label: "Finance / Expenses", description: "Staff fees, deposits, and organization outflows" },
     ],
   },
   {
@@ -130,7 +130,9 @@ export function moduleForPath(path: string): string | null {
     path === "/admin" ||
     path.startsWith("/admin/") ||
     path === "/api/v1/admin/access" ||
-    path.startsWith("/api/v1/admin/roles")
+    path.startsWith("/api/v1/admin/roles") ||
+    path.startsWith("/api/v1/admin/finance-rates") ||
+    path.startsWith("/api/v1/admin/deposit-rates")
   ) {
     return "roles";
   }
