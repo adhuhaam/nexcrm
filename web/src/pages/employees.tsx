@@ -958,7 +958,7 @@ export function EmployeeListPage() {
                                     onClick={() => void refreshOne(row)}
                                   >
                                     <RefreshCwIcon />
-                                    Sync from XPAT
+                                    Sync from Xpat
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
@@ -1612,6 +1612,8 @@ function EmployeeEditorPanel({
                           />
                         </div>
                       </EmpCard>
+
+                      {id ? <EmployeeSelfServiceAccountCard employeeId={id} /> : null}
                     </>
                   ) : null}
 
@@ -1995,6 +1997,49 @@ function EmployeeEditorPanel({
           </footer>
         </form>
     </div>
+  );
+}
+
+function EmployeeSelfServiceAccountCard({ employeeId }: { employeeId: string }) {
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [pending, setPending] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    setPending(true);
+    setNotice(null);
+    setError(null);
+    try {
+      await sendJson(`/api/v1/employees/${employeeId}/self-service-account`, "POST", { phone, password });
+      setNotice("Self-service login saved. Employee must change password on first sign-in.");
+      setPassword("");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not save login");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <EmpCard
+      title="Employee self-service login"
+      description="Phone + admin-set password. Staff use the Employee tab on the sign-in page."
+    >
+      <Banner message={error} error />
+      <Banner message={notice} />
+      <div className="emp-editor-fields is-wide">
+        <TextField id="essPhone" label="Phone number" value={phone} onChange={setPhone} />
+        <TextField id="essPassword" label="Password (min 8)" type="password" value={password} onChange={setPassword} />
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button type="button" disabled={pending || !phone || password.length < 8} onClick={() => void save()}>
+          {pending ? <Spinner /> : null}
+          Save login
+        </Button>
+      </div>
+    </EmpCard>
   );
 }
 

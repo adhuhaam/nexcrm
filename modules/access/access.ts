@@ -1,6 +1,7 @@
 import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { pool } from "../../lib/db.ts";
+import { normalizePhone, PhoneError } from "../../lib/phone.ts";
 import {
   ACCESS_CATEGORIES,
   ALL_MODULE_KEYS,
@@ -33,6 +34,9 @@ export type OfficeUser = {
   id: string;
   name: string;
   email: string;
+  phone: string | null;
+  employeeId: string | null;
+  mustChangePassword: boolean;
   active: boolean;
   role: RoleRecord;
   /** null = unrestricted (system admin). Otherwise assigned restaurant client ids. */
@@ -49,6 +53,15 @@ const builtInRoles: Array<Omit<RoleRecord, "id" | "permissions"> & { accessModul
   { slug: "vendor", name: "Vendor", canPreview: true, canEdit: false, canDelete: false, systemRole: true, accessModules: "none" },
   { slug: "agent", name: "Agent", canPreview: true, canEdit: true, canDelete: false, systemRole: true, accessModules: "none" },
   { slug: "investor_guest", name: "Investor guest", canPreview: true, canEdit: false, canDelete: false, systemRole: true, accessModules: "none" },
+  {
+    slug: "employee_self_service",
+    name: "Employee self-service",
+    canPreview: true,
+    canEdit: false,
+    canDelete: false,
+    systemRole: true,
+    accessModules: "none",
+  },
 ];
 
 type RoleRow = {
@@ -177,6 +190,13 @@ export async function seedMissingRolePermissions(): Promise<void> {
       [role.id],
     );
     if (Number(existing.rows[0]?.count ?? 0) > 0) continue;
+    if (role.slug === "employee_self_service") {
+      await replaceRolePermissions(role.id, [
+        { module: "employee_self", canView: true, canCreate: false, canEdit: false, canDelete: false },
+        ...ALL_MODULE_KEYS.filter((module) => module !== "employee_self").map((module) => emptyModulePermission(module)),
+      ]);
+      continue;
+    }
     const builtIn = builtInRoles.find((item) => item.slug === role.slug);
     const accessModules =
       role.slug === "system_admin" ? "full" : (builtIn?.accessModules ?? "none");
@@ -333,8 +353,19 @@ async function attachScope(user: Omit<OfficeUser, "scopedClientIds">): Promise<O
 }
 
 export async function listUsers(): Promise<OfficeUser[]> {
-  const result = await pool.query<RoleRow & { user_id: string; user_name: string; email: string; active: boolean }>(
-    `select users.id as user_id, users.name as user_name, users.email, users.active,
+  const result = await pool.query<
+    RoleRow & {
+      user_id: string;
+      user_name: string;
+      email: string;
+      phone: string | null;
+      employee_id: string | null;
+      must_change_password: boolean;
+      active: boolean;
+    }
+  >(
+    `select users.id as user_id, users.name as user_name, users.email, users.phone, users.employee_id,
+            users.must_change_password, users.active,
             roles.id, roles.slug, roles.name, roles.can_preview, roles.can_edit, roles.can_delete, roles.system_role
      from users join roles on roles.id = users.role_id
      order by users.name`,
@@ -343,12 +374,16 @@ export async function listUsers(): Promise<OfficeUser[]> {
   const { listUserClientsMap } = await import("./client-scope.ts");
   const scopes = await listUserClientsMap(result.rows.map((row) => row.user_id));
   return result.rows.map((row) => {
-    const base = {
+    const base: OfficeUser = {
       id: row.user_id,
       name: row.user_name,
       email: row.email,
+      phone: row.phone,
+      employeeId: row.employee_id,
+      mustChangePassword: row.must_change_password,
       active: row.active,
       role: roleFrom(row, permissions.get(row.id) ?? []),
+      scopedClientIds: null,
     };
     return {
       ...base,
@@ -443,13 +478,52 @@ export async function updateUser(
   }
 }
 
-export async function openSession(email: string, password: string): Promise<{ token: string; user: OfficeUser } | null> {
-  const result = await pool.query<RoleRow & { user_id: string; user_name: string; email: string; active: boolean; password_hash: string }>(
-    `select users.id as user_id, users.name as user_name, users.email, users.active, users.password_hash,
+type UserAuthRow = RoleRow & {
+  user_id: string;
+  user_name: string;
+  email: string;
+  phone: string | null;
+  employee_id: string | null;
+  must_change_password: boolean;
+  active: boolean;
+  password_hash: string;
+};
+
+function mapOfficeUser(row: UserAuthRow, permissions: ModulePermission[]): OfficeUser {
+  return {
+    id: row.user_id,
+    name: row.user_name,
+    email: row.email,
+    phone: row.phone,
+    employeeId: row.employee_id,
+    mustChangePassword: row.must_change_password,
+    active: row.active,
+    role: roleFrom(row, permissions),
+    scopedClientIds: null,
+  };
+}
+
+export async function openSession(identifier: string, password: string): Promise<{ token: string; user: OfficeUser } | null> {
+  const trimmed = identifier.trim();
+  const emailTry = trimmed.includes("@") ? trimmed.toLowerCase() : null;
+  let phoneTry: string | null = null;
+  if (!emailTry) {
+    try {
+      phoneTry = normalizePhone(trimmed);
+    } catch (error) {
+      if (error instanceof PhoneError) return null;
+      throw error;
+    }
+  }
+
+  const result = await pool.query<UserAuthRow>(
+    `select users.id as user_id, users.name as user_name, users.email, users.phone, users.employee_id,
+            users.must_change_password, users.active, users.password_hash,
             roles.id, roles.slug, roles.name, roles.can_preview, roles.can_edit, roles.can_delete, roles.system_role
      from users join roles on roles.id = users.role_id
-     where lower(users.email) = lower($1)`,
-    [email.trim()],
+     where ($1::text is not null and lower(users.email) = lower($1))
+        or ($2::text is not null and users.phone = $2)`,
+    [emailTry, phoneTry],
   );
   const row = result.rows[0];
   if (!row || !row.active || !(await verifyPassword(password, row.password_hash))) return null;
@@ -461,22 +535,18 @@ export async function openSession(email: string, password: string): Promise<{ to
     [row.user_id, tokenHash, String(sessionHours)],
   );
   const permissions = await loadPermissionsForRoles([row.id]);
+  const base = mapOfficeUser(row, permissions.get(row.id) ?? []);
   return {
     token,
-    user: await attachScope({
-      id: row.user_id,
-      name: row.user_name,
-      email: row.email,
-      active: row.active,
-      role: roleFrom(row, permissions.get(row.id) ?? []),
-    }),
+    user: await attachScope(base),
   };
 }
 
 export async function userForToken(token: string): Promise<OfficeUser | null> {
   const tokenHash = createHash("sha256").update(token).digest("hex");
-  const result = await pool.query<RoleRow & { user_id: string; user_name: string; email: string; active: boolean }>(
-    `select users.id as user_id, users.name as user_name, users.email, users.active,
+  const result = await pool.query<UserAuthRow>(
+    `select users.id as user_id, users.name as user_name, users.email, users.phone, users.employee_id,
+            users.must_change_password, users.active, users.password_hash,
             roles.id, roles.slug, roles.name, roles.can_preview, roles.can_edit, roles.can_delete, roles.system_role
      from sessions
      join users on users.id = sessions.user_id
@@ -487,13 +557,7 @@ export async function userForToken(token: string): Promise<OfficeUser | null> {
   const row = result.rows[0];
   if (!row || !row.active) return null;
   const permissions = await loadPermissionsForRoles([row.id]);
-  return attachScope({
-    id: row.user_id,
-    name: row.user_name,
-    email: row.email,
-    active: row.active,
-    role: roleFrom(row, permissions.get(row.id) ?? []),
-  });
+  return attachScope(mapOfficeUser(row, permissions.get(row.id) ?? []));
 }
 
 export async function closeSession(token: string): Promise<void> {
@@ -513,6 +577,15 @@ function permissionAllows(role: RoleRecord, module: string, action: "view" | "cr
 
 export function authorize(method: string, path: string, user: OfficeUser): string | null {
   if (user.role.slug === "system_admin") return null;
+
+  if (user.role.slug === "employee_self_service") {
+    const verb = method.toUpperCase();
+    if (path === "/api/v1/session") return null;
+    if (verb === "POST" && path === "/logout") return null;
+    if (path.startsWith("/api/v1/ess")) return null;
+    if (path.startsWith("/ess")) return null;
+    return "Employee accounts can only use the self-service portal.";
+  }
 
   const module = moduleForPath(path);
   if (!module) {

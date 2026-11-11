@@ -30,6 +30,7 @@ export const ACCESS_CATEGORIES: AccessCategory[] = [
       { key: "dashboard", label: "Dashboard", description: "Office overview and headcount cards" },
       { key: "companies", label: "Legal employers", description: "Employer companies and branding" },
       { key: "employees", label: "Employees", description: "People directory, XPAT, photos, onboard" },
+      { key: "employee_self", label: "Employee self-service", description: "Staff portal (own data only)" },
       { key: "loas", label: "LOAs", description: "Letters of appointment and editor" },
     ],
   },
@@ -126,6 +127,8 @@ export function aggregateFlags(permissions: ModulePermission[]): {
 
 /** Map request path → module key for authorize(). */
 export function moduleForPath(path: string): string | null {
+  if (path.startsWith("/api/v1/ess") || path.startsWith("/ess")) return "employee_self";
+  if (/^\/api\/v1\/employees\/[0-9a-f-]{36}\/self-service-account$/i.test(path)) return "employees";
   if (
     path === "/admin" ||
     path.startsWith("/admin/") ||

@@ -8,6 +8,7 @@ import "@/styles/admin.css";
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
+  const [mode, setMode] = useState<"office" | "employee">("office");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -20,7 +21,8 @@ export function LoginPage() {
     event.preventDefault();
     setPending(true);
     setError(null);
-    void postJson("/login", { email, password }).catch((reason: unknown) => {
+    const body = mode === "employee" ? { phone: email, password } : { email, password };
+    void postJson("/login", body).catch((reason: unknown) => {
       setError(reason instanceof Error ? reason.message : "Sign-in failed.");
       setPending(false);
     });
@@ -42,11 +44,29 @@ export function LoginPage() {
             </div>
           </div>
           <h1>Sign in</h1>
-          <p>Open the agency workspace for people, clients, and payroll.</p>
+          <p>
+            {mode === "employee"
+              ? "Staff self-service — phone number and password from HR."
+              : "Open the agency workspace for people, clients, and payroll."}
+          </p>
         </div>
         <form className="nx-login-form" onSubmit={submit}>
           <Banner message={error} error />
-          <TextField id="email" label="Email" value={email} onChange={setEmail} />
+          <div className="flex gap-2 text-sm">
+            <button type="button" className={mode === "office" ? "font-semibold" : "text-muted-foreground"} onClick={() => setMode("office")}>
+              Office
+            </button>
+            <span className="text-muted-foreground">·</span>
+            <button type="button" className={mode === "employee" ? "font-semibold" : "text-muted-foreground"} onClick={() => setMode("employee")}>
+              Employee
+            </button>
+          </div>
+          <TextField
+            id="email"
+            label={mode === "employee" ? "Phone number" : "Email"}
+            value={email}
+            onChange={setEmail}
+          />
           <TextField id="password" label="Password" type="password" value={password} onChange={setPassword} />
           <SubmitButton pending={pending} className="w-full">
             Continue to workspace

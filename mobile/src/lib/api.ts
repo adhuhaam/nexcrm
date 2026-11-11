@@ -164,9 +164,14 @@ export async function sendJson<T = Record<string, unknown>>(
   return parse<T>(response);
 }
 
-export async function login(apiUrl: string, email: string, password: string): Promise<string> {
-  if (!email.trim() || !password) {
-    fail(400, "Enter email and password.");
+export async function login(
+  apiUrl: string,
+  identifier: string,
+  password: string,
+  mode: "office" | "employee" = "office",
+): Promise<string> {
+  if (!identifier.trim() || !password) {
+    fail(400, mode === "employee" ? "Enter phone and password." : "Enter email and password.");
   }
   const base = await probeApiBase(apiUrl);
   await saveApiBase(base);
@@ -176,7 +181,11 @@ export async function login(apiUrl: string, email: string, password: string): Pr
     response = await fetch(`${base}/login`, {
       method: "POST",
       headers: { accept: "application/json", "content-type": "application/json" },
-      body: JSON.stringify({ email: email.trim(), password }),
+      body: JSON.stringify(
+        mode === "employee"
+          ? { phone: identifier.trim(), password }
+          : { email: identifier.trim(), password },
+      ),
     });
   } catch (reason) {
     networkError(reason, base);
