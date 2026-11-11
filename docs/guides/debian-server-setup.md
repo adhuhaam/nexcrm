@@ -4,9 +4,11 @@ Prepare a **16 GB RAM Debian desktop** as the office server: OS packages, Node.j
 
 ## Assumptions
 
-- **Debian stable** (e.g. bookworm) on x86_64 or arm64.
+- **Debian stable** (e.g. bookworm) **desktop**, **16 GB RAM**, **GNOME**, **wired Ethernet** — frequently power-cycled.
 - One primary admin Unix account, e.g. `server`, with the repo at `/home/server/dev/nexcrm` (path may change after [jacms-rename-plan.md](jacms-rename-plan.md)).
+- **Development on the server** with **Cursor**; GNOME **auto-login** (no password) + Cursor autostart per [autostart-on-boot.md](autostart-on-boot.md).
 - App listens on `127.0.0.1:3000`; nginx on `127.0.0.1:80` when installed — see [DEPLOY.md](../DEPLOY.md).
+- Public URL **https://server.bluraymaldives.site** — [cloudflare-tunnel-server-bluraymaldives.md](cloudflare-tunnel-server-bluraymaldives.md).
 
 ## 1. Base system
 
@@ -135,9 +137,10 @@ Port `5432` rules for LAN/Tailscale are applied by `install-postgres-network.sh`
 
 Install [Cursor](https://cursor.com) for Linux (.deb or AppImage) under the `server` user. Development happens **on this machine** (not only over SSH).
 
-- Open the folder `/home/server/dev/nexcrm`.
+- Open the folder `/home/server/dev/nexcrm` (or `jacms` after rename).
 - Use integrated terminal for `npm start`, `cd web && npm run dev`, and `npm run check`.
-- GUI session: optional [autostart-on-boot.md](autostart-on-boot.md) auto-login **only if** you need Cursor visible immediately after power-on without logging in.
+- **GNOME auto-login** + **Cursor autostart** — required on the owner host; see [autostart-on-boot.md](autostart-on-boot.md).
+- **BIOS:** set **Restore on AC power loss = Power On** before relying on unattended recovery.
 
 ## 8. Updates and backups
 
