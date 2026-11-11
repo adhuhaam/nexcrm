@@ -1,0 +1,15 @@
+---
+description: Mandatory documentation maintenance for every JACMS change
+alwaysApply: true
+---
+
+# Documentation maintenance (mandatory)
+
+**YOU MUST MAINTAIN [README.md](/README.md) AS PART OF EVERY CHANGE.**
+
+Before work: `git pull` and read **README.md** (TOC, roadmap checkboxes, relevant sections).
+After work: update **README.md** in the **same commit** (checkboxes, changelog, affected sections).
+Adhuhaam edits from many devices — pull/rebase first; **never overwrite** his changes.
+New owner decisions go into README planned/open sections immediately.
+
+Product name: **JACMS**. Code may still say `nexcrm` until the rename milestone.
