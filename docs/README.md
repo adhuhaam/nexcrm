@@ -12,6 +12,8 @@ Ship these with the codebase so humans and agents share one orientation surface.
 
 Ops / remote work: [DEPLOY.md](DEPLOY.md), [REMOTE.md](REMOTE.md), [CLOUDFLARE_TUNNEL.md](CLOUDFLARE_TUNNEL.md).
 
+**Server setup (Debian desktop, JACMS naming, `server.bluraymaldives.site`):** [guides/README.md](guides/README.md).
+
 ## Index
 
 | Document | Contents |
@@ -23,6 +25,7 @@ Ops / remote work: [DEPLOY.md](DEPLOY.md), [REMOTE.md](REMOTE.md), [CLOUDFLARE_T
 | [PRODUCT.md](PRODUCT.md) | Agency tools + finance apps map |
 | [DEPLOY.md](DEPLOY.md) | nginx, systemd, Postgres over LAN/Tailscale |
 | [CLOUDFLARE_TUNNEL.md](CLOUDFLARE_TUNNEL.md) | Public HTTPS via Cloudflare Tunnel (no port-forward) |
+| [guides/README.md](guides/README.md) | Debian server, autostart, tunnel hostname, JACMS rename checklist, mobile roadmap |
 | [REMOTE.md](REMOTE.md) | Tailscale SSH + Cursor from anywhere |
 | [mobile/AGENTS.md](../mobile/AGENTS.md) | Expo-specific agent notes |
 

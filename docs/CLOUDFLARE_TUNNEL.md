@@ -1,6 +1,8 @@
-# Cloudflare Tunnel (public NEXCRM)
+# Cloudflare Tunnel (public NEXCRM / JACMS)
 
 Expose this office app on the internet **without** opening router ports or using Tailscale for managers.
+
+**Hostname walkthrough** (`https://server.bluraymaldives.site`): [guides/cloudflare-tunnel-server-bluraymaldives.md](guides/cloudflare-tunnel-server-bluraymaldives.md).
 
 ## Why Tunnel
 
