@@ -1,5 +1,10 @@
 # JACMS
 
+[![Production](https://img.shields.io/badge/production-server.bluraymaldives.site-blue)](https://server.bluraymaldives.site)
+[![Stack](https://img.shields.io/badge/stack-Node%2022%20%C2%B7%20PostgreSQL%20%C2%B7%20nginx%20%C2%B7%20cloudflared-informational)](#debian-server-architecture)
+[![Docs](https://img.shields.io/badge/docs-README%20master-green)](#development-roadmap)
+[![Agent rule](https://img.shields.io/badge/agents-maintain%20README-orange)](#agent-quick-start)
+
 > **⚠️ MANDATORY RULE FOR CURSOR AND EVERY AI AGENT**
 
 **YOU MUST MAINTAIN `README.md` AS PART OF EVERY CHANGE.**
@@ -27,6 +32,7 @@ Stubs: [AGENTS.md](AGENTS.md), [mobile/AGENTS.md](mobile/AGENTS.md), [.cursor/ru
 - [Architecture](#architecture)
 - [API reference](#api-reference)
 - [Client access scope](#client-access-scope)
+- [Agent quick start](#agent-quick-start)
 - [Agent quick reference](#agent-quick-reference)
 - [Deploy](#deploy)
 - [Server architecture (Debian)](#debian-server-architecture)
@@ -72,6 +78,24 @@ Stubs: [AGENTS.md](AGENTS.md), [mobile/AGENTS.md](mobile/AGENTS.md), [.cursor/ru
 - Committed LOAs, allocation events, locked pay runs, and files are **immutable** — correct via new events/drafts.
 - **Attendance** (P/AB/OD) drives payroll LOP; ending an allocation auto-adjusts attendance.
 - **Date UI:** DD MMM YYYY; APIs ISO `YYYY-MM-DD`.
+
+---
+
+<a id="agent-quick-start"></a>
+
+<details open>
+<summary><strong>Agent quick start</strong> (Cursor / cloud agents)</summary>
+
+1. `git pull` on `main` (or your feature branch); read [Development roadmap](#development-roadmap) checkboxes and changelog.
+2. Code map: `app/*-http.ts` (routes), `modules/` (domain), `lib/schema.ts` + `db/migrations/`, `web/src/pages/`, `mobile/src/app/`.
+3. Commands: `npm install`, `npm start`, `npm run check`, `npm run migrate:files` (file layout migration on server).
+4. Env: `DATABASE_URL`, `FILES_DIR` (or legacy `FILE_ROOT`), `HOST`, `PORT` — see `.env.example`.
+5. **Every commit that changes behavior** must update **this README** (checkboxes, changelog date, affected sections). Rule: [AGENTS.md](AGENTS.md), [.cursor/rules/docs-maintenance.mdc](.cursor/rules/docs-maintenance.mdc).
+6. Server greenfield: `sudo bash deploy/setup-fresh-debian.sh` then `sudo bash deploy/verify-server.sh`.
+7. Status legend: ✅ DONE · 🚧 IN PROGRESS · 📝 PLANNED.
+
+</details>
+
 ---
 
 <a id="quick-start"></a>
@@ -79,7 +103,7 @@ Stubs: [AGENTS.md](AGENTS.md), [mobile/AGENTS.md](mobile/AGENTS.md), [.cursor/ru
 ## Quick start
 
 ```bash
-cp .env.example .env   # DATABASE_URL, FILE_ROOT, HOST, PORT, optional OPENAI_*
+cp .env.example .env   # DATABASE_URL, FILES_DIR, HOST, PORT, optional OPENAI_*
 npm install && npm start              # http://127.0.0.1:3000/health
 cd web && npm install && npm run dev  # Vite
 npm run check                         # backend smoke tests
@@ -97,6 +121,7 @@ Field API base URL: `https://server.bluraymaldives.site`
 
 | Date | Note |
 | --- | --- |
+| 2026-11-12 | **PR #3:** `FILES_DIR` / `JACMS-Files` per-employee folders, `scripts/migrate-jacms-files-layout.ts`, `deploy/setup-fresh-debian.sh`, `deploy/verify-server.sh`, README agent quick start. |
 | 2026-11-11 | Master plan rebrand: merged feature plan, checkbox inventory, milestones M1–M8; server guides in `docs/guides/`. |
 
 ---
@@ -119,13 +144,15 @@ Each item is **implemented today** unless noted. Use pointers for implementation
 - [x] **Monorepo layout** — Node API `app/`, domain `modules/`, Drizzle `lib/schema.ts`, SQL `db/migrations/`, React `web/`, Expo `mobile/` — [ARCHITECTURE.md](#architecture)
 - [x] **HTTP server** — `app/server.ts`: migrate on boot, seed admin if empty, static SPA, `/health` — `app/server.ts`
 - [x] **Shared JSON API** — `/api/v1/*` contract — [API.md](#api-reference)
-- [x] **Env config** — `DATABASE_URL`, `FILE_ROOT`, `HOST=127.0.0.1`, `PORT=3000`, `DISPLAY_TIME_ZONE`, OpenAI OCR vars — `.env.example`
+- [x] **Env config** — `DATABASE_URL`, `FILES_DIR` (alias `FILE_ROOT`), `HOST=127.0.0.1`, `PORT=3000`, `DISPLAY_TIME_ZONE`, OpenAI OCR vars — `.env.example`
 - [x] **Migrations 001–027+** — applied on API start under advisory lock — `db/migrations/`, [MASTER_PLAN historical table in git history]
 - [x] **Smoke tests** — `npm run check` — `tests/*.test.ts`
 - [x] **systemd unit `nexcrm.service`** — Node serves app on loopback — `deploy/nexcrm.service`, [DEPLOY.md](#deploy)
 - [x] **nginx reverse proxy** — local/LAN `:80` → app `:3000` — `deploy/install-web-nginx.sh`, `deploy/nexcrm.nginx.conf`
 - [x] **Postgres network install helper** — `deploy/install-postgres-network.sh`, `deploy/database-network.env` (not in git)
 - [x] **Boot stack script** — `deploy/ensure-boot.sh` enables postgresql, nginx, nexcrm
+- [x] **Fresh Debian setup (idempotent)** — `deploy/setup-fresh-debian.sh`
+- [x] **Server verification script** — `deploy/verify-server.sh` (pass/fail per component)
 - [x] **Cloudflare Tunnel installer** — `deploy/install-cloudflare-tunnel.sh` → nginx origin — [CLOUDFLARE_TUNNEL.md](#cloudflare-tunnel)
 - [x] **Server ops documentation** — merged into README (Debian setup, boot, tunnel, rename, mobile roadmap)
 - [x] **Tailscale Serve / REMOTE** — optional admin path — [REMOTE.md](#remote-access-tailscale)
@@ -196,7 +223,9 @@ Each item is **implemented today** unless noted. Use pointers for implementation
 
 #### Documents & files vault
 
-- [x] **File storage on disk** — `FILE_ROOT` — `modules/files/storage.ts`
+- [x] **File storage on disk** — `FILES_DIR` / `FILE_ROOT` — `modules/files/storage.ts`, `modules/files/paths.ts`
+- [x] **Per-employee GNOME-visible folders** — `<name>_<passport-or-no-passport>_<employee-id>` under `JACMS-Files` — `modules/files/paths.ts`
+- [x] **File layout migration (re-runnable)** — `npm run migrate:files` → `scripts/migrate-jacms-files-layout.ts`
 - [x] **Upload / download / entity filter** — `web/src/pages/documents.tsx`
 
 #### Projects & work permits
@@ -270,7 +299,7 @@ Items below are **not done** in code unless marked 🚧. Breakdown supports mile
 - [ ] systemd: `postgresql`, `nexcrm`, `nginx`, `cloudflared` enabled **without user login**
 - [ ] App starts when **no network** at boot; **cloudflared** `Restart=always` / retry until tunnel up (no hard `Requires=network-online` on app)
 - [ ] Optional drop-in for `cloudflared` After=nginx — guide documents pattern
-- [ ] Post-boot checklist automated or scripted (health curls)
+- [x] Post-boot checklist automated or scripted (health curls) — `deploy/verify-server.sh`
 
 #### P2 — Role-based login (7 roles)
 
@@ -356,13 +385,15 @@ Pick the next unchecked task in the earliest incomplete milestone.
 
 **Checklist**
 
-- [ ] BIOS AC-restore documented and verified on hardware
-- [ ] GNOME passwordless auto-login for `server`
-- [ ] Cursor autostart on login
-- [ ] All systemd units enabled (postgres, nexcrm, nginx, cloudflared)
-- [ ] App local without WAN; cloudflared retries
-- [ ] `deploy/ensure-boot.sh` or successor updated if unit names/paths change
-- [ ] Guides match live host: [Autostart on boot](#autostart-on-boot), [Debian server setup](#debian-server-setup)
+- [x] BIOS AC-restore documented (owner verifies on hardware) — [Autostart on boot](#autostart-on-boot), `deploy/setup-fresh-debian.sh`
+- [ ] GNOME passwordless auto-login for `server` (owner GDM config)
+- [x] Cursor autostart `.desktop` shipped — `deploy/cursor-open.desktop`
+- [x] Nexcrm browser autostart — `deploy/nexcrm-open.desktop`
+- [ ] All systemd units enabled on production host (postgres, nexcrm, nginx, cloudflared)
+- [ ] App local without WAN; cloudflared retries (verify after reboot)
+- [x] `deploy/setup-fresh-debian.sh` + `deploy/verify-server.sh` for stack bring-up
+- [x] `deploy/ensure-boot.sh` for unit enablement on existing hosts
+- [x] Guides match scripts: [Autostart on boot](#autostart-on-boot), [Debian server setup](#debian-server-setup)
 
 **Acceptance:** Reboot test: `curl https://server.bluraymaldives.site/health` within N minutes without typing password; `systemctl is-active` all green.
 
@@ -646,7 +677,7 @@ NEXCRM is a single Node HTTP server that:
 1. Serves the production React SPA from `web/dist` (including PWA assets).
 2. Exposes JSON APIs under `/api/v1/*` used by **web** and **mobile**.
 3. Talks to **PostgreSQL** via `pg` + Drizzle schema in `lib/schema.ts`.
-4. Stores uploads under `FILE_ROOT` (file metadata in `files` / `file_links`).
+4. Stores uploads under `FILES_DIR` (default `/home/<user>/JACMS-Files`; metadata in `files` / `file_links`).
 
 #### Monorepo layout
 
@@ -733,7 +764,7 @@ Mobile uses the same cookie/session model against the published API origin (see 
 See `.env.example`:
 
 - `DATABASE_URL` — PostgreSQL
-- `FILE_ROOT` — absolute path for binary storage
+- `FILES_DIR` — absolute path for binary storage (`FILE_ROOT` accepted as alias; dev fallback `data/jacms-files`)
 - `HOST` / `PORT` — API listen address
 - `OPENAI_API_KEY` / `OPENAI_OCR_MODEL` — optional env fallback; preferred store is System settings DB
 
@@ -1045,7 +1076,19 @@ flowchart LR
   Tools[psql / GUI] -->|LAN or Tailscale :5432| PG
 ```
 
-#### One-time install
+#### Fresh Debian host (recommended)
+
+Idempotent full stack for a new GNOME office server:
+
+```bash
+cd /home/server/dev/nexcrm
+sudo bash deploy/setup-fresh-debian.sh
+sudo bash deploy/verify-server.sh
+```
+
+Environment overrides: `JACMS_SERVER_USER`, `JACMS_REPO_DIR`, `JACMS_FILES_DIR`, `JACMS_INSTALL_TAILSCALE=1`.
+
+#### One-time install (existing host)
 
 From the repo (needs sudo):
 
@@ -1180,15 +1223,25 @@ Copy environment template (no secrets in git):
 cp .env.example .env
 ### Edit .env — typical values on this host:
 ### DATABASE_URL=postgresql:///nexcrm_dev?host=/var/run/postgresql&user=nexcrm
-### FILE_ROOT=/home/server/Desktop/nexcrm-files
+### FILES_DIR=/home/server/JACMS-Files
 ### HOST=127.0.0.1
 ### PORT=3000
 ```
 
-Create file storage:
+Create file storage (or run full setup):
 
 ```bash
-sudo -u server mkdir -p "$(grep FILE_ROOT .env | cut -d= -f2-)"
+sudo -u server mkdir -p /home/server/JACMS-Files
+# Or idempotent stack (Node, Postgres, nginx, JACMS-Files, systemd):
+sudo bash deploy/setup-fresh-debian.sh
+sudo bash deploy/verify-server.sh
+```
+
+After changing `FILES_DIR` on a host with existing uploads:
+
+```bash
+npm run migrate:files          # live migrate
+npm run migrate:files -- --dry-run
 ```
 
 #### 3. PostgreSQL
@@ -1854,7 +1907,7 @@ After keys work from every device you use, you can set `PasswordAuthentication n
 | PostgreSQL role | `nexcrm` | `jacms` or keep `nexcrm` | **Breaking** if renamed — prefer keep DB user until migration scripted |
 | Database name | `nexcrm_dev` | `jacms_dev` | Requires `pg_dump` / restore or `ALTER DATABASE` |
 | `.env` example | `nexcrm_dev`, user `nexcrm` | `jacms_*` | `DATABASE_URL`, docs |
-| `FILE_ROOT` default | `nexcrm-files` | `jacms-files` | Move files or update path |
+| `FILES_DIR` default | `JACMS-Files` under home | same | `npm run migrate:files` |
 | Cloudflare tunnel name | `nexcrm` (script default) | `jacms` | `cloudflared tunnel create jacms`; DNS hostname unchanged |
 | Tunnel installer default | `--tunnel-name nexcrm` | `jacms` | `deploy/install-cloudflare-tunnel.sh` |
 | CSS / BEM prefixes | `.nexcrm-settings`, etc. | optional `jacms-*` | Large web diff — phased |
