@@ -1,8 +1,16 @@
 # Autostart on boot (power loss / shutdown)
 
-Goal: after **any** reboot or AC power return, **PostgreSQL**, **nginx**, the **app service** (`nexcrm` today), **cloudflared**, and optional timers come up **without** login or manual `sudo` — so `https://server.bluraymaldives.site` works once DNS and Tunnel are configured.
+Goal: after **any** reboot or AC power return, **PostgreSQL**, **nginx**, the **app service** (`nexcrm` today), **cloudflared**, and optional timers come up **without** a desktop login or manual `sudo` — so `https://server.bluraymaldives.site` recovers once DNS, Tunnel, and internet are up.
 
-Builds on [DEPLOY.md](../DEPLOY.md) and repo script `deploy/ensure-boot.sh`.
+**Owner decisions (Adhuhaam):**
+
+- **GNOME** desktop on Debian, **passwordless auto-login** for user `server` (GDM).
+- **Cursor** starts automatically after that login (for on-machine dev).
+- **Background services** (`postgresql`, `nexcrm`, `nginx`, `cloudflared`) start at boot **without** waiting for login.
+- **No network at boot:** JACMS still listens on `127.0.0.1:3000` / nginx locally; **cloudflared** retries until Ethernet + internet return (use `Restart=always` on the connector — see below).
+- **BIOS:** **Restore on AC power loss = Power On** so the machine returns after outages.
+
+Builds on [DEPLOY.md](../DEPLOY.md), [MASTER_PLAN.md](../MASTER_PLAN.md) (M2), and `deploy/ensure-boot.sh`.
 
 ## Systemd units to enable
 
@@ -45,18 +53,25 @@ systemctl list-units 'postgresql@*'
 
 Enable the instance unit that matches your cluster.
 
-## cloudflared ordering
+## cloudflared ordering & retries
 
 Install and enable the tunnel **after** nginx and nexcrm are healthy — [cloudflare-tunnel-server-bluraymaldives.md](cloudflare-tunnel-server-bluraymaldives.md).
 
-`deploy/install-cloudflare-tunnel.sh` runs `systemctl enable --now cloudflared`. For stricter ordering you can drop a systemd drop-in (optional):
+`deploy/install-cloudflare-tunnel.sh` runs `systemctl enable --now cloudflared`. Recommended drop-ins on the **server** (placeholders — apply on host, not necessarily committed to repo yet):
 
 ```ini
-# /etc/systemd/system/cloudflared.service.d/after-nginx.conf
+# /etc/systemd/system/cloudflared.service.d/reliability.conf
 [Unit]
-After=network-online.target nginx.service
-Wants=network-online.target
+After=nginx.service
+Wants=nginx.service
+# Do not Requires=network-online.target — cable may come up late
+
+[Service]
+Restart=always
+RestartSec=5
 ```
+
+The **app** (`nexcrm.service`) should **not** hard-require `network-online.target` so PostgreSQL + Node come up on loopback even when WAN is down; only **public** HTTPS waits on cloudflared + internet.
 
 ```bash
 sudo systemctl daemon-reload
@@ -71,14 +86,35 @@ sudo systemctl restart cloudflared
 | Wake-on-LAN | Optional; not required for Tunnel (connector is outbound) |
 | UPS | Recommended for clean shutdowns |
 
-## Desktop auto-login (optional)
+## GNOME auto-login + Cursor autostart
 
-Only if you need **Cursor** or a browser on the physical console immediately after boot **without** typing a password:
+On the owner’s **Debian GNOME** host, configure **passwordless auto-login** for `server` so the physical console does not block systemd-managed services (they already start independently; autologin is for **Cursor**).
 
-- **GDM** (GNOME): `/etc/gdm3/daemon.conf` — `AutomaticLoginEnable=true`, `AutomaticLogin=server`
-- **SDDM** (KDE): distribution-specific autologin config
+**GDM** (`/etc/gdm3/daemon.conf` or `custom.conf`):
 
-Security: auto-login increases physical-access risk. Prefer SSH/Cursor Remote from another machine when possible ([REMOTE.md](../REMOTE.md)).
+```ini
+[daemon]
+AutomaticLoginEnable=true
+AutomaticLogin=server
+```
+
+**Cursor** after login — user autostart (example):
+
+```bash
+mkdir -p /home/server/.config/autostart
+cat >/home/server/.config/autostart/cursor.desktop <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Cursor
+Exec=/usr/bin/cursor %F
+X-GNOME-Autostart-enabled=true
+EOF
+chown -R server:server /home/server/.config/autostart
+```
+
+Adjust `Exec=` to the real Cursor `.desktop` path on the machine. Optional browser autostart: `deploy/nexcrm-open.desktop` via `ensure-boot.sh`.
+
+Security: auto-login increases physical-access risk; acceptable on a single-purpose office server with disk encryption per site policy.
 
 ## Passwordless sudo (optional ops convenience)
 

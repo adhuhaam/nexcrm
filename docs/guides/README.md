@@ -1,6 +1,10 @@
 # Server & operations guides (JACMS)
 
-Step-by-step guides for running **JACMS** (JA CRM — the planned product name for this monorepo, today still **NEXCRM** in code) on a **Debian desktop server** with **Cloudflare Tunnel** for public HTTPS. These docs complement the repo reference material in [DEPLOY.md](../DEPLOY.md) and [CLOUDFLARE_TUNNEL.md](../CLOUDFLARE_TUNNEL.md); follow those for script names, ports, and env vars.
+> ## ⚠️ MANDATORY RULE FOR CURSOR AND EVERY AI AGENT
+>
+> **YOU MUST MAINTAIN DOCUMENTATION AS PART OF EVERY CHANGE.** Before work: `git pull` and read [MASTER_PLAN.md](../MASTER_PLAN.md) and these guides. After work: update the master plan and the relevant guide in the **same commit**. Adhuhaam edits from many locations — pull/rebase first; **never overwrite** his doc edits.
+
+Step-by-step guides for running **JACMS** (JA CRM — the planned product name for this monorepo, today still **NEXCRM** in code) on a **Debian desktop server** (16 GB RAM, **GNOME**, wired Ethernet) with **Cloudflare Tunnel** for public HTTPS. These docs complement [DEPLOY.md](../DEPLOY.md) and [CLOUDFLARE_TUNNEL.md](../CLOUDFLARE_TUNNEL.md). **Roadmap:** [MASTER_PLAN.md](../MASTER_PLAN.md) milestone **M2**.
 
 ## Who this is for
 
