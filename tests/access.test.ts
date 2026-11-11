@@ -19,6 +19,9 @@ function person(slug: string, canPreview: boolean, canEdit: boolean, canDelete: 
     id: "00000000-0000-4000-8000-000000000001",
     name: "Test",
     email: "test@nexcrm.local",
+    phone: null,
+    employeeId: null,
+    mustChangePassword: false,
     active: true,
     scopedClientIds: slug === "system_admin" ? null : [],
     role: {
@@ -43,6 +46,10 @@ await pool.query(`delete from roles where slug = 'site_reader'`);
 const stored = await hashPassword("correct-horse");
 assert.equal(await verifyPassword("correct-horse", stored), true);
 assert.equal(await verifyPassword("wrong-password", stored), false);
+
+const employee = person("employee_self_service", true, false, false);
+assert.equal(authorize("GET", "/api/v1/ess/dashboard", employee), null);
+assert.match(authorize("GET", "/api/v1/hr", employee) ?? "", /self-service portal/);
 
 const guest = person("investor_guest", true, false, false);
 assert.equal(authorize("GET", "/api/v1/hr", guest), null);

@@ -32,6 +32,7 @@ import { noticeText, renderPage, type PageModel } from "./page.ts";
 import { handleProjectRequest } from "./projects-http.ts";
 import { handleWorkPermitRequest } from "./work-permits-http.ts";
 import { handleXpatApi } from "./xpat-http.ts";
+import { handleEmployeeSelfServiceAdmin } from "./employee-self-http.ts";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -157,6 +158,8 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
   const url = new URL(request.url ?? "/", "http://127.0.0.1");
   const method = request.method ?? "GET";
   if (await guardAccess(request, response, url)) return;
+
+  if (await handleEmployeeSelfServiceAdmin(request, response, url)) return;
 
   if (await handleAgencyApi(request, response, url)) return;
   if (await handleAttendanceApi(request, response, url)) return;

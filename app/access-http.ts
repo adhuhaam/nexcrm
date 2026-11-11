@@ -24,6 +24,7 @@ import {
   settingsCatalog,
 } from "../modules/settings/settings.ts";
 import { ExpenseError } from "../modules/expenses/expenses.ts";
+import { handleEmployeeSelfApi } from "./employee-self-http.ts";
 import {
   getFinanceFeeSettings,
   listDepositRates,
@@ -136,9 +137,11 @@ function readPermissions(value: unknown): ModulePermission[] | undefined {
 function publicView(user: OfficeUser | null) {
   if (!user) return { user: null };
   return {
-    user: { id: user.id, name: user.name, email: user.email },
+    user: { id: user.id, name: user.name, email: user.email, phone: user.phone },
     role: user.role,
     scopedClientIds: user.scopedClientIds,
+    employeeId: user.employeeId,
+    mustChangePassword: user.mustChangePassword,
   };
 }
 
@@ -165,12 +168,29 @@ export async function guardAccess(request: IncomingMessage, response: ServerResp
     }
     try {
       const body = await readRecord(request);
-      const opened = await openSession(text(body.email), text(body.password));
+      const identifier = text(body.phone) || text(body.email) || text(body.identifier);
+      const opened = await openSession(identifier, text(body.password));
       if (!opened) {
-        sendJson(response, 401, { error: "Email or password is not recognised." });
+        sendJson(response, 401, { error: "Sign-in details were not recognised." });
         return true;
       }
-      sendJson(response, 200, { location: "/", token: opened.token }, { "set-cookie": cookieHeader(opened.token, request) });
+      const location =
+        opened.user.role.slug === "employee_self_service"
+          ? opened.user.mustChangePassword
+            ? "/ess/change-password"
+            : "/ess"
+          : "/";
+      sendJson(
+        response,
+        200,
+        {
+          location,
+          token: opened.token,
+          mustChangePassword: opened.user.mustChangePassword,
+          roleSlug: opened.user.role.slug,
+        },
+        { "set-cookie": cookieHeader(opened.token, request) },
+      );
     } catch (error) {
       const message = error instanceof AccessError ? error.message : "Sign-in failed.";
       sendJson(response, 400, { error: message });
@@ -197,6 +217,11 @@ export async function guardAccess(request: IncomingMessage, response: ServerResp
 
   if (!user) {
     denied(request, response, 401, "Sign in to open the office.");
+    return true;
+  }
+
+  if (path.startsWith("/api/v1/ess")) {
+    await handleEmployeeSelfApi(request, response, url, user);
     return true;
   }
 

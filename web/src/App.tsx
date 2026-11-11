@@ -6,6 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { usePath } from "@/hooks/use-path";
 import { installSpaNavigation } from "@/lib/spa-nav";
 import { LoginPage } from "@/pages/login";
+import {
+  EmployeeSelfAttendancePage,
+  EmployeeSelfChangePasswordPage,
+  EmployeeSelfDashboardPage,
+  EmployeeSelfGate,
+  EmployeeSelfPayslipPage,
+  EmployeeSelfProfilePage,
+  EmployeeSelfSalaryPage,
+  EmployeeSelfXpatPage,
+} from "@/pages/employee-self";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -62,6 +72,41 @@ export default function App() {
 
 function routeFor(path: string): ReactNode {
   if (path === "/login") return <LoginPage />;
+  if (path === "/ess/change-password") return <EmployeeSelfChangePasswordPage />;
+  if (path.startsWith("/ess/salary/") && path.endsWith("/payslip")) {
+    const id = path.slice("/ess/salary/".length, -"/payslip".length);
+    return uuid.test(id) ? <EmployeeSelfPayslipPage payRunId={id} /> : <Missing />;
+  }
+  if (path === "/ess" || path === "/ess/")
+    return (
+      <EmployeeSelfGate>
+        <EmployeeSelfDashboardPage />
+      </EmployeeSelfGate>
+    );
+  if (path === "/ess/attendance")
+    return (
+      <EmployeeSelfGate>
+        <EmployeeSelfAttendancePage />
+      </EmployeeSelfGate>
+    );
+  if (path === "/ess/salary")
+    return (
+      <EmployeeSelfGate>
+        <EmployeeSelfSalaryPage />
+      </EmployeeSelfGate>
+    );
+  if (path === "/ess/xpat")
+    return (
+      <EmployeeSelfGate>
+        <EmployeeSelfXpatPage />
+      </EmployeeSelfGate>
+    );
+  if (path === "/ess/profile")
+    return (
+      <EmployeeSelfGate>
+        <EmployeeSelfProfilePage />
+      </EmployeeSelfGate>
+    );
   if (path === "/users" || path === "/admin" || path === "/settings" || path.startsWith("/settings/")) {
     return <AccessPage />;
   }

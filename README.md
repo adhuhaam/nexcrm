@@ -121,6 +121,7 @@ Field API base URL: `https://server.bluraymaldives.site`
 
 | Date | Note |
 | --- | --- |
+| 2026-11-12 | **PR #4:** Employee self-service web (`/ess/*`) + mobile (`(ess)` tabs), phone login, `/api/v1/ess/*`, HR self-service account, Xpat portal adapter placeholders, migration `031_employee_self_service.sql`. |
 | 2026-11-12 | **PR #3:** `FILES_DIR` / `JACMS-Files` per-employee folders, `scripts/migrate-jacms-files-layout.ts`, `deploy/setup-fresh-debian.sh`, `deploy/verify-server.sh`, README agent quick start. |
 | 2026-11-11 | Master plan rebrand: merged feature plan, checkbox inventory, milestones M1–M8; server guides in `docs/guides/`. |
 
@@ -161,7 +162,13 @@ Each item is **implemented today** unless noted. Use pointers for implementation
 
 - [x] **Email + password login** — scrypt, ~12h session — `modules/access/access.ts`, `POST /login`, cookie `nexcrm_session`
 - [x] **Bearer token for mobile** — `Authorization: Bearer` on same session token — `app/*-http.ts`
-- [x] **Nine built-in system roles** — `system_admin`, `company`, `manager`, `hr_manager`, `hr_staff`, `client`, `vendor`, `agent`, `investor_guest` — `modules/access/access.ts` (`seedRoles`)
+- [x] **Ten built-in system roles** — above nine plus `employee_self_service` for staff portal — `modules/access/access.ts` (`seedRoles`), migration `031_employee_self_service.sql`
+- [x] **Employee self-service auth** — phone + admin-set password, forced change on first login, scrypt sessions — `lib/phone.ts`, `POST /login` (`phone` or `email`), `users.phone` / `users.employee_id`
+- [x] **Employee self-service API** — server-enforced own data only — `modules/employee-self/*`, `app/employee-self-http.ts`, `/api/v1/ess/*`
+- [x] **HR: self-service account + Xpat sync** — `POST /api/v1/employees/:id/self-service-account`, `POST /api/v1/employees/:id/xpat-sync` (manual only), `modules/integrations/xpat-portal-adapter.ts` for future portal credentials
+- [x] **Employee web portal** — shadcn tabs: Dashboard, Attendance, Salary, Xpat, Profile — `web/src/pages/employee-self.tsx`, routes `/ess/*`
+- [x] **Employee mobile portal** — bottom tabs under `mobile/src/app/(ess)/` (Dashboard, Attendance, Salary, Xpat, More → Profile)
+- [x] **Nine built-in office roles** — `system_admin`, `company`, `manager`, `hr_manager`, `hr_staff`, `client`, `vendor`, `agent`, `investor_guest` — `modules/access/access.ts` (`seedRoles`)
 - [x] **Per-module permission matrix** — view/create/edit/delete per module key — `modules/access/permissions.ts`, migration `027_role_permissions.sql`
 - [x] **Roles UI** — matrix editor in Settings — `web/src/pages/access.tsx`
 - [x] **Users CRUD** — Settings → People — `app/access-http.ts`, `web/src/pages/users.tsx`
@@ -304,7 +311,7 @@ Items below are **not done** in code unless marked 🚧. Breakdown supports mile
 #### P2 — Role-based login (7 roles)
 
 - [ ] Collapse to **7 roles**: system_admin, hr_manager, hr_staff, manager, client, employee_self_service, agency — merge/remove company, vendor, investor_guest, agent
-- [ ] **Employee self-service**: phone + password sign-in
+- [x] **Employee self-service**: phone + password sign-in — `employee_self_service` role, `/ess` + `/api/v1/ess/*`
 - [ ] **Agency role**: own candidates, passport upload, permit/visa tracking
 - [ ] **Client role dashboard**: allocated workers, attendance, OT, worker docs — no invoices/pay runs
 - [ ] **Per-role landing dashboard** after login (web + mobile)
@@ -719,7 +726,8 @@ sequenceDiagram
 #### Auth
 
 - Cookie session: `nexcrm_session` (HttpOnly, SameSite=Lax).
-- `POST /login`, `POST /logout`, `GET /api/v1/session`.
+- `POST /login` — body `{ email, password }` (office) or `{ phone, password }` (employee). Returns `location` (`/` or `/ess`), `token`, `mustChangePassword`.
+- `POST /logout`, `GET /api/v1/session` (includes `employeeId`, `mustChangePassword` for staff).
 - Roles in `roles` / `users` (`system_admin`, `hr_manager`, …). Coarse flags plus per-module View/Create/Edit/Delete in `role_permissions` (`modules/access/permissions.ts`).
 - Settings hub routes: `/settings` (also `/users`, `/admin`) → General / People / Roles / Health.
 
@@ -796,10 +804,27 @@ Responses are JSON. Errors: `{ "error": "…" }` with 4xx/5xx.
 
 | Method | Path | Notes |
 | --- | --- | --- |
-| POST | `/login` | `{ email, password }` → sets cookie |
+| POST | `/login` | `{ email, password }` (office) or `{ phone, password }` (employee) → cookie + JSON `location`, `token` |
 | POST | `/logout` | Clears session |
-| GET | `/api/v1/session` | Current user + role |
+| GET | `/api/v1/session` | Current user + role + `employeeId` / `mustChangePassword` when applicable |
 | GET | `/health` | Liveness / DB check (no auth) |
+
+#### Employee self-service (`employee_self_service` role only)
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| GET | `/api/v1/ess/dashboard` | Xpat card, month attendance, last salary, current client |
+| GET | `/api/v1/ess/attendance?month=YYYY-MM` | Month calendar (P/AB/OD) |
+| GET | `/api/v1/ess/salary/history` | Locked pay-run lines for this employee |
+| GET | `/api/v1/ess/salary?month=YYYY-MM` | Single month summary |
+| GET | `/api/v1/ess/salary/:payRunId/payslip` | Payslip line (print/PDF in browser) |
+| GET | `/api/v1/ess/xpat` | Permits, visa, allocation history |
+| GET | `/api/v1/ess/profile` | Phone + flags |
+| POST | `/api/v1/ess/profile/phone` | `{ phone, phoneConfirm }` |
+| POST | `/api/v1/ess/profile/password` | `{ currentPassword, newPassword }` (min 8) |
+| POST | `/api/v1/ess/change-password` | Same as password (first-login gate) |
+
+HR (office roles with employee edit): `POST /api/v1/employees/:id/self-service-account` `{ phone, password }` — admin-set password; employee must change on first login. XPAT data: `POST /api/v1/employees/:id/xpat-sync` (manual **Sync from Xpat**; no auto sync). Optional future portal: `XPAT_PORTAL_*` in `.env.example` + `modules/integrations/xpat-portal-adapter.ts`.
 
 #### Admin (system_admin)
 

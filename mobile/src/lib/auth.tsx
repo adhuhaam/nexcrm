@@ -10,7 +10,7 @@ import {
 import { loadApiBase } from "./config";
 
 export type OfficeSession = {
-  user: { id: string; name: string; email: string };
+  user: { id: string; name: string; email: string; phone?: string | null };
   role: {
     id: string;
     slug: string;
@@ -20,6 +20,8 @@ export type OfficeSession = {
     canDelete: boolean;
     systemRole: boolean;
   };
+  mustChangePassword?: boolean;
+  employeeId?: string | null;
 };
 
 type AuthState = {
@@ -27,7 +29,7 @@ type AuthState = {
   session: OfficeSession | null;
   apiBase: string | null;
   refresh: () => Promise<void>;
-  signIn: (apiUrl: string, email: string, password: string) => Promise<void>;
+  signIn: (apiUrl: string, identifier: string, password: string, mode?: "office" | "employee") => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -47,11 +49,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      const data = await getJson<{ user: OfficeSession["user"] | null; role?: OfficeSession["role"] }>(
-        "/api/v1/session",
-      );
+      const data = await getJson<{
+        user: OfficeSession["user"] | null;
+        role?: OfficeSession["role"];
+        mustChangePassword?: boolean;
+        employeeId?: string | null;
+      }>("/api/v1/session");
       if (data.user && data.role) {
-        setSession({ user: data.user, role: data.role });
+        setSession({
+          user: data.user,
+          role: data.role,
+          mustChangePassword: data.mustChangePassword,
+          employeeId: data.employeeId ?? null,
+        });
       } else {
         await clearSession();
         setSession(null);
@@ -74,8 +84,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const signIn = useCallback(
-    async (apiUrl: string, email: string, password: string) => {
-      const base = await apiLogin(apiUrl, email, password);
+    async (apiUrl: string, identifier: string, password: string, mode: "office" | "employee" = "office") => {
+      const base = await apiLogin(apiUrl, identifier, password, mode);
       setApiBase(base);
       await refresh();
     },

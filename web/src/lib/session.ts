@@ -9,7 +9,7 @@ export type ModulePermission = {
 };
 
 export type OfficeSession = {
-  user: { id: string; name: string; email: string } | null;
+  user: { id: string; name: string; email: string; phone?: string | null } | null;
   role?: {
     id: string;
     slug: string;
@@ -22,6 +22,8 @@ export type OfficeSession = {
   };
   /** null = unrestricted admin; otherwise assigned restaurant client ids */
   scopedClientIds?: string[] | null;
+  employeeId?: string | null;
+  mustChangePassword?: boolean;
 };
 
 const TTL_MS = 90_000;

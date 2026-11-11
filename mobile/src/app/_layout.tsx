@@ -16,7 +16,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     if (!ready) return;
     const onLogin = segments[0] === "login";
     if (!session && !onLogin) router.replace("/login");
-    if (session && onLogin) router.replace("/(tabs)");
+    if (session && onLogin) {
+      router.replace(session.role.slug === "employee_self_service" ? "/(ess)" : "/(tabs)");
+    }
   }, [ready, session, segments, router]);
 
   if (!ready) {
@@ -49,6 +51,7 @@ export default function RootLayout() {
             >
               <Stack.Screen name="login" />
               <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="(ess)" />
               <Stack.Screen name="companies/[id]" options={{ headerShown: true, title: "Company" }} />
               <Stack.Screen name="companies/form" options={{ headerShown: true, title: "Company form" }} />
               <Stack.Screen name="employees/[id]" options={{ headerShown: true, title: "Employee" }} />

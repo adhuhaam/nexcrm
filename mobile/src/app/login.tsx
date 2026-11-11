@@ -9,6 +9,7 @@ export default function LoginScreen() {
   const { signIn } = useAuth();
   const [apiUrl, setApiUrl] = useState(DEFAULT_API_HINT);
   const [email, setEmail] = useState("");
+  const [mode, setMode] = useState<"office" | "employee">("office");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -23,7 +24,7 @@ export default function LoginScreen() {
     setPending(true);
     setError(null);
     try {
-      await signIn(apiUrl, email.trim(), password);
+      await signIn(apiUrl, email.trim(), password, mode);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Sign-in failed.");
     } finally {
@@ -57,12 +58,16 @@ export default function LoginScreen() {
             textContentType="URL"
             placeholder={DEFAULT_API_HINT}
           />
+          <View style={{ flexDirection: "row", gap: 12, marginBottom: 8 }}>
+            <Button label="Office" variant={mode === "office" ? "primary" : "ghost"} onPress={() => setMode("office")} />
+            <Button label="Employee" variant={mode === "employee" ? "primary" : "ghost"} onPress={() => setMode("employee")} />
+          </View>
           <Field
-            label="Email"
+            label={mode === "employee" ? "Phone" : "Email"}
             value={email}
             onChangeText={setEmail}
-            keyboardType="email-address"
-            autoComplete="email"
+            keyboardType={mode === "employee" ? "phone-pad" : "email-address"}
+            autoComplete={mode === "employee" ? "tel" : "email"}
             textContentType="username"
           />
           <Field

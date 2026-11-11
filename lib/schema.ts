@@ -234,6 +234,9 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
+  phone: text("phone"),
+  employeeId: uuid("employee_id").references(() => employees.id, { onDelete: "cascade" }),
+  mustChangePassword: boolean("must_change_password").notNull().default(false),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
