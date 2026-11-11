@@ -8,7 +8,7 @@
 | nginx HTTP | `127.0.0.1`, `192.168.100.10`, `100.77.125.102` `:80` | Local, LAN, Tailscale |
 | nginx HTTPS | `192.168.100.10:443` | Office LAN (LAN TLS cert) |
 | Tailscale Serve | `https://server-1.snowy-pride.ts.net` | Tailnet (admin SSH / optional) |
-| Cloudflare Tunnel | `https://<your-hostname>` | Public managers (preferred internet HTTPS) — see [CLOUDFLARE_TUNNEL.md](CLOUDFLARE_TUNNEL.md) |
+| Cloudflare Tunnel | `https://<your-hostname>` | Public managers (preferred internet HTTPS) — see [CLOUDFLARE_TUNNEL.md](CLOUDFLARE_TUNNEL.md); walkthrough for `server.bluraymaldives.site`: [guides/cloudflare-tunnel-server-bluraymaldives.md](guides/cloudflare-tunnel-server-bluraymaldives.md) |
 | PostgreSQL | `*:5432` (auth-limited) | Local, `192.168.100.0/24`, Tailscale `100.64.0.0/10` — never via Tunnel |
 
 ```mermaid
@@ -45,6 +45,8 @@ sudo bash deploy/install-postgres-network.sh
 - DB TCP passwords: `deploy/database-network.env` (mode 600 — do not commit)
 
 ## Boot / power-on
+
+On this office desktop host, power-on should bring the stack up without a login or sudo password. Step-by-step for **Debian** and tunnel ordering: [guides/autostart-on-boot.md](guides/autostart-on-boot.md).
 
 On this Ubuntu desktop host, power-on brings the stack up without a login or sudo password:
 

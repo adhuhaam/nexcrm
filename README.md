@@ -69,6 +69,7 @@ Migrations run automatically on service start. System admin can store the OpenAI
 | --- | --- |
 | [AGENTS.md](AGENTS.md) | Agent catch-up (rules, paths, commands) |
 | [docs/README.md](docs/README.md) | Docs index + reading order |
+| [docs/guides/README.md](docs/guides/README.md) | Debian server, boot, Cloudflare `server.bluraymaldives.site`, JACMS rename plan, mobile roadmap |
 | [docs/MASTER_PLAN.md](docs/MASTER_PLAN.md) | Living full-repo orientation |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Monorepo layout, auth, clients, apps launcher |
 | [docs/API.md](docs/API.md) | `/api/v1` surface for web + mobile |
