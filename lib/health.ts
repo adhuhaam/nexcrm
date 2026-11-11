@@ -82,11 +82,11 @@ export type SystemHealthReport = {
 };
 
 export async function checkHealth(): Promise<HealthReport> {
-  const fileRoot = process.env.FILE_ROOT;
+  const { resolveFilesRoot } = await import("../modules/files/paths.ts");
+  const fileRoot = resolveFilesRoot();
   const { resolveOfficeSettings } = await import("../modules/settings/settings.ts");
   const office = await resolveOfficeSettings();
   const displayTimeZone = office.timeZone || process.env.DISPLAY_TIME_ZONE || "Indian/Maldives";
-  if (!fileRoot) throw new Error("FILE_ROOT is not set");
 
   const result = await db.execute(sql`select 1 as ok`);
   const rows = "rows" in result ? result.rows : result;
@@ -153,7 +153,8 @@ export async function getSystemHealth(): Promise<SystemHealthReport> {
   const { resolveOfficeSettings } = await import("../modules/settings/settings.ts");
   const office = await resolveOfficeSettings();
   const displayTimeZone = office.timeZone || process.env.DISPLAY_TIME_ZONE || "Indian/Maldives";
-  const fileRoot = process.env.FILE_ROOT ?? null;
+  const { resolveFilesRoot } = await import("../modules/files/paths.ts");
+  const fileRoot = resolveFilesRoot();
   const mem = process.memoryUsage();
   const cpu = process.cpuUsage();
   const loads = loadavg() as [number, number, number];
@@ -196,9 +197,9 @@ export async function getSystemHealth(): Promise<SystemHealthReport> {
   }
 
   let files: SystemHealthReport["files"] = {
-    status: fileRoot ? "ok" : "degraded",
+    status: "ok",
     root: fileRoot,
-    error: fileRoot ? null : "FILE_ROOT is not set",
+    error: null,
   };
   if (fileRoot) {
     try {

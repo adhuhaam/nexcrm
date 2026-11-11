@@ -78,7 +78,8 @@ async function main(): Promise<void> {
     )
   `);
 
-  const fileRoot = process.env.FILE_ROOT?.trim();
+  const { resolveFilesRoot } = await import("../modules/files/paths.ts");
+  const fileRoot = resolveFilesRoot();
   if (fileRoot) {
     const entries = await readdir(fileRoot, { withFileTypes: true });
     for (const entry of entries) {

@@ -8,6 +8,7 @@ import { eq } from "drizzle-orm";
 import { db, pool } from "../../lib/db.ts";
 import { fileLinks, files } from "../../lib/schema.ts";
 import { loadEnv } from "../../lib/env.ts";
+import { ensureFilesRoot, resolveFilesRoot, resolveStorageFolder } from "./paths.ts";
 
 loadEnv();
 
@@ -55,15 +56,11 @@ const allowedMime = new Set([
 ]);
 
 function fileRoot(): string {
-  const root = process.env.FILE_ROOT;
-  if (!root) throw new FileError("FILE_ROOT is not configured");
-  return root;
+  return resolveFilesRoot();
 }
 
 export async function ensureFileRoot(): Promise<string> {
-  const root = fileRoot();
-  await mkdir(root, { recursive: true });
-  return root;
+  return ensureFilesRoot();
 }
 
 function safeName(name: string): string {
@@ -99,7 +96,11 @@ export async function storeBuffer(input: {
   const root = await ensureFileRoot();
   const id = randomUUID();
   const year = String(new Date().getFullYear());
-  const folder = input.employeeIdForPath || input.entityId || "shared";
+  const folder = await resolveStorageFolder({
+    employeeIdForPath: input.employeeIdForPath,
+    entityType: input.entityType,
+    entityId: input.entityId,
+  });
   const relative = join(folder, year, `${id}-${safeName(input.originalName)}`);
   const absolute = join(root, relative);
   await mkdir(dirname(absolute), { recursive: true });

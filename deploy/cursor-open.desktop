@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Cursor
+Comment=Open Cursor on the JACMS server after GNOME login
+Exec=/usr/bin/cursor /home/server/dev/nexcrm
+Icon=cursor
+Terminal=false
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=8
+OnlyShowIn=GNOME;Unity;
+# Install Cursor .deb so /usr/bin/cursor exists, or edit Exec to your AppImage path.
