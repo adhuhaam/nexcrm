@@ -63,7 +63,7 @@ Next (interactive, needs a Cloudflare domain):
   1) cloudflared tunnel login
   2) sudo bash deploy/install-cloudflare-tunnel.sh --hostname nexcrm.YOURDOMAIN.com --tunnel-name ${TUNNEL_NAME}
 
-Docs: docs/CLOUDFLARE_TUNNEL.md
+Docs: README.md#cloudflare-tunnel
 EOF
   exit 0
 fi

@@ -5,13 +5,11 @@ alwaysApply: true
 
 # Documentation maintenance (mandatory)
 
-**YOU MUST MAINTAIN DOCUMENTATION AS PART OF EVERY CHANGE.**
+**YOU MUST MAINTAIN [README.md](/README.md) AS PART OF EVERY CHANGE.**
 
-- **Before starting work:** `git pull` and read `docs/MASTER_PLAN.md`, `docs/`, and `docs/guides/` for the latest ✅ DONE · 🚧 IN PROGRESS · 📝 PLANNED status.
-- **After every change:** update `docs/MASTER_PLAN.md` and relevant guides in the **same commit**. Move checkboxes, add changelog lines with date and short note.
-- **New ideas or decisions** from the owner (Adhuhaam) go into `docs/MASTER_PLAN.md` immediately (Planned section or Open items).
-- **Never leave docs out of date.** Code and docs must agree.
-- **Commit and push docs frequently.** The owner edits and pushes docs from many locations. Always pull/rebase first and **merge his edits**; never overwrite them.
-- **Every agent and every person must stay on the same page through these docs.**
+Before work: `git pull` and read **README.md** (TOC, roadmap checkboxes, relevant sections).
+After work: update **README.md** in the **same commit** (checkboxes, changelog, affected sections).
+Adhuhaam edits from many devices — pull/rebase first; **never overwrite** his changes.
+New owner decisions go into README planned/open sections immediately.
 
-Product name in docs: **JACMS** (JA CRM). Code identifiers may still say `nexcrm` until the rename milestone is complete — call that out when documenting commands.
+Product name: **JACMS**. Code may still say `nexcrm` until the rename milestone.
