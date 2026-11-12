@@ -1,12 +1,23 @@
 /**
- * Local CORS proxy for Expo web → Tailscale NEXCRM API.
+ * Local CORS proxy for Expo web → Tailscale JACMS API.
  * Strips Origin so login works before server CORS is deployed.
  */
 import http from "node:http";
 import https from "node:https";
 
-const TARGET = process.env.NEXCRM_API_ORIGIN ?? "https://server-1.snowy-pride.ts.net";
-const PORT = Number(process.env.NEXCRM_API_PROXY_PORT ?? "8787");
+function jacmsEnv(suffix, fallback) {
+  const primary = process.env[`JACMS_${suffix}`];
+  if (primary) return primary;
+  const legacy = process.env[`NEXCRM_${suffix}`];
+  if (legacy) {
+    console.warn(`[jacms] Deprecated env NEXCRM_${suffix}; use JACMS_${suffix}.`);
+    return legacy;
+  }
+  return fallback;
+}
+
+const TARGET = jacmsEnv("API_ORIGIN", "https://server-1.snowy-pride.ts.net");
+const PORT = Number(jacmsEnv("API_PROXY_PORT", "8787"));
 const target = new URL(TARGET);
 
 const server = http.createServer((req, res) => {
@@ -56,5 +67,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, "127.0.0.1", () => {
-  console.log(`NEXCRM API proxy http://127.0.0.1:${PORT} → ${TARGET}`);
+  console.log(`JACMS API proxy http://127.0.0.1:${PORT} → ${TARGET}`);
 });

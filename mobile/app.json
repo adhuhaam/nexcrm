@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "NEXCRM",
-    "slug": "nexcrm-mobile",
+    "name": "JACMS",
+    "slug": "jacms-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "nexcrm",
+    "scheme": "jacms",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "net.snowypride.nexcrm"
+      "bundleIdentifier": "net.snowypride.jacms"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +24,7 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "net.snowypride.nexcrm",
+      "package": "net.snowypride.jacms",
       "predictiveBackGestureEnabled": false
     },
     "web": {

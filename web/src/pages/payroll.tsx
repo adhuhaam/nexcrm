@@ -456,7 +456,7 @@ export function PayrollPage() {
 
   return (
     <Shell
-      title="NEXCRM · Payroll"
+      title="JACMS · Payroll"
       eyebrow="Operations"
       description="Agency payroll from attendance. You are the agency — legal employers (WP holders) own the workers; clients are billed. Client batch = one draft per legal employer."
       actions={

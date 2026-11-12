@@ -33,6 +33,7 @@ import { handleProjectRequest } from "./projects-http.ts";
 import { handleWorkPermitRequest } from "./work-permits-http.ts";
 import { handleXpatApi } from "./xpat-http.ts";
 import { handleEmployeeSelfServiceAdmin } from "./employee-self-http.ts";
+import { sessionTokenFromCookieHeader } from "../lib/session-cookie.ts";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -294,8 +295,7 @@ export async function handleRequest(request: IncomingMessage, response: ServerRe
             sendJson(response, 400, { error: "Seal and signature must be images" });
             return;
           }
-          const cookie = request.headers.cookie ?? "";
-          const token = cookie.match(/(?:^|;\s*)nexcrm_session=([^;]+)/)?.[1] ?? null;
+          const token = sessionTokenFromCookieHeader(request.headers.cookie);
           const user = token ? await userForToken(decodeURIComponent(token)) : null;
           const kind =
             slot === "letterhead" ? "company_letterhead" : slot === "seal" ? "company_seal" : "company_signature";

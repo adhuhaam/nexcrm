@@ -96,7 +96,7 @@ export function DesignationsPage() {
 
   return (
     <Shell
-      title="NEXCRM · Designations"
+      title="JACMS · Designations"
       eyebrow="Operations"
       description="Office-wide job titles for employees, client monthly rates, allocations, and payroll."
       actions={

@@ -91,7 +91,7 @@ export function renderProjectList(projects: ProjectRecord[], companies: { id: st
   const options = companies.map((company) => `<option value="${company.id}">${escapeHtml(company.legalName)}</option>`).join("");
   const banner = notice ? `<p class="${error ? "warning" : "notice"}" role="${error ? "alert" : "status"}">${escapeHtml(notice)}</p>` : "";
   return shell(
-    "NEXCRM projects",
+    "JACMS projects",
     `<h1>Projects</h1>
     <p>Legal employer → project → site → pool → slot → employee. Open a project to manage placement.</p>
     ${banner}

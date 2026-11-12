@@ -18,7 +18,7 @@ function person(slug: string, canPreview: boolean, canEdit: boolean, canDelete: 
   return {
     id: "00000000-0000-4000-8000-000000000001",
     name: "Test",
-    email: "test@nexcrm.local",
+    email: "test@jacms.local",
     phone: null,
     employeeId: null,
     mustChangePassword: false,

@@ -126,10 +126,10 @@ export function CommandPalette({
       setOpen(true);
     }
     window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("nexcrm:open-command", onOpen);
+    window.addEventListener("jacms:open-command", onOpen);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("nexcrm:open-command", onOpen);
+      window.removeEventListener("jacms:open-command", onOpen);
     };
   }, []);
 

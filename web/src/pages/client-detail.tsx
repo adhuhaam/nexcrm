@@ -209,7 +209,7 @@ export function ClientDetailPage({ id }: { id: string }) {
 
   return (
     <Shell
-      title={client ? `NEXCRM · ${client.legalName}` : "NEXCRM · Client"}
+      title={client ? `JACMS · ${client.legalName}` : "JACMS · Client"}
       eyebrow="Client"
       description="Placements, billing rates, and client company details."
       actions={

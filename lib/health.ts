@@ -279,7 +279,7 @@ export async function getSystemHealth(): Promise<SystemHealthReport> {
     checkedAt,
     overall,
     app: {
-      name: "nexcrm",
+      name: "jacms",
       node: process.version,
       pid: process.pid,
       uptimeSec: Math.floor(process.uptime()),

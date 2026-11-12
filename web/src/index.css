@@ -47,7 +47,7 @@
     --font-sans: 'Geist Variable', sans-serif;
 }
 
-/* NEXCRM admin — Busza-style blue sidebar + light canvas */
+/* JACMS admin — Busza-style blue sidebar + light canvas */
 :root {
     --radius: 0.85rem;
     --background: oklch(0.965 0.01 255);

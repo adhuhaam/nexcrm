@@ -12,4 +12,4 @@ After work: update **README.md** in the **same commit** (checkboxes, changelog, 
 Adhuhaam edits from many devices — pull/rebase first; **never overwrite** his changes.
 New owner decisions go into README planned/open sections immediately.
 
-Product name: **JACMS**. Code may still say `nexcrm` until the rename milestone.
+Product name: **JACMS** (https://github.com/adhuhaam/jacms). Intentional legacy `nexcrm` strings live in `lib/session-cookie.ts`, mobile session migrate, and `deploy/migrate-rebrand.sh`.

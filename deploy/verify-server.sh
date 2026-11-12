@@ -4,7 +4,7 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SERVER_USER="${JACMS_SERVER_USER:-server}"
-REPO_DIR="${JACMS_REPO_DIR:-/home/${SERVER_USER}/dev/nexcrm}"
+REPO_DIR="${JACMS_REPO_DIR:-/home/${SERVER_USER}/dev/jacms}"
 FILES_DIR="${JACMS_FILES_DIR:-/home/${SERVER_USER}/JACMS-Files}"
 NODE_MIN_MAJOR="${JACMS_NODE_MIN_MAJOR:-22}"
 
@@ -67,11 +67,11 @@ check "poppler (pdftotext)" check_cmd pdftotext
 
 check "postgresql active" check_systemd_active postgresql
 check "nginx active" check_systemd_active nginx
-check "nexcrm active" check_systemd_active nexcrm
+check "jacms active" check_systemd_active jacms
 
 check "postgresql enabled" check_systemd_enabled postgresql
 check "nginx enabled" check_systemd_enabled nginx
-check "nexcrm enabled" check_systemd_enabled nexcrm
+check "jacms enabled" check_systemd_enabled jacms
 
 if systemctl list-unit-files cloudflared.service &>/dev/null; then
   check "cloudflared enabled" check_systemd_enabled cloudflared
@@ -110,10 +110,10 @@ else
 fi
 
 autostart="/home/${SERVER_USER}/.config/autostart"
-if [[ -f "$autostart/nexcrm-open.desktop" ]]; then
-  check "nexcrm GNOME autostart" true
+if [[ -f "$autostart/jacms-open.desktop" ]]; then
+  check "jacms GNOME autostart" true
 else
-  check "nexcrm GNOME autostart" false
+  check "jacms GNOME autostart" false
 fi
 
 echo

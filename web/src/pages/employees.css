@@ -1,10 +1,10 @@
 /* Employees directory — app-like people cards & contact list */
 
-.nexcrm-people .nx-main {
+.jacms-people .nx-main {
   gap: 0.75rem;
 }
 
-.nexcrm-people .nx-main:has(.emp-editor-inline) {
+.jacms-people .nx-main:has(.emp-editor-inline) {
   display: flex;
   flex-direction: column;
   padding: 0.75rem;

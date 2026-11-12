@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Idempotent stack setup for a fresh Debian GNOME office server (JACMS / nexcrm).
+# Idempotent stack setup for a fresh Debian GNOME office server (JACMS / jacms).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SERVER_USER="${JACMS_SERVER_USER:-server}"
-REPO_DIR="${JACMS_REPO_DIR:-/home/${SERVER_USER}/dev/nexcrm}"
+REPO_DIR="${JACMS_REPO_DIR:-/home/${SERVER_USER}/dev/jacms}"
 FILES_DIR="${JACMS_FILES_DIR:-/home/${SERVER_USER}/JACMS-Files}"
 NODE_MAJOR="${JACMS_NODE_MAJOR:-22}"
 
@@ -80,11 +80,11 @@ install_tailscale() {
 }
 
 postgres_bootstrap() {
-  log "PostgreSQL role/database (nexcrm)"
+  log "PostgreSQL role/database (jacms)"
   systemctl enable postgresql
   systemctl start postgresql || true
-  sudo -u postgres createuser --createdb nexcrm 2>/dev/null || true
-  sudo -u postgres createdb -O nexcrm nexcrm_dev 2>/dev/null || true
+  sudo -u postgres createuser --createdb jacms 2>/dev/null || true
+  sudo -u postgres createdb -O jacms jacms_dev 2>/dev/null || true
 }
 
 jacms_files_dir() {
@@ -121,7 +121,7 @@ app_from_repo() {
 }
 
 systemd_stack() {
-  log "systemd: nexcrm, nginx, postgresql"
+  log "systemd: jacms, nginx, postgresql"
   if [[ -f "$ROOT/deploy/install-web-nginx.sh" ]]; then
     bash "$ROOT/deploy/install-web-nginx.sh"
   fi
@@ -131,11 +131,11 @@ systemd_stack() {
 }
 
 gnome_autostart() {
-  log "GNOME autostart entries (nexcrm browser + optional Cursor)"
+  log "GNOME autostart entries (jacms browser + optional Cursor)"
   install -d -m 0755 -o "$SERVER_USER" -g "$SERVER_USER" "/home/${SERVER_USER}/.config/autostart"
-  if [[ -f "$ROOT/deploy/nexcrm-open.desktop" ]]; then
+  if [[ -f "$ROOT/deploy/jacms-open.desktop" ]]; then
     install -m 0644 -o "$SERVER_USER" -g "$SERVER_USER" \
-      "$ROOT/deploy/nexcrm-open.desktop" "/home/${SERVER_USER}/.config/autostart/nexcrm-open.desktop"
+      "$ROOT/deploy/jacms-open.desktop" "/home/${SERVER_USER}/.config/autostart/jacms-open.desktop"
   fi
   if [[ -f "$ROOT/deploy/cursor-open.desktop" ]]; then
     install -m 0644 -o "$SERVER_USER" -g "$SERVER_USER" \

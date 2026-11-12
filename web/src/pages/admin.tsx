@@ -254,7 +254,7 @@ export function RolesPanel() {
   const granted = countGranted(draftPermissions);
 
   return (
-    <div className="nexcrm-admin">
+    <div className="jacms-admin">
       <Banner message={error} error />
       <div className="nx-layout is-duo">
         <aside className="nx-rail">

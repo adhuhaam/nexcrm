@@ -161,7 +161,7 @@ export function AccommodationsPage() {
 
   return (
     <Shell
-      title="NEXCRM · Accommodations"
+      title="JACMS · Accommodations"
       eyebrow="Operations"
       description="Housing for staff. Charge preview covers days in-house with no active client allocation."
       actions={

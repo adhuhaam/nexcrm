@@ -167,7 +167,7 @@ export function CompaniesPage() {
 
   return (
     <Shell
-      title="NEXCRM · Legal employers"
+      title="JACMS · Legal employers"
       eyebrow="CRM"
       description="WP-holding employers with projects, sites, pools, LOAs and letterhead. Clients live under Clients."
       actions={

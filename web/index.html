@@ -12,17 +12,18 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="NEXCRM" />
-    <meta name="application-name" content="NEXCRM" />
-    <meta name="description" content="NEXCRM — HR, secondment, LOAs, payroll and accommodations" />
+    <meta name="apple-mobile-web-app-title" content="JACMS" />
+    <meta name="application-name" content="JACMS" />
+    <meta name="description" content="JACMS — HR, secondment, LOAs, payroll and accommodations" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-    <title>NEXCRM</title>
+    <title>JACMS</title>
     <script>
       (() => {
         try {
-          const stored = localStorage.getItem("nexcrm-theme");
+          let stored = localStorage.getItem("jacms-theme");
+          if (!stored) stored = localStorage.getItem("nexcrm-theme");
           const theme = stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
           const dark =
             theme === "dark" ||

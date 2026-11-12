@@ -1,6 +1,6 @@
 /* Directory / drive module layouts (employees, documents). Chrome is .nx-admin. */
 
-.nexcrm-surface {
+.jacms-surface {
   --nx-accent: var(--primary);
   --nx-accent-soft: color-mix(in oklch, var(--primary) 12%, white);
   --nx-warm: oklch(0.78 0.08 85);
@@ -14,12 +14,12 @@
   scroll-behavior: smooth;
 }
 
-.nexcrm-surface .nx-layout,
-.nexcrm-surface [data-slot="card"] {
+.jacms-surface .nx-layout,
+.jacms-surface [data-slot="card"] {
   border-color: color-mix(in oklch, var(--border) 88%, transparent);
 }
 
-.dark .nexcrm-surface {
+.dark .jacms-surface {
   --nx-accent-soft: color-mix(in oklch, var(--primary) 18%, transparent);
   --nx-inset: inset 0 1px 0 color-mix(in oklch, white 8%, transparent);
 }
@@ -694,10 +694,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nexcrm-surface,
-  .nexcrm-surface *,
-  .nexcrm-surface *::before,
-  .nexcrm-surface *::after {
+  .jacms-surface,
+  .jacms-surface *,
+  .jacms-surface *::before,
+  .jacms-surface *::after {
     animation: none !important;
     transition: none !important;
   }

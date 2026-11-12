@@ -1,14 +1,14 @@
 /* Documents drive — local motion override (app-wide kill stays elsewhere) */
-.nexcrm-drive,
-.nexcrm-drive *,
-.nexcrm-drive *::before,
-.nexcrm-drive *::after {
+.jacms-drive,
+.jacms-drive *,
+.jacms-drive *::before,
+.jacms-drive *::after {
   animation: unset !important;
   transition: unset !important;
   scroll-behavior: smooth !important;
 }
 
-.nexcrm-drive {
+.jacms-drive {
   /* Align with shared surface tokens when both classes are present */
   --drive-accent: var(--nx-accent, oklch(0.62 0.14 240));
   --drive-accent-soft: var(--nx-accent-soft, oklch(0.94 0.03 240));
@@ -29,7 +29,7 @@
   box-shadow: var(--drive-lift);
 }
 
-.dark .nexcrm-drive {
+.dark .jacms-drive {
   --drive-accent-soft: oklch(0.28 0.05 240);
   --drive-inset: inset 0 1px 0 color-mix(in oklch, white 8%, transparent);
   background:
@@ -38,7 +38,7 @@
     var(--card);
 }
 
-.nexcrm-drive-layout {
+.jacms-drive-layout {
   display: grid;
   min-height: min(68vh, 720px);
   max-height: min(78vh, 820px);
@@ -47,13 +47,13 @@
 }
 
 @media (min-width: 1024px) {
-  .nexcrm-drive-layout {
+  .jacms-drive-layout {
     grid-template-columns: minmax(0, 14.5rem) minmax(0, 1fr) minmax(0, 17.5rem);
   }
 }
 
 @media (min-width: 1280px) {
-  .nexcrm-drive-layout {
+  .jacms-drive-layout {
     grid-template-columns: minmax(0, 15.5rem) minmax(0, 1fr) minmax(0, 18.5rem);
   }
 }
@@ -831,10 +831,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nexcrm-drive,
-  .nexcrm-drive *,
-  .nexcrm-drive *::before,
-  .nexcrm-drive *::after {
+  .jacms-drive,
+  .jacms-drive *,
+  .jacms-drive *::before,
+  .jacms-drive *::after {
     animation: none !important;
     transition: none !important;
   }

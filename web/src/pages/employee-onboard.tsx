@@ -369,7 +369,7 @@ export function EmployeeOnboardPage() {
 
   return (
     <Shell
-      title="NEXCRM · Onboard employee"
+      title="JACMS · Onboard employee"
       eyebrow="Process"
       description="Five short steps: scan the passport, confirm identity, place on a project, then optionally allocate to a client and housing."
       actions={

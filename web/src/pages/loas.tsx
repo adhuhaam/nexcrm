@@ -40,7 +40,7 @@ export function LoaListPage() {
 
   return (
     <Shell
-      title="NEXCRM · LOAs"
+      title="JACMS · LOAs"
       eyebrow="Document archive"
       description="Saved LOA snapshots. Reopen any letter to review or print it. Company edits never change archived letters."
       actions={

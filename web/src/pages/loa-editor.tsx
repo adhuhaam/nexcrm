@@ -399,7 +399,7 @@ export function LoaEditorPage({ id }: { id: string | null }) {
 
   return (
     <Shell
-      title={archived ? "NEXCRM · Saved LOA" : "NEXCRM · LOA editor"}
+      title={archived ? "JACMS · Saved LOA" : "JACMS · LOA editor"}
       eyebrow="Letter of Appointment"
       description={
         archived

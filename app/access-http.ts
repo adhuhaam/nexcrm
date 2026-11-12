@@ -31,8 +31,7 @@ import {
   updateFinanceFeeSettings,
   upsertDepositRate,
 } from "../modules/expenses/finance.ts";
-
-const cookieName = "nexcrm_session";
+import { formatSessionCookie, readSessionToken } from "../lib/session-cookie.ts";
 
 function sendJson(response: ServerResponse, status: number, body: unknown, extra?: Record<string, string>): void {
   response.writeHead(status, { "content-type": "application/json; charset=utf-8", ...extra });
@@ -56,25 +55,11 @@ function sameOrigin(request: IncomingMessage): boolean {
 }
 
 function readCookie(request: IncomingMessage): string | null {
-  const auth = request.headers.authorization;
-  if (typeof auth === "string" && auth.toLowerCase().startsWith("bearer ")) {
-    const token = auth.slice(7).trim();
-    if (token) return token;
-  }
-  const header = request.headers.cookie;
-  if (!header) return null;
-  for (const part of header.split(";")) {
-    const [name, ...rest] = part.trim().split("=");
-    if (name === cookieName) return decodeURIComponent(rest.join("="));
-  }
-  return null;
+  return readSessionToken(request);
 }
 
 function cookieHeader(token: string, request: IncomingMessage, clear = false): string {
-  const secure = request.headers["x-forwarded-proto"] === "https" ? "; Secure" : "";
-  const value = clear ? "" : token;
-  const age = clear ? 0 : 60 * 60 * 12;
-  return `${cookieName}=${value}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${age}${secure}`;
+  return formatSessionCookie(token, request, clear);
 }
 
 async function readRecord(request: IncomingMessage): Promise<Record<string, unknown>> {

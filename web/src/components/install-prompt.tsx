@@ -52,7 +52,7 @@ export function InstallPrompt() {
 
 export function MobileInstallBanner() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
-  const [dismissed, setDismissed] = useState(() => sessionStorage.getItem("nexcrm-install-dismissed") === "1");
+  const [dismissed, setDismissed] = useState(() => sessionStorage.getItem("jacms-install-dismissed") === "1");
 
   useEffect(() => {
     const onPrompt = (event: Event) => {
@@ -69,7 +69,7 @@ export function MobileInstallBanner() {
     <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-sm md:hidden">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
         <div className="min-w-0 text-sm">
-          <p className="font-medium">Install NEXCRM</p>
+          <p className="font-medium">Install JACMS</p>
           <p className="text-xs text-muted-foreground">Add to your home screen for quick access.</p>
         </div>
         <div className="flex shrink-0 gap-2">
@@ -78,7 +78,7 @@ export function MobileInstallBanner() {
             variant="ghost"
             size="sm"
             onClick={() => {
-              sessionStorage.setItem("nexcrm-install-dismissed", "1");
+              sessionStorage.setItem("jacms-install-dismissed", "1");
               setDismissed(true);
             }}
           >

@@ -1,6 +1,6 @@
 /* Allocations board — assigned vs unassigned, Busza tokens */
 
-.nexcrm-alloc {
+.jacms-alloc {
   --alloc-on: #067647;
   --alloc-off: #c2410c;
   --alloc-ended: #6b7289;
@@ -15,19 +15,19 @@
   color: var(--alloc-ink);
 }
 
-.nexcrm-alloc .alloc-kpi-grid {
+.jacms-alloc .alloc-kpi-grid {
   display: grid;
   gap: 0.75rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 @media (min-width: 900px) {
-  .nexcrm-alloc .alloc-kpi-grid {
+  .jacms-alloc .alloc-kpi-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
-.nexcrm-alloc .alloc-kpi {
+.jacms-alloc .alloc-kpi {
   position: relative;
   display: grid;
   gap: 0.25rem;
@@ -46,48 +46,48 @@
     outline-color 160ms ease;
 }
 
-.nexcrm-alloc .alloc-kpi::after {
+.jacms-alloc .alloc-kpi::after {
   content: "";
   position: absolute;
   inset: auto 0 0;
   height: 3px;
 }
 
-.nexcrm-alloc .alloc-kpi.is-on::after {
+.jacms-alloc .alloc-kpi.is-on::after {
   background: var(--alloc-on);
 }
 
-.nexcrm-alloc .alloc-kpi.is-off::after {
+.jacms-alloc .alloc-kpi.is-off::after {
   background: var(--alloc-off);
 }
 
-.nexcrm-alloc .alloc-kpi.is-clients::after {
+.jacms-alloc .alloc-kpi.is-clients::after {
   background: var(--alloc-bill);
 }
 
-.nexcrm-alloc .alloc-kpi.is-ended::after {
+.jacms-alloc .alloc-kpi.is-ended::after {
   background: var(--alloc-ended);
 }
 
-.nexcrm-alloc .alloc-kpi.is-on {
+.jacms-alloc .alloc-kpi.is-on {
   background: linear-gradient(180deg, color-mix(in srgb, var(--alloc-on) 9%, var(--alloc-card)), var(--alloc-card));
 }
 
-.nexcrm-alloc .alloc-kpi.is-off {
+.jacms-alloc .alloc-kpi.is-off {
   background: linear-gradient(180deg, color-mix(in srgb, var(--alloc-off) 9%, var(--alloc-card)), var(--alloc-card));
 }
 
-.nexcrm-alloc .alloc-kpi:hover,
-.nexcrm-alloc .alloc-kpi.is-active {
+.jacms-alloc .alloc-kpi:hover,
+.jacms-alloc .alloc-kpi.is-active {
   transform: translateY(-2px);
   box-shadow: 0 16px 34px -20px rgb(45 92 254 / 28%);
 }
 
-.nexcrm-alloc .alloc-kpi.is-active {
+.jacms-alloc .alloc-kpi.is-active {
   outline-color: color-mix(in srgb, var(--alloc-bill) 40%, var(--alloc-line));
 }
 
-.nexcrm-alloc .alloc-kpi strong {
+.jacms-alloc .alloc-kpi strong {
   font-size: clamp(1.35rem, 2vw, 1.7rem);
   font-weight: 750;
   letter-spacing: -0.04em;
@@ -95,19 +95,19 @@
   line-height: 1;
 }
 
-.nexcrm-alloc .alloc-kpi span {
+.jacms-alloc .alloc-kpi span {
   color: var(--alloc-muted);
   font-size: 0.75rem;
   font-weight: 650;
 }
 
-.nexcrm-alloc .alloc-kpi em {
+.jacms-alloc .alloc-kpi em {
   color: var(--alloc-muted);
   font-size: 0.68rem;
   font-style: normal;
 }
 
-.nexcrm-alloc .alloc-toolbar {
+.jacms-alloc .alloc-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
@@ -120,7 +120,7 @@
   padding: 0.85rem 1rem;
 }
 
-.nexcrm-alloc .alloc-toolbar-filters {
+.jacms-alloc .alloc-toolbar-filters {
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem;
@@ -129,29 +129,29 @@
   min-width: 0;
 }
 
-.nexcrm-alloc .alloc-chip-row {
+.jacms-alloc .alloc-chip-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
 }
 
-.nexcrm-alloc .alloc-chip {
+.jacms-alloc .alloc-chip {
   border-radius: 999px !important;
 }
 
-.nexcrm-alloc .alloc-chip.is-on {
+.jacms-alloc .alloc-chip.is-on {
   background: color-mix(in srgb, var(--alloc-on) 14%, transparent) !important;
   color: var(--alloc-on) !important;
   border-color: color-mix(in srgb, var(--alloc-on) 35%, transparent) !important;
 }
 
-.nexcrm-alloc .alloc-chip.is-off {
+.jacms-alloc .alloc-chip.is-off {
   background: color-mix(in srgb, var(--alloc-off) 14%, transparent) !important;
   color: var(--alloc-off) !important;
   border-color: color-mix(in srgb, var(--alloc-off) 35%, transparent) !important;
 }
 
-.nexcrm-alloc .alloc-legend {
+.jacms-alloc .alloc-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 0.65rem 1rem;
@@ -159,7 +159,7 @@
   font-size: 0.75rem;
 }
 
-.nexcrm-alloc .alloc-legend i {
+.jacms-alloc .alloc-legend i {
   display: inline-block;
   width: 0.65rem;
   height: 0.65rem;
@@ -168,46 +168,46 @@
   vertical-align: -0.05rem;
 }
 
-.nexcrm-alloc .alloc-legend .is-on {
+.jacms-alloc .alloc-legend .is-on {
   background: var(--alloc-on);
 }
 
-.nexcrm-alloc .alloc-legend .is-off {
+.jacms-alloc .alloc-legend .is-off {
   background: var(--alloc-off);
 }
 
-.nexcrm-alloc .alloc-workspace {
+.jacms-alloc .alloc-workspace {
   display: grid;
   gap: 1rem;
   grid-template-columns: minmax(0, 1fr);
 }
 
 @media (min-width: 1180px) {
-  .nexcrm-alloc .alloc-workspace.has-bench {
+  .jacms-alloc .alloc-workspace.has-bench {
     grid-template-columns: minmax(0, 1.55fr) minmax(18rem, 0.85fr);
   }
 }
 
-.nexcrm-alloc .alloc-board {
+.jacms-alloc .alloc-board {
   display: grid;
   gap: 0.85rem;
   grid-template-columns: minmax(0, 1fr);
 }
 
 @media (min-width: 900px) {
-  .nexcrm-alloc .alloc-board {
+  .jacms-alloc .alloc-board {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 1400px) {
-  .nexcrm-alloc .alloc-board.is-wide {
+  .jacms-alloc .alloc-board.is-wide {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-.nexcrm-alloc .alloc-column,
-.nexcrm-alloc .alloc-bench {
+.jacms-alloc .alloc-column,
+.jacms-alloc .alloc-bench {
   display: grid;
   align-content: start;
   gap: 0.55rem;
@@ -219,13 +219,13 @@
   padding: 0.8rem;
 }
 
-.nexcrm-alloc .alloc-column.is-allocated {
+.jacms-alloc .alloc-column.is-allocated {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--alloc-on) 7%, var(--alloc-card)), var(--alloc-card));
   outline-color: color-mix(in srgb, var(--alloc-on) 22%, var(--alloc-line));
 }
 
-.nexcrm-alloc .alloc-bench {
+.jacms-alloc .alloc-bench {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--alloc-off) 8%, var(--alloc-card)), var(--alloc-card));
   outline-color: color-mix(in srgb, var(--alloc-off) 24%, var(--alloc-line));
@@ -233,8 +233,8 @@
   overflow: auto;
 }
 
-.nexcrm-alloc .alloc-column-head,
-.nexcrm-alloc .alloc-bench-head {
+.jacms-alloc .alloc-column-head,
+.jacms-alloc .alloc-bench-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -242,8 +242,8 @@
   margin-bottom: 0.15rem;
 }
 
-.nexcrm-alloc .alloc-column-head h3,
-.nexcrm-alloc .alloc-bench-head h3 {
+.jacms-alloc .alloc-column-head h3,
+.jacms-alloc .alloc-bench-head h3 {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 750;
@@ -251,15 +251,15 @@
   line-height: 1.25;
 }
 
-.nexcrm-alloc .alloc-column-head p,
-.nexcrm-alloc .alloc-bench-head p {
+.jacms-alloc .alloc-column-head p,
+.jacms-alloc .alloc-bench-head p {
   margin: 0.2rem 0 0;
   color: var(--alloc-muted);
   font-size: 0.72rem;
   line-height: 1.35;
 }
 
-.nexcrm-alloc .alloc-count {
+.jacms-alloc .alloc-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -272,18 +272,18 @@
   font-variant-numeric: tabular-nums;
 }
 
-.nexcrm-alloc .alloc-count.is-on {
+.jacms-alloc .alloc-count.is-on {
   background: color-mix(in srgb, var(--alloc-on) 14%, transparent);
   color: var(--alloc-on);
 }
 
-.nexcrm-alloc .alloc-count.is-off {
+.jacms-alloc .alloc-count.is-off {
   background: color-mix(in srgb, var(--alloc-off) 14%, transparent);
   color: var(--alloc-off);
 }
 
-.nexcrm-alloc .alloc-person,
-.nexcrm-alloc .alloc-bench-card {
+.jacms-alloc .alloc-person,
+.jacms-alloc .alloc-bench-card {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 0.55rem;
@@ -302,31 +302,31 @@
     background 160ms ease;
 }
 
-.nexcrm-alloc .alloc-person.is-allocated {
+.jacms-alloc .alloc-person.is-allocated {
   border-left: 3px solid var(--alloc-on);
   background: color-mix(in srgb, var(--alloc-on) 5%, var(--alloc-card));
 }
 
-.nexcrm-alloc .alloc-bench-card,
-.nexcrm-alloc .alloc-person.is-unallocated {
+.jacms-alloc .alloc-bench-card,
+.jacms-alloc .alloc-person.is-unallocated {
   border-left: 3px solid var(--alloc-off);
   background: color-mix(in srgb, var(--alloc-off) 6%, var(--alloc-card));
 }
 
-.nexcrm-alloc .alloc-person:hover,
-.nexcrm-alloc .alloc-bench-card:hover {
+.jacms-alloc .alloc-person:hover,
+.jacms-alloc .alloc-bench-card:hover {
   transform: translateY(-1px);
   box-shadow: 0 12px 24px -18px rgb(26 43 107 / 35%);
 }
 
-.nexcrm-alloc .alloc-person.is-selected,
-.nexcrm-alloc .alloc-bench-card.is-picked {
+.jacms-alloc .alloc-person.is-selected,
+.jacms-alloc .alloc-bench-card.is-picked {
   outline: 2px solid color-mix(in srgb, var(--alloc-bill) 55%, transparent);
   outline-offset: 1px;
 }
 
-.nexcrm-alloc .alloc-person strong,
-.nexcrm-alloc .alloc-bench-card strong {
+.jacms-alloc .alloc-person strong,
+.jacms-alloc .alloc-bench-card strong {
   display: block;
   font-size: 0.86rem;
   font-weight: 700;
@@ -334,8 +334,8 @@
   letter-spacing: -0.015em;
 }
 
-.nexcrm-alloc .alloc-person em,
-.nexcrm-alloc .alloc-bench-card em {
+.jacms-alloc .alloc-person em,
+.jacms-alloc .alloc-bench-card em {
   display: block;
   margin-top: 0.12rem;
   color: var(--alloc-muted);
@@ -344,7 +344,7 @@
   line-height: 1.3;
 }
 
-.nexcrm-alloc .alloc-status {
+.jacms-alloc .alloc-status {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
@@ -355,40 +355,40 @@
   text-transform: uppercase;
 }
 
-.nexcrm-alloc .alloc-status.is-on {
+.jacms-alloc .alloc-status.is-on {
   background: color-mix(in srgb, var(--alloc-on) 14%, transparent);
   color: var(--alloc-on);
 }
 
-.nexcrm-alloc .alloc-status.is-off {
+.jacms-alloc .alloc-status.is-off {
   background: color-mix(in srgb, var(--alloc-off) 14%, transparent);
   color: var(--alloc-off);
 }
 
-.nexcrm-alloc .alloc-margin {
+.jacms-alloc .alloc-margin {
   font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
   font-weight: 750;
   color: var(--alloc-on);
 }
 
-.nexcrm-alloc .alloc-margin.is-neg {
+.jacms-alloc .alloc-margin.is-neg {
   color: #b42318;
 }
 
-.nexcrm-alloc .alloc-actions {
+.jacms-alloc .alloc-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
   padding-top: 0.2rem;
 }
 
-.nexcrm-alloc .alloc-bench-list {
+.jacms-alloc .alloc-bench-list {
   display: grid;
   gap: 0.5rem;
 }
 
-.nexcrm-alloc .alloc-empty {
+.jacms-alloc .alloc-empty {
   border: 1px dashed color-mix(in srgb, var(--alloc-muted) 35%, transparent);
   border-radius: 0.85rem;
   padding: 1rem;
@@ -397,21 +397,21 @@
   text-align: center;
 }
 
-.nexcrm-alloc .alloc-search {
+.jacms-alloc .alloc-search {
   min-width: min(100%, 14rem);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nexcrm-alloc .alloc-kpi,
-  .nexcrm-alloc .alloc-person,
-  .nexcrm-alloc .alloc-bench-card {
+  .jacms-alloc .alloc-kpi,
+  .jacms-alloc .alloc-person,
+  .jacms-alloc .alloc-bench-card {
     transition: none !important;
   }
 
-  .nexcrm-alloc .alloc-kpi:hover,
-  .nexcrm-alloc .alloc-kpi.is-active,
-  .nexcrm-alloc .alloc-person:hover,
-  .nexcrm-alloc .alloc-bench-card:hover {
+  .jacms-alloc .alloc-kpi:hover,
+  .jacms-alloc .alloc-kpi.is-active,
+  .jacms-alloc .alloc-person:hover,
+  .jacms-alloc .alloc-bench-card:hover {
     transform: none;
   }
 }

@@ -1,5 +1,5 @@
-/* NEXCRM service worker — app shell offline; network-first for API */
-const CACHE = "nexcrm-shell-v1";
+/* JACMS service worker — app shell offline; network-first for API */
+const CACHE = "jacms-shell-v1";
 const PRECACHE = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png", "/favicon.svg"];
 
 self.addEventListener("install", (event) => {

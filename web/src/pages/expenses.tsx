@@ -112,7 +112,7 @@ export function ExpensesPage() {
 
   return (
     <Shell
-      title="NEXCRM · Finance"
+      title="JACMS · Finance"
       eyebrow="Apps · Expenses"
       description="Employee cost ledger — work permit, insurance, medical, deposits — plus client payments and investments."
       actions={

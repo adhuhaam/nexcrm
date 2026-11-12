@@ -7,7 +7,7 @@ if [[ ! -f /etc/caddy/pki/lan-ca.key ]]; then
   openssl req -x509 -newkey rsa:2048 -sha256 -days 825 -nodes \
     -keyout /etc/caddy/pki/lan-ca.key \
     -out /etc/caddy/pki/lan-ca.crt \
-    -subj "/CN=NEXCRM office network" \
+    -subj "/CN=JACMS office network" \
     -addext "basicConstraints=critical,CA:true" \
     -addext "keyUsage=critical,keyCertSign,cRLSign"
   chmod 600 /etc/caddy/pki/lan-ca.key
@@ -30,7 +30,7 @@ chmod 640 /etc/caddy/pki/lan.key
 chmod 644 /etc/caddy/pki/lan.crt
 rm -f /etc/caddy/pki/lan.csr /etc/caddy/pki/lan.ext
 
-install -m 0644 /home/server/dev/nexcrm/deploy/Caddyfile /etc/caddy/Caddyfile
+install -m 0644 /home/server/dev/jacms/deploy/Caddyfile /etc/caddy/Caddyfile
 systemctl restart caddy
 systemctl is-active caddy
 
@@ -38,7 +38,7 @@ if ! ufw status | grep -q "192.168.100.0/24"; then
   ufw allow from 192.168.100.0/24 to any port 443 proto tcp
 fi
 
-install -m 0644 /etc/caddy/pki/lan-ca.crt /usr/local/share/ca-certificates/nexcrm-lan.crt
+install -m 0644 /etc/caddy/pki/lan-ca.crt /usr/local/share/ca-certificates/jacms-lan.crt
 update-ca-certificates
-install -o server -g server -m 0644 /etc/caddy/pki/lan-ca.crt /home/server/dev/nexcrm/deploy/lan-root.crt
+install -o server -g server -m 0644 /etc/caddy/pki/lan-ca.crt /home/server/dev/jacms/deploy/lan-root.crt
 echo "LAN HTTPS installed"

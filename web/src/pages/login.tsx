@@ -14,7 +14,7 @@ export function LoginPage() {
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
-    document.title = "Sign in · NEXCRM";
+    document.title = "Sign in · JACMS";
   }, []);
 
   function submit(event: FormEvent) {
@@ -39,7 +39,7 @@ export function LoginPage() {
           <div className="nx-login-brand">
             <span className="nx-brand-mark">NX</span>
             <div>
-              <strong>NEXCRM</strong>
+              <strong>JACMS</strong>
               <span>Admin</span>
             </div>
           </div>

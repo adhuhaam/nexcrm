@@ -14,10 +14,10 @@ export async function seedAccess(): Promise<void> {
   const password = randomBytes(18).toString("base64url");
   await createUser({
     name: "System admin",
-    email: "admin@nexcrm.local",
+    email: "admin@jacms.local",
     password,
     roleId: admin.id,
   });
-  await writeFile(passwordFile, `Login: admin@nexcrm.local\nPassword: ${password}\n`, { mode: 0o600 });
+  await writeFile(passwordFile, `Login: admin@jacms.local\nPassword: ${password}\n`, { mode: 0o600 });
   await chmod(passwordFile, 0o600);
 }
