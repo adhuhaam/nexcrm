@@ -175,7 +175,7 @@ export function CompanyDetailPage({ id }: { id: string }) {
 
   return (
     <Shell
-      title={detail ? `NEXCRM · ${detail.legalName}` : "NEXCRM · Company"}
+      title={detail ? `JACMS · ${detail.legalName}` : "JACMS · Company"}
       eyebrow="Company workspace"
       description={
         detail?.kind === "client"

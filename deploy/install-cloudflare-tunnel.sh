@@ -3,7 +3,7 @@
 set -euo pipefail
 
 HOSTNAME_FQDN=""
-TUNNEL_NAME="nexcrm"
+TUNNEL_NAME="jacms"
 ORIGIN="http://127.0.0.1:80"
 
 while [[ $# -gt 0 ]]; do
@@ -61,7 +61,7 @@ cloudflared binary is ready.
 
 Next (interactive, needs a Cloudflare domain):
   1) cloudflared tunnel login
-  2) sudo bash deploy/install-cloudflare-tunnel.sh --hostname nexcrm.YOURDOMAIN.com --tunnel-name ${TUNNEL_NAME}
+  2) sudo bash deploy/install-cloudflare-tunnel.sh --hostname jacms.YOURDOMAIN.com --tunnel-name ${TUNNEL_NAME}
 
 Docs: README.md#cloudflare-tunnel
 EOF

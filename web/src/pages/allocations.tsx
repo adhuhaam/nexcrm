@@ -387,7 +387,7 @@ export function AllocationsPage() {
 
   return (
     <Shell
-      title="NEXCRM · Allocations"
+      title="JACMS · Allocations"
       eyebrow="Operations"
       description="Assigned vs unassigned staff board. Green = on a client, amber = waiting to allocate."
       actions={
@@ -399,7 +399,7 @@ export function AllocationsPage() {
         </WhenEditing>
       }
     >
-      <div className="nexcrm-alloc">
+      <div className="jacms-alloc">
         <Banner message={error} error />
 
         <div className="alloc-kpi-grid">

@@ -2,7 +2,7 @@
 Type=Application
 Name=Cursor
 Comment=Open Cursor on the JACMS server after GNOME login
-Exec=/usr/bin/cursor /home/server/dev/nexcrm
+Exec=/usr/bin/cursor /home/server/dev/jacms
 Icon=cursor
 Terminal=false
 X-GNOME-Autostart-enabled=true

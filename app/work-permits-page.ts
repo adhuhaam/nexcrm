@@ -77,7 +77,7 @@ export function renderWorkPermitList(records: WorkPermitRecord[], notice: string
   return shell(
     "Work permits",
     `<h1>Work permits</h1>
-    <p>Each person is a work permit holder. The columns follow the Xpat work permit report: holder, passport, occupation, permit dates, quota pool, slot, and linked site. Quota slots are opened under Projects. This copy stays in NEXCRM.</p>
+    <p>Each person is a work permit holder. The columns follow the Xpat work permit report: holder, passport, occupation, permit dates, quota pool, slot, and linked site. Quota slots are opened under Projects. This copy stays in JACMS.</p>
     ${banner}
     <section class="panel">
       <h2>View work permit</h2>

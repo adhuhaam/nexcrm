@@ -39,7 +39,7 @@ import { getJson, sendJson } from "@/lib/api";
 import { formatDate, formatDateRange, formatDateTime } from "@/lib/dates";
 import { formatMoneyPair } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import "@/styles/nexcrm-surface.css";
+import "@/styles/jacms-surface.css";
 import "./employees.css";
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100] as const;
@@ -51,7 +51,7 @@ type XpatFilter = "" | "arrived" | "departed" | "pending" | "valid" | "invalid" 
 type TriFilter = "" | "yes" | "no";
 type ViewMode = "list" | "cards";
 
-const VIEW_STORAGE_KEY = "nexcrm.employees.view";
+const VIEW_STORAGE_KEY = "jacms.employees.view";
 
 function readViewMode(): ViewMode {
   try {
@@ -307,8 +307,8 @@ export function EmployeeListPage() {
   const [editorId, setEditorId] = useState<string | null>(() => editIdFromUrl());
   useEffect(() => {
     const syncEditorFromUrl = () => setEditorId(editIdFromUrl());
-    window.addEventListener("nexcrm:navigate", syncEditorFromUrl);
-    return () => window.removeEventListener("nexcrm:navigate", syncEditorFromUrl);
+    window.addEventListener("jacms:navigate", syncEditorFromUrl);
+    return () => window.removeEventListener("jacms:navigate", syncEditorFromUrl);
   }, []);
   const [xpatOpen, setXpatOpen] = useState(false);
   const [xpatCompanyId, setXpatCompanyId] = useState("");
@@ -544,7 +544,7 @@ export function EmployeeListPage() {
 
   return (
     <Shell
-      title="NEXCRM · Employees"
+      title="JACMS · Employees"
       eyebrow="People"
       description="Interactive people directory — filter from the rail, browse cards or list, open anyone to edit."
       surface={false}
@@ -576,7 +576,7 @@ export function EmployeeListPage() {
     >
       <Banner message={error} error />
 
-      <div className="nexcrm-surface nexcrm-people">
+      <div className="jacms-surface jacms-people">
         {loading ? (
           <div className="nx-busy" aria-hidden>
             <span />
@@ -1050,7 +1050,7 @@ export function EmployeeListPage() {
         title="Fetch from XPAT"
         description="Uses the public egov XPAT verification page. Provide work permit number plus passport or last name."
         pending={xpatPending}
-        submitLabel={xpatPreview ? (xpatPreview.existingEmployeeId ? "Update in NEXCRM" : "Import to NEXCRM") : "Preview"}
+        submitLabel={xpatPreview ? (xpatPreview.existingEmployeeId ? "Update in JACMS" : "Import to JACMS") : "Preview"}
         onSubmit={xpatPreview ? importXpat : previewXpat}
         size="lg"
       >
@@ -2048,7 +2048,7 @@ export function EmployeeFormPage({ id }: { id: string | null }) {
   useEffect(() => {
     const target = id ? `/employees?edit=${id}` : "/employees?new=1";
     window.history.replaceState({}, "", target);
-    window.dispatchEvent(new Event("nexcrm:navigate"));
+    window.dispatchEvent(new Event("jacms:navigate"));
   }, [id]);
   return null;
 }

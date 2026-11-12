@@ -60,8 +60,8 @@ Stubs: [AGENTS.md](AGENTS.md), [mobile/AGENTS.md](mobile/AGENTS.md), [.cursor/ru
 | | |
 | --- | --- |
 | **Production URL** | https://server.bluraymaldives.site (Cloudflare Tunnel → nginx → Node) |
-| **Repo** | https://github.com/adhuhaam/nexcrm |
-| **Code vs name** | Docs say **JACMS**; package/systemd/`nexcrm` identifiers until [M3](#m3--jacms-rename-code--ops) |
+| **Repo** | https://github.com/adhuhaam/jacms |
+| **Rebrand** | PR #5 — code, deploy, and PWA use **JACMS** / `jacms`; existing servers run `deploy/migrate-rebrand.sh` once ([M3](#m3--jacms-rename-code--ops)) |
 | **Status legend** | ✅ DONE · 🚧 IN PROGRESS · 📝 PLANNED |
 
 | Layer | Stack | Path |
@@ -121,6 +121,7 @@ Field API base URL: `https://server.bluraymaldives.site`
 
 | Date | Note |
 | --- | --- |
+| 2026-11-13 | **PR #5:** Full rebrand NEXCRM → JACMS — packages `jacms` / `jacms-mobile`, `jacms.service`, cookie `jacms_session`, DB role/db `jacms` / `jacms_dev`, `deploy/migrate-rebrand.sh`, repo URLs `github.com/adhuhaam/jacms`. |
 | 2026-11-12 | **PR #4:** Employee self-service web (`/ess/*`) + mobile (`(ess)` tabs), phone login, `/api/v1/ess/*`, HR self-service account, Xpat portal adapter placeholders, migration `031_employee_self_service.sql`. |
 | 2026-11-12 | **PR #3:** `FILES_DIR` / `JACMS-Files` per-employee folders, `scripts/migrate-jacms-files-layout.ts`, `deploy/setup-fresh-debian.sh`, `deploy/verify-server.sh`, README agent quick start. |
 | 2026-11-11 | Master plan rebrand: merged feature plan, checkbox inventory, milestones M1–M8; server guides in `docs/guides/`. |
@@ -148,19 +149,20 @@ Each item is **implemented today** unless noted. Use pointers for implementation
 - [x] **Env config** — `DATABASE_URL`, `FILES_DIR` (alias `FILE_ROOT`), `HOST=127.0.0.1`, `PORT=3000`, `DISPLAY_TIME_ZONE`, OpenAI OCR vars — `.env.example`
 - [x] **Migrations 001–027+** — applied on API start under advisory lock — `db/migrations/`, [MASTER_PLAN historical table in git history]
 - [x] **Smoke tests** — `npm run check` — `tests/*.test.ts`
-- [x] **systemd unit `nexcrm.service`** — Node serves app on loopback — `deploy/nexcrm.service`, [DEPLOY.md](#deploy)
-- [x] **nginx reverse proxy** — local/LAN `:80` → app `:3000` — `deploy/install-web-nginx.sh`, `deploy/nexcrm.nginx.conf`
+- [x] **systemd unit `jacms.service`** — Node serves app on loopback — `deploy/jacms.service`, [DEPLOY.md](#deploy)
+- [x] **nginx reverse proxy** — local/LAN `:80` → app `:3000` — `deploy/install-web-nginx.sh`, `deploy/jacms.nginx.conf`
 - [x] **Postgres network install helper** — `deploy/install-postgres-network.sh`, `deploy/database-network.env` (not in git)
-- [x] **Boot stack script** — `deploy/ensure-boot.sh` enables postgresql, nginx, nexcrm
+- [x] **Boot stack script** — `deploy/ensure-boot.sh` enables postgresql, nginx, jacms
 - [x] **Fresh Debian setup (idempotent)** — `deploy/setup-fresh-debian.sh`
 - [x] **Server verification script** — `deploy/verify-server.sh` (pass/fail per component)
+- [x] **NexCRM → JACMS server migration** — idempotent `deploy/migrate-rebrand.sh` (PR #5)
 - [x] **Cloudflare Tunnel installer** — `deploy/install-cloudflare-tunnel.sh` → nginx origin — [CLOUDFLARE_TUNNEL.md](#cloudflare-tunnel)
 - [x] **Server ops documentation** — merged into README (Debian setup, boot, tunnel, rename, mobile roadmap)
 - [x] **Tailscale Serve / REMOTE** — optional admin path — [REMOTE.md](#remote-access-tailscale)
 
 #### Auth, roles, and access (as built today)
 
-- [x] **Email + password login** — scrypt, ~12h session — `modules/access/access.ts`, `POST /login`, cookie `nexcrm_session`
+- [x] **Email + password login** — scrypt, ~12h session — `modules/access/access.ts`, `POST /login`, cookie `jacms_session`
 - [x] **Bearer token for mobile** — `Authorization: Bearer` on same session token — `app/*-http.ts`
 - [x] **Ten built-in system roles** — above nine plus `employee_self_service` for staff portal — `modules/access/access.ts` (`seedRoles`), migration `031_employee_self_service.sql`
 - [x] **Employee self-service auth** — phone + admin-set password, forced change on first login, scrypt sessions — `lib/phone.ts`, `POST /login` (`phone` or `email`), `users.phone` / `users.employee_id`
@@ -259,7 +261,7 @@ Each item is **implemented today** unless noted. Use pointers for implementation
 - [x] **Finance app icons** — sidebar launcher — `web/src/lib/apps.ts`
 - [x] **Soft routing / lazy pages** — `web/src/App.tsx`, `web/src/lib/spa-nav.ts`
 - [x] **Command palette** — `web/src/components/command-palette.tsx`
-- [x] **PWA manifest** — still named NEXCRM in `web/public/manifest.webmanifest`
+- [x] **PWA manifest** — still named JACMS in `web/public/manifest.webmanifest`
 - [x] **shadcn/ui components** — `web/src/components/ui/*` (pre-redesign styling)
 - [x] **Login page** — `web/src/pages/login.tsx`
 - [x] **Dashboard** — headcount + finance cards — `web/src/pages/dashboard.tsx`, `modules/hr/dashboard-finance.ts`
@@ -303,7 +305,7 @@ Items below are **not done** in code unless marked 🚧. Breakdown supports mile
 - [ ] Document & verify BIOS **Restore on AC power loss = Power On** — [Autostart on boot](#autostart-on-boot)
 - [ ] **GNOME auto-login** (no password) for desktop user `server`
 - [ ] **Cursor opens automatically** after GNOME login (autostart `.desktop`)
-- [ ] systemd: `postgresql`, `nexcrm`, `nginx`, `cloudflared` enabled **without user login**
+- [ ] systemd: `postgresql`, `jacms`, `nginx`, `cloudflared` enabled **without user login**
 - [ ] App starts when **no network** at boot; **cloudflared** `Restart=always` / retry until tunnel up (no hard `Requires=network-online` on app)
 - [ ] Optional drop-in for `cloudflared` After=nginx — guide documents pattern
 - [x] Post-boot checklist automated or scripted (health curls) — `deploy/verify-server.sh`
@@ -356,7 +358,7 @@ Items below are **not done** in code unless marked 🚧. Breakdown supports mile
 
 #### P7 — JACMS rename (code)
 
-- [ ] Follow [JACMS rename plan](#jacms-rename-plan) — package, service, tunnel name, PWA, DB optional
+- [x] Follow [JACMS rename plan](#jacms-rename-plan) — **PR #5** (package, service, tunnel default `jacms`, PWA, DB + `migrate-rebrand.sh`)
 
 #### P8 — Mobile Android preview
 
@@ -395,8 +397,8 @@ Pick the next unchecked task in the earliest incomplete milestone.
 - [x] BIOS AC-restore documented (owner verifies on hardware) — [Autostart on boot](#autostart-on-boot), `deploy/setup-fresh-debian.sh`
 - [ ] GNOME passwordless auto-login for `server` (owner GDM config)
 - [x] Cursor autostart `.desktop` shipped — `deploy/cursor-open.desktop`
-- [x] Nexcrm browser autostart — `deploy/nexcrm-open.desktop`
-- [ ] All systemd units enabled on production host (postgres, nexcrm, nginx, cloudflared)
+- [x] JACMS browser autostart — `deploy/jacms-open.desktop`
+- [ ] All systemd units enabled on production host (postgres, jacms, nginx, cloudflared)
 - [ ] App local without WAN; cloudflared retries (verify after reboot)
 - [x] `deploy/setup-fresh-debian.sh` + `deploy/verify-server.sh` for stack bring-up
 - [x] `deploy/ensure-boot.sh` for unit enablement on existing hosts
@@ -412,11 +414,11 @@ Pick the next unchecked task in the earliest incomplete milestone.
 
 **Checklist**
 
-- [ ] Execute [JACMS rename plan](#jacms-rename-plan)
-- [ ] Update README checkboxes for any renamed paths
-- [ ] Tunnel hostname unchanged
+- [x] Execute [JACMS rename plan](#jacms-rename-plan) — **PR #5**
+- [x] Update README checkboxes for renamed paths
+- [x] Tunnel hostname unchanged (`server.bluraymaldives.site`)
 
-**Acceptance:** PWA title JACMS; `systemctl status jacms` (or agreed name); docs and commands consistent.
+**Acceptance:** PWA title JACMS; `systemctl status jacms` on upgraded hosts; docs and commands consistent. Production: run `sudo bash deploy/migrate-rebrand.sh` after pull + repo rename.
 
 ---
 
@@ -525,7 +527,7 @@ cd mobile && npm run typecheck
 
 ## Server architecture (Debian)
 
-Step-by-step guides for running **JACMS** (JA CRM — the planned product name for this monorepo, today still **NEXCRM** in code) on a **Debian desktop server** (16 GB RAM, **GNOME**, wired Ethernet) with **Cloudflare Tunnel** for public HTTPS. These docs complement [Deploy](#deploy) and [Cloudflare Tunnel](#cloudflare-tunnel). **Roadmap:** [Development roadmap](#development-roadmap) milestone **M2**.
+Step-by-step guides for running **JACMS** (JA CRM — the planned product name for this monorepo, today still **JACMS** in code) on a **Debian desktop server** (16 GB RAM, **GNOME**, wired Ethernet) with **Cloudflare Tunnel** for public HTTPS. These docs complement [Deploy](#deploy) and [Cloudflare Tunnel](#cloudflare-tunnel). **Roadmap:** [Development roadmap](#development-roadmap) milestone **M2**.
 
 #### Who this is for
 
@@ -534,7 +536,7 @@ Step-by-step guides for running **JACMS** (JA CRM — the planned product name f
 | New Debian 16 GB RAM desktop as the office server; dev in **Cursor** on the same machine | [Debian server setup](#debian-server-setup) |
 | Survive reboot / power loss without manual steps | [Autostart on boot](#autostart-on-boot) |
 | Public URL `https://server.bluraymaldives.site` (no router port-forward) | [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives) |
-| Planned rename NEXCRM → JACMS (checklist only — no code change yet) | [JACMS rename plan](#jacms-rename-plan) |
+| Planned rename JACMS → JACMS (checklist only — no code change yet) | [JACMS rename plan](#jacms-rename-plan) |
 | Future Expo Android preview APK / Metro on this host | [Android preview roadmap](#mobile-expo-android-preview) |
 
 #### Target architecture
@@ -568,7 +570,7 @@ flowchart LR
 #### Conventions in these guides
 
 - **Placeholders** for secrets: `YOUR_CLOUDFLARE_TOKEN`, `YOUR_DB_PASSWORD`, etc. Never commit real credentials.
-- Paths use today’s layout (`/home/server/dev/nexcrm`); [JACMS rename plan](#jacms-rename-plan) lists planned renames.
+- Paths use today’s layout (`/home/server/dev/jacms`); [JACMS rename plan](#jacms-rename-plan) lists planned renames.
 - Commands assume **Debian stable** (current bookworm or successor) and a dedicated `server` (or similarly named) Unix user.
 ---
 
@@ -577,7 +579,7 @@ flowchart LR
 <details>
 <summary><strong>Product map</strong> (expand)</summary>
 
-NEXCRM is the office **super app** for a manpower agency that also runs light finance.
+JACMS is the office **super app** for a manpower agency that also runs light finance.
 
 **Date display:** everywhere in the UI uses **DD MMM YYYY** (e.g. `04 Nov 2026`). APIs and `<input type="date">` fields still store/send ISO `YYYY-MM-DD`.
 
@@ -679,7 +681,7 @@ flowchart TB
 
 Full product + codebase map: [MASTER_PLAN.md](#development-roadmap).
 
-NEXCRM is a single Node HTTP server that:
+JACMS is a single Node HTTP server that:
 
 1. Serves the production React SPA from `web/dist` (including PWA assets).
 2. Exposes JSON APIs under `/api/v1/*` used by **web** and **mobile**.
@@ -689,7 +691,7 @@ NEXCRM is a single Node HTTP server that:
 #### Monorepo layout
 
 ```
-nexcrm/
+jacms/
   app/           HTTP entry (server.ts), routers (*-http.ts), static SPA
   modules/       Domain logic (access, companies, hr, expenses, files, settings, …)
   lib/           db, env, migrate, schema, health
@@ -725,7 +727,7 @@ sequenceDiagram
 
 #### Auth
 
-- Cookie session: `nexcrm_session` (HttpOnly, SameSite=Lax).
+- Cookie session: `jacms_session` (HttpOnly, SameSite=Lax).
 - `POST /login` — body `{ email, password }` (office) or `{ phone, password }` (employee). Returns `location` (`/` or `/ess`), `token`, `mustChangePassword`.
 - `POST /logout`, `GET /api/v1/session` (includes `employeeId`, `mustChangePassword` for staff).
 - Roles in `roles` / `users` (`system_admin`, `hr_manager`, …). Coarse flags plus per-module View/Create/Edit/Delete in `role_permissions` (`modules/access/permissions.ts`).
@@ -795,7 +797,7 @@ Base URL examples:
 - Local: `http://127.0.0.1:3000`
 - Tailscale (mobile): `https://server-1.snowy-pride.ts.net` (see `mobile/src/lib/config.ts`)
 
-All authenticated routes require the `nexcrm_session` cookie from `POST /login`.  
+All authenticated routes require the `jacms_session` cookie from `POST /login`.  
 Mutations that change data should be same-origin (browser) / cookie-authenticated (mobile).
 
 Responses are JSON. Errors: `{ "error": "…" }` with 4xx/5xx.
@@ -1013,7 +1015,7 @@ Settings → People → Manage user → **Restaurant clients** checkboxes.
 
 ## Agent quick reference
 
-Read this first when joining the repo. **JACMS** (JA CRM) is the product name; code may still say `nexcrm` until the rename milestone.
+Read this first when joining the repo. **JACMS** (JA CRM) is the product name; code may still say `jacms` until the rename milestone.
 
 #### What this is
 
@@ -1076,7 +1078,7 @@ Migrations apply on API boot. Do not commit `.env`, passwords, or `deploy/databa
 
 | Component | Bind | Who reaches it |
 | --- | --- | --- |
-| Node NEXCRM | `127.0.0.1:3000` | nginx, Tailscale Serve only |
+| Node JACMS | `127.0.0.1:3000` | nginx, Tailscale Serve only |
 | nginx HTTP | `127.0.0.1`, `192.168.100.10`, `100.77.125.102` `:80` | Local, LAN, Tailscale |
 | nginx HTTPS | `192.168.100.10:443` | Office LAN (LAN TLS cert) |
 | Tailscale Serve | `https://server-1.snowy-pride.ts.net` | Tailnet (admin SSH / optional) |
@@ -1106,7 +1108,7 @@ flowchart LR
 Idempotent full stack for a new GNOME office server:
 
 ```bash
-cd /home/server/dev/nexcrm
+cd /home/server/dev/jacms
 sudo bash deploy/setup-fresh-debian.sh
 sudo bash deploy/verify-server.sh
 ```
@@ -1118,14 +1120,14 @@ Environment overrides: `JACMS_SERVER_USER`, `JACMS_REPO_DIR`, `JACMS_FILES_DIR`,
 From the repo (needs sudo):
 
 ```bash
-cd /home/server/dev/nexcrm
+cd /home/server/dev/jacms
 cd web && npm run build && cd ..
 sudo bash deploy/install-web-nginx.sh
 sudo bash deploy/install-postgres-network.sh
 ```
 
-- Systemd unit: `nexcrm.service` (`systemctl status nexcrm`)
-- nginx site: `/etc/nginx/sites-available/nexcrm`
+- Systemd unit: `jacms.service` (`systemctl status jacms`)
+- nginx site: `/etc/nginx/sites-available/jacms`
 - DB TCP passwords: `deploy/database-network.env` (mode 600 — do not commit)
 
 #### Boot / power-on
@@ -1136,9 +1138,9 @@ On this Ubuntu desktop host, power-on brings the stack up without a login or sud
 
 - **GDM autologin** as `server` (`/etc/gdm3/custom.conf`)
 - **Passwordless sudo** for `server` (`/etc/sudoers.d/server-nopasswd`)
-- **Enabled units:** `nexcrm`, `postgresql`, `nginx`, `nexcrm-backup.timer`, `tailscaled`
+- **Enabled units:** `jacms`, `postgresql`, `nginx`, `jacms-backup.timer`, `tailscaled`
 
-After reboot, NEXCRM listens on `127.0.0.1:3000` and nginx publishes it. Screen lock is disabled for the desktop session. Suspend/hibernate are masked so remote SSH stays reachable.
+After reboot, JACMS listens on `127.0.0.1:3000` and nginx publishes it. Screen lock is disabled for the desktop session. Suspend/hibernate are masked so remote SSH stays reachable.
 
 Remote Cursor / SSH: see [REMOTE.md](#remote-access-tailscale) (`server@server-1.snowy-pride.ts.net` over Tailscale).
 
@@ -1157,19 +1159,19 @@ Mobile app `BASE_URL` stays `https://server-1.snowy-pride.ts.net`.
 Server app keeps socket auth in `.env`:
 
 ```text
-DATABASE_URL=postgresql:///nexcrm_dev?host=/var/run/postgresql&user=nexcrm
+DATABASE_URL=postgresql:///jacms_dev?host=/var/run/postgresql&user=jacms
 ```
 
 Remote / GUI clients use TCP + password from `deploy/database-network.env`:
 
 ```bash
 ### LAN example
-psql "postgresql://nexcrm:…@192.168.100.10:5432/nexcrm_dev"
+psql "postgresql://jacms:…@192.168.100.10:5432/jacms_dev"
 
 ### Tailscale example
-psql "postgresql://nexcrm:…@100.77.125.102:5432/nexcrm_dev"
+psql "postgresql://jacms:…@100.77.125.102:5432/jacms_dev"
 ### or MagicDNS
-psql "postgresql://nexcrm:…@server-1.snowy-pride.ts.net:5432/nexcrm_dev"
+psql "postgresql://jacms:…@server-1.snowy-pride.ts.net:5432/jacms_dev"
 ```
 
 Allowed networks (pg_hba): localhost, `192.168.100.0/24`, Tailscale CGNAT `100.64.0.0/10`.  
@@ -1187,10 +1189,10 @@ sudo bash deploy/install-postgres-network.sh
 #### Day-2 ops
 
 ```bash
-sudo systemctl restart nexcrm
+sudo systemctl restart jacms
 sudo systemctl reload nginx
-cd /home/server/dev/nexcrm/web && npm run build && sudo systemctl restart nexcrm
-journalctl -u nexcrm -f
+cd /home/server/dev/jacms/web && npm run build && sudo systemctl restart jacms
+journalctl -u jacms -f
 ```
 
 Caddy was used previously for LAN HTTPS; the nginx installer stops it so ports do not clash. Tailscale Serve remains the HTTPS front door on the tailnet.
@@ -1207,7 +1209,7 @@ Prepare a **16 GB RAM Debian desktop** as the office server: OS packages, Node.j
 #### Assumptions
 
 - **Debian stable** (e.g. bookworm) **desktop**, **16 GB RAM**, **GNOME**, **wired Ethernet** — frequently power-cycled.
-- One primary admin Unix account, e.g. `server`, with the repo at `/home/server/dev/nexcrm` (path may change after [JACMS rename plan](#jacms-rename-plan)).
+- One primary admin Unix account, e.g. `server`, with the repo at `/home/server/dev/jacms` (path may change after [JACMS rename plan](#jacms-rename-plan)).
 - **Development on the server** with **Cursor**; GNOME **auto-login** (no password) + Cursor autostart per [Autostart on boot](#autostart-on-boot).
 - App listens on `127.0.0.1:3000`; nginx on `127.0.0.1:80` when installed — see [Deploy](#deploy).
 - Public URL **https://server.bluraymaldives.site** — [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives).
@@ -1238,8 +1240,8 @@ Clone or copy the monorepo:
 
 ```bash
 sudo -u server mkdir -p /home/server/dev
-sudo -u server git clone <YOUR_REPO_URL> /home/server/dev/nexcrm
-cd /home/server/dev/nexcrm
+sudo -u server git clone <YOUR_REPO_URL> /home/server/dev/jacms
+cd /home/server/dev/jacms
 ```
 
 Copy environment template (no secrets in git):
@@ -1247,7 +1249,7 @@ Copy environment template (no secrets in git):
 ```bash
 cp .env.example .env
 ### Edit .env — typical values on this host:
-### DATABASE_URL=postgresql:///nexcrm_dev?host=/var/run/postgresql&user=nexcrm
+### DATABASE_URL=postgresql:///jacms_dev?host=/var/run/postgresql&user=jacms
 ### FILES_DIR=/home/server/JACMS-Files
 ### HOST=127.0.0.1
 ### PORT=3000
@@ -1278,16 +1280,16 @@ sudo apt install -y postgresql postgresql-contrib
 Create role and database (adjust names when JACMS rename lands):
 
 ```bash
-sudo -u postgres createuser --createdb nexcrm || true
-sudo -u postgres createdb -O nexcrm nexcrm_dev || true
+sudo -u postgres createuser --createdb jacms || true
+sudo -u postgres createdb -O jacms jacms_dev || true
 ```
 
-Migrations apply on first `npm start` / `systemctl start nexcrm`.
+Migrations apply on first `npm start` / `systemctl start jacms`.
 
 For LAN/Tailscale TCP access, use the repo installer (writes `deploy/database-network.env`, mode 600):
 
 ```bash
-cd /home/server/dev/nexcrm
+cd /home/server/dev/jacms
 sudo bash deploy/install-postgres-network.sh
 ```
 
@@ -1304,7 +1306,7 @@ node --version   # v22.x
 Install app and build web:
 
 ```bash
-cd /home/server/dev/nexcrm
+cd /home/server/dev/jacms
 npm install
 cd web && npm install && npm run build && cd ..
 npm start        # smoke: http://127.0.0.1:3000/health
@@ -1315,11 +1317,11 @@ npm start        # smoke: http://127.0.0.1:3000/health
 From the repo root:
 
 ```bash
-cd /home/server/dev/nexcrm
+cd /home/server/dev/jacms
 sudo bash deploy/install-web-nginx.sh
 ```
 
-This installs `nexcrm.service`, nginx site `nexcrm`, and enables units. Details: [Deploy](#deploy).
+This installs `jacms.service`, nginx site `jacms`, and enables units. Details: [Deploy](#deploy).
 
 Verify:
 
@@ -1349,7 +1351,7 @@ Port `5432` rules for LAN/Tailscale are applied by `install-postgres-network.sh`
 
 Install [Cursor](https://cursor.com) for Linux (.deb or AppImage) under the `server` user. Development happens **on this machine** (not only over SSH).
 
-- Open the folder `/home/server/dev/nexcrm` (or `jacms` after rename).
+- Open the folder `/home/server/dev/jacms` (or `jacms` after rename).
 - Use integrated terminal for `npm start`, `cd web && npm run dev`, and `npm run check`.
 - **GNOME auto-login** + **Cursor autostart** — required on the owner host; see [Autostart on boot](#autostart-on-boot).
 - **BIOS:** set **Restore on AC power loss = Power On** before relying on unattended recovery.
@@ -1360,7 +1362,7 @@ Install [Cursor](https://cursor.com) for Linux (.deb or AppImage) under the `ser
 sudo apt update && sudo apt upgrade -y
 ```
 
-Schedule Postgres/app backups via your policy; the deploy tree may include `nexcrm-backup.timer` if enabled by `deploy/ensure-boot.sh` on your host.
+Schedule Postgres/app backups via your policy; the deploy tree may include `jacms-backup.timer` if enabled by `deploy/ensure-boot.sh` on your host.
 
 #### 9. Next steps
 
@@ -1377,13 +1379,13 @@ Schedule Postgres/app backups via your policy; the deploy tree may include `nexc
 <details>
 <summary><strong>Autostart on boot</strong> (expand)</summary>
 
-Goal: after **any** reboot or AC power return, **PostgreSQL**, **nginx**, the **app service** (`nexcrm` today), **cloudflared**, and optional timers come up **without** a desktop login or manual `sudo` — so `https://server.bluraymaldives.site` recovers once DNS, Tunnel, and internet are up.
+Goal: after **any** reboot or AC power return, **PostgreSQL**, **nginx**, the **app service** (`jacms` today), **cloudflared**, and optional timers come up **without** a desktop login or manual `sudo` — so `https://server.bluraymaldives.site` recovers once DNS, Tunnel, and internet are up.
 
 **Owner decisions (Adhuhaam):**
 
 - **GNOME** desktop on Debian, **passwordless auto-login** for user `server` (GDM).
 - **Cursor** starts automatically after that login (for on-machine dev).
-- **Background services** (`postgresql`, `nexcrm`, `nginx`, `cloudflared`) start at boot **without** waiting for login.
+- **Background services** (`postgresql`, `jacms`, `nginx`, `cloudflared`) start at boot **without** waiting for login.
 - **No network at boot:** JACMS still listens on `127.0.0.1:3000` / nginx locally; **cloudflared** retries until Ethernet + internet return (use `Restart=always` on the connector — see below).
 - **BIOS:** **Restore on AC power loss = Power On** so the machine returns after outages.
 
@@ -1395,30 +1397,30 @@ Builds on [Deploy](#deploy), [Development roadmap](#development-roadmap) (M2), a
 | --- | --- | --- |
 | `postgresql` / `postgresql@*-main` | Database | `network.target` |
 | `nginx` | Reverse proxy → `127.0.0.1:3000` | network |
-| `nexcrm` | Node API + static web | `postgresql.service` (`After=` / `Wants=` in unit) |
+| `jacms` | Node API + static web | `postgresql.service` (`After=` / `Wants=` in unit) |
 | `cloudflared` | Cloudflare Tunnel connector | network (after nginx is up in practice) |
 | `tailscaled` | Optional admin VPN | per [REMOTE.md](../REMOTE.md) |
-| `nexcrm-backup.timer` | Optional backups | if installed |
+| `jacms-backup.timer` | Optional backups | if installed |
 
-App unit excerpt (from `deploy/nexcrm.service`):
+App unit excerpt (from `deploy/jacms.service`):
 
 - `Restart=on-failure`, `RestartSec=3`
 - `HOST=127.0.0.1`, `PORT=3000`
-- `EnvironmentFile=-/home/server/dev/nexcrm/.env`
+- `EnvironmentFile=-/home/server/dev/jacms/.env`
 
 #### One-shot boot hardening (repo script)
 
 From the repo on the server:
 
 ```bash
-cd /home/server/dev/nexcrm
+cd /home/server/dev/jacms
 sudo bash deploy/ensure-boot.sh
 ```
 
 This script (among other things):
 
-- Disables conflicting **user** `nexcrm.service` if present (avoids port 3000 races).
-- Installs and enables `postgresql`, `postgresql@18-main` (version may differ on Debian — adjust instance name), `nginx`, `nexcrm`.
+- Disables conflicting **user** `jacms.service` if present (avoids port 3000 races).
+- Installs and enables `postgresql`, `postgresql@18-main` (version may differ on Debian — adjust instance name), `nginx`, `jacms`.
 - Restarts services and curls `http://127.0.0.1:3000/health` and `http://127.0.0.1/health`.
 - Masks sleep/hibernate targets so remote SSH stays reachable.
 
@@ -1432,7 +1434,7 @@ Enable the instance unit that matches your cluster.
 
 #### cloudflared ordering & retries
 
-Install and enable the tunnel **after** nginx and nexcrm are healthy — [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives).
+Install and enable the tunnel **after** nginx and jacms are healthy — [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives).
 
 `deploy/install-cloudflare-tunnel.sh` runs `systemctl enable --now cloudflared`. Recommended drop-ins on the **server** (placeholders — apply on host, not necessarily committed to repo yet):
 
@@ -1448,7 +1450,7 @@ Restart=always
 RestartSec=5
 ```
 
-The **app** (`nexcrm.service`) should **not** hard-require `network-online.target` so PostgreSQL + Node come up on loopback even when WAN is down; only **public** HTTPS waits on cloudflared + internet.
+The **app** (`jacms.service`) should **not** hard-require `network-online.target` so PostgreSQL + Node come up on loopback even when WAN is down; only **public** HTTPS waits on cloudflared + internet.
 
 ```bash
 sudo systemctl daemon-reload
@@ -1489,7 +1491,7 @@ EOF
 chown -R server:server /home/server/.config/autostart
 ```
 
-Adjust `Exec=` to the real Cursor `.desktop` path on the machine. Optional browser autostart: `deploy/nexcrm-open.desktop` via `ensure-boot.sh`.
+Adjust `Exec=` to the real Cursor `.desktop` path on the machine. Optional browser autostart: `deploy/jacms-open.desktop` via `ensure-boot.sh`.
 
 Security: auto-login increases physical-access risk; acceptable on a single-purpose office server with disk encryption per site policy.
 
@@ -1503,10 +1505,10 @@ Run after reboot or power restore (local SSH or console):
 
 ```bash
 ### 1) Core units active?
-systemctl is-active postgresql nginx nexcrm cloudflared
+systemctl is-active postgresql nginx jacms cloudflared
 
 ### 2) Enabled for next boot?
-systemctl is-enabled postgresql nginx nexcrm cloudflared
+systemctl is-enabled postgresql nginx jacms cloudflared
 
 ### 3) App health (local)
 curl -fsS http://127.0.0.1:3000/health && echo OK-app
@@ -1516,7 +1518,7 @@ curl -fsS http://127.0.0.1/health && echo OK-nginx
 curl -fsS https://server.bluraymaldives.site/health && echo OK-public
 
 ### 5) Recent errors
-journalctl -u nexcrm -n 30 --no-pager
+journalctl -u jacms -n 30 --no-pager
 journalctl -u nginx -n 20 --no-pager
 journalctl -u cloudflared -n 30 --no-pager
 ```
@@ -1525,12 +1527,12 @@ Expected: all `is-active` → `active`; health endpoints return JSON success; `c
 
 #### Troubleshooting
 
-##### nexcrm fails / port 3000 in use
+##### jacms fails / port 3000 in use
 
 ```bash
-sudo journalctl -u nexcrm -n 80 --no-pager
+sudo journalctl -u jacms -n 80 --no-pager
 sudo ss -tlnp | grep 3000
-sudo systemctl restart nexcrm
+sudo systemctl restart jacms
 ```
 
 Check `.env` and `DATABASE_URL`; Postgres must be up first.
@@ -1541,7 +1543,7 @@ Check `.env` and `DATABASE_URL`; Postgres must be up first.
 sudo nginx -t
 sudo journalctl -u nginx -n 40 --no-pager
 curl -v http://127.0.0.1:3000/health
-sudo systemctl restart nexcrm nginx
+sudo systemctl restart jacms nginx
 ```
 
 ##### cloudflared inactive
@@ -1554,7 +1556,7 @@ journalctl -u cloudflared -n 100 --no-pager
 Common fixes:
 
 - Invalid or missing credentials under `/etc/cloudflared/` or `/root/.cloudflared/` — re-run login flow per [Cloudflare Tunnel](#cloudflare-tunnel) (never paste credentials into docs or git).
-- Origin down: fix nginx/nexcrm first (`curl http://127.0.0.1:80/health`).
+- Origin down: fix nginx/jacms first (`curl http://127.0.0.1:80/health`).
 - Config typo in `/etc/cloudflared/config.yml` — hostname must match DNS route.
 
 ##<a id="cloudflare-error-1033"></a>
@@ -1575,13 +1577,13 @@ Common fixes:
 systemctl status postgresql
 sudo systemctl enable postgresql
 sudo systemctl start postgresql
-sudo systemctl restart nexcrm
+sudo systemctl restart jacms
 ```
 
 #### Re-run after deploy changes
 
 ```bash
-cd /home/server/dev/nexcrm
+cd /home/server/dev/jacms
 cd web && npm run build && cd ..
 sudo bash deploy/ensure-boot.sh
 ```
@@ -1620,13 +1622,13 @@ flowchart LR
 #### Prerequisites
 
 1. A domain on a Cloudflare account (DNS managed by Cloudflare).
-2. This server online with `nexcrm` + `nginx` healthy.
+2. This server online with `jacms` + `nginx` healthy.
 3. Leave Huawei **DMZ Disable** and do **not** add WAN port mapping for 80/443.
 
 #### One-time install
 
 ```bash
-cd /home/server/dev/nexcrm
+cd /home/server/dev/jacms
 sudo bash deploy/install-cloudflare-tunnel.sh
 ```
 
@@ -1638,13 +1640,13 @@ cloudflared tunnel login
 ### Opens a browser URL — authorize the domain
 
 sudo bash deploy/install-cloudflare-tunnel.sh \
-  --hostname nexcrm.example.com \
-  --tunnel-name nexcrm
+  --hostname jacms.example.com \
+  --tunnel-name jacms
 ```
 
 This creates:
 
-- Named tunnel `nexcrm`
+- Named tunnel `jacms`
 - Config `/etc/cloudflared/config.yml` → `http://127.0.0.1:80`
 - DNS CNAME for the hostname
 - systemd unit `cloudflared`
@@ -1654,14 +1656,14 @@ This creates:
 ```bash
 systemctl status cloudflared
 journalctl -u cloudflared -n 50 --no-pager
-curl -sS https://nexcrm.example.com/health
+curl -sS https://jacms.example.com/health
 ```
 
-Mobile / managers: set app base URL to `https://nexcrm.example.com`.
+Mobile / managers: set app base URL to `https://jacms.example.com`.
 
 #### Security limits
 
-- App login still required (NEXCRM sessions).
+- App login still required (JACMS sessions).
 - Postgres `:5432` stays LAN + Tailscale only — never publish it through the tunnel.
 - Do not point the tunnel at Node `:3000` directly if nginx already terminates headers/body size.
 - Optional later: Cloudflare Access (email OTP) in front of the hostname.
@@ -1681,12 +1683,12 @@ Prints a random `*.trycloudflare.com` URL (ephemeral — not for restaurant mana
 <details>
 <summary><strong>Cloudflare Tunnel — `server.bluraymaldives.site`</strong> (expand)</summary>
 
-Expose JACMS (today **NEXCRM** in code) at **`https://server.bluraymaldives.site`** without ISP port-forwarding. Traffic path matches [Cloudflare Tunnel](#cloudflare-tunnel): **Cloudflare edge → cloudflared → nginx `http://127.0.0.1:80` → Node `http://127.0.0.1:3000`**.
+Expose JACMS (today **JACMS** in code) at **`https://server.bluraymaldives.site`** without ISP port-forwarding. Traffic path matches [Cloudflare Tunnel](#cloudflare-tunnel): **Cloudflare edge → cloudflared → nginx `http://127.0.0.1:80` → Node `http://127.0.0.1:3000`**.
 
 #### Prerequisites
 
 1. Domain **`bluraymaldives.site`** on a Cloudflare account with **DNS managed by Cloudflare**.
-2. Debian server with `nexcrm` + `nginx` healthy locally ([Debian server setup](#debian-server-setup)).
+2. Debian server with `jacms` + `nginx` healthy locally ([Debian server setup](#debian-server-setup)).
 3. Router: **no** WAN port map for 80/443 (tunnel is outbound-only).
 4. Host stack enabled on boot ([Autostart on boot](#autostart-on-boot)).
 
@@ -1703,7 +1705,7 @@ flowchart LR
 | Item | Value |
 | --- | --- |
 | Public hostname | `server.bluraymaldives.site` |
-| Tunnel name (default in script) | `nexcrm` → planned `jacms` — [JACMS rename plan](#jacms-rename-plan) |
+| Tunnel name (default in script) | `jacms` → planned `jacms` — [JACMS rename plan](#jacms-rename-plan) |
 | Origin | `http://127.0.0.1:80` (not `:3000` directly) |
 | Credentials | `/etc/cloudflared/config.yml` + JSON under `/root/.cloudflared/` — **never commit** |
 
@@ -1712,7 +1714,7 @@ flowchart LR
 From repo root:
 
 ```bash
-cd /home/server/dev/nexcrm
+cd /home/server/dev/jacms
 sudo bash deploy/install-cloudflare-tunnel.sh
 ```
 
@@ -1733,16 +1735,16 @@ This creates a certificate under `~/.cloudflared/cert.pem` (often copied to `/ro
 Use the repo installer with your hostname:
 
 ```bash
-cd /home/server/dev/nexcrm
+cd /home/server/dev/jacms
 sudo bash deploy/install-cloudflare-tunnel.sh \
   --hostname server.bluraymaldives.site \
-  --tunnel-name nexcrm
+  --tunnel-name jacms
 ```
 
 What the script does (see `deploy/install-cloudflare-tunnel.sh`):
 
 1. Installs `cloudflared` from Cloudflare’s `.deb` if missing.
-2. Creates or reuses tunnel named `nexcrm`.
+2. Creates or reuses tunnel named `jacms`.
 3. Writes `/etc/cloudflared/config.yml` similar to:
 
 ```yaml
@@ -1755,7 +1757,7 @@ ingress:
   - service: http_status:404
 ```
 
-4. Runs `cloudflared tunnel route dns nexcrm server.bluraymaldives.site` (CNAME to `*.cfargotunnel.com`).
+4. Runs `cloudflared tunnel route dns jacms server.bluraymaldives.site` (CNAME to `*.cfargotunnel.com`).
 5. `cloudflared service install`, `systemctl enable --now cloudflared`.
 
 Placeholders: real `TUNNEL_UUID` and JSON credentials are generated by Cloudflare — not documented here.
@@ -1777,7 +1779,7 @@ Public:
 curl -fsS https://server.bluraymaldives.site/health
 ```
 
-Browser: open `https://server.bluraymaldives.site/` — NEXCRM/JACMS login page.
+Browser: open `https://server.bluraymaldives.site/` — JACMS/JACMS login page.
 
 ##### Mobile / API base URL
 
@@ -1794,15 +1796,15 @@ https://server.bluraymaldives.site
 ```bash
 sudo systemctl restart cloudflared
 sudo systemctl reload nginx
-sudo systemctl restart nexcrm
+sudo systemctl restart jacms
 journalctl -u cloudflared -f
 ```
 
 After web UI changes:
 
 ```bash
-cd /home/server/dev/nexcrm/web && npm run build
-sudo systemctl restart nexcrm
+cd /home/server/dev/jacms/web && npm run build
+sudo systemctl restart jacms
 ```
 
 #### Security limits
@@ -1817,7 +1819,7 @@ sudo systemctl restart nexcrm
 | Symptom | Action |
 | --- | --- |
 | **Cloudflare Error 1033** | Connector down — see [Autostart on boot](#autostart-on-boot) |
-| 502 at public URL | Fix `curl http://127.0.0.1/health`; restart `nexcrm` and `nginx` |
+| 502 at public URL | Fix `curl http://127.0.0.1/health`; restart `jacms` and `nginx` |
 | Wrong site / 404 | Check `hostname` in `/etc/cloudflared/config.yml` matches `server.bluraymaldives.site` |
 | DNS not proxied | In Cloudflare DNS, CNAME should be **Proxied** (orange cloud) |
 
@@ -1868,7 +1870,7 @@ SSH is open only on **home LAN** and **Tailscale**, not the public internet.
 2. Add this to the **client** `~/.ssh/config` (on the laptop you travel with):
 
 ```sshconfig
-Host nexcrm-home
+Host jacms-home
   HostName server-1.snowy-pride.ts.net
   User server
   # IdentityFile ~/.ssh/id_ed25519   # optional once you add a key
@@ -1876,7 +1878,7 @@ Host nexcrm-home
   ServerAliveCountMax 6
 ```
 
-3. In Cursor: connect to host `nexcrm-home`, open folder `/home/server/dev/nexcrm`.
+3. In Cursor: connect to host `jacms-home`, open folder `/home/server/dev/jacms`.
 
 You can attach Cursor from multiple machines at once; each needs Tailscale + that SSH config (or the MagicDNS name).
 
@@ -1890,7 +1892,7 @@ You can attach Cursor from multiple machines at once; each needs Tailscale + tha
 
 - Autologin + passwordless sudo for local ops.
 - Suspend/hibernate **masked**; GNOME AC sleep off.
-- `ssh`, `tailscaled`, `nexcrm`, `postgresql`, `nginx` enabled on boot.
+- `ssh`, `tailscaled`, `jacms`, `postgresql`, `nginx` enabled on boot.
 
 #### Optional: SSH keys (recommended later)
 
@@ -1907,114 +1909,42 @@ After keys work from every device you use, you can set `PasswordAuthentication n
 <a id="jacms-rename-plan"></a>
 
 <details>
-<summary><strong>JACMS rename plan</strong> (expand)</summary>
+<summary><strong>JACMS rename plan</strong> (expand — shipped PR #5)</summary>
 
-**JACMS** = **JA CRM** (“ja Crm”). This guide is the **checklist for a future code and ops rename** from **NEXCRM** / `nexcrm` to **JACMS** / `jacms`. **Do not** treat this file as instructions to rename in a docs-only pull request — application code, deploy units, and production paths stay as-is until a dedicated change lands.
+**JACMS** = **JA CRM**. Code and ops identifiers now use **`jacms`** / **JACMS** (packages, systemd, nginx, PWA, mobile bundle id, default Postgres role/db on fresh install).
 
-#### Goals
+#### Fresh install
 
-- Consistent product name **JACMS** in UI, PWA, docs, and operator-facing paths.
-- Minimal downtime on the Debian server: parallel paths or short maintenance window.
-- Tunnel, DNS, and mobile base URL remain valid (`https://server.bluraymaldives.site`).
+- `sudo bash deploy/setup-fresh-debian.sh` creates Postgres role **`jacms`** and database **`jacms_dev`**.
+- Default checkout path: `/home/server/dev/jacms` (`deploy/jacms.service` `WorkingDirectory`).
+- GitHub: https://github.com/adhuhaam/jacms
 
-#### Scope matrix
+#### Existing production server (was NexCRM)
 
-| Area | Today | Target | Notes |
-| --- | --- | --- | --- |
-| Product name (UI) | NEXCRM | JACMS | `web/index.html`, titles, copy |
-| PWA manifest | `name` / `short_name` NEXCRM | JACMS | `web/public/manifest.webmanifest` |
-| npm package (root) | `nexcrm` | `jacms` | `package.json` `name` (private) |
-| Systemd unit | `nexcrm.service` | `jacms.service` | `deploy/nexcrm.service` → `deploy/jacms.service` |
-| systemd enable | `systemctl enable nexcrm` | `jacms` | Update `deploy/ensure-boot.sh`, docs |
-| nginx site | `sites-available/nexcrm` | `jacms` | `deploy/nexcrm.nginx.conf` |
-| Repo path (optional) | `/home/server/dev/nexcrm` | `/home/server/dev/jacms` | Git remote unchanged; symlink possible |
-| WorkingDirectory in unit | `/home/server/dev/nexcrm` | new path | Match actual checkout |
-| PostgreSQL role | `nexcrm` | `jacms` or keep `nexcrm` | **Breaking** if renamed — prefer keep DB user until migration scripted |
-| Database name | `nexcrm_dev` | `jacms_dev` | Requires `pg_dump` / restore or `ALTER DATABASE` |
-| `.env` example | `nexcrm_dev`, user `nexcrm` | `jacms_*` | `DATABASE_URL`, docs |
-| `FILES_DIR` default | `JACMS-Files` under home | same | `npm run migrate:files` |
-| Cloudflare tunnel name | `nexcrm` (script default) | `jacms` | `cloudflared tunnel create jacms`; DNS hostname unchanged |
-| Tunnel installer default | `--tunnel-name nexcrm` | `jacms` | `deploy/install-cloudflare-tunnel.sh` |
-| CSS / BEM prefixes | `.nexcrm-settings`, etc. | optional `jacms-*` | Large web diff — phased |
-| Docs brand | NEXCRM | JACMS (with “formerly NEXCRM” once) | `README.md`, `AGENTS.md` stubs |
-| Mobile app display name | NEXCRM | JACMS | `mobile/app.json` / Expo config |
-| Backup timer / scripts | `nexcrm-backup.*` | `jacms-backup.*` | grep `deploy/` |
+1. Owner renames GitHub repo `adhuhaam/nexcrm` → `adhuhaam/jacms`; on server: `git remote set-url origin https://github.com/adhuhaam/jacms.git` and `git pull`.
+2. Optional: `mv /home/server/dev/nexcrm /home/server/dev/jacms` or rely on `migrate-rebrand.sh` symlink.
+3. `cd web && npm run build`; `npm run check` on the host or in CI.
+4. **`sudo bash deploy/migrate-rebrand.sh`** — idempotent: PG role/db rename, `.env` keys, `jacms.service`, nginx site, autostart `.desktop`, retires `nexcrm.service`.
+5. `sudo bash deploy/verify-server.sh`
+6. **All web users re-login** (`jacms_session` cookie). **Mobile:** reinstall or new build (package `net.snowypride.jacms`).
 
-#### Recommended order of work
+#### Session and env compatibility (code)
 
-1. **Docs & marketing strings** — README, guides, manifest name, `index.html` meta (low risk).
-2. **Deploy artifacts** — duplicate unit as `jacms.service`, migrate enablement, retire `nexcrm.service` name on server.
-3. **package.json** `name` and internal references — no public npm publish (`private: true`).
-4. **Database** — only with explicit migration plan (see below).
-5. **Tunnel name** — create `jacms` tunnel or rename in Cloudflare; update `config.yml` and credentials path; public hostname **unchanged**.
-6. **Folder rename** on disk — last, with systemd `WorkingDirectory` update.
+- API accepts legacy cookie `nexcrm_session` until re-login — `lib/session-cookie.ts`.
+- Mobile migrates stored `nexcrm_session` → `jacms_session`.
+- Env: prefer `JACMS_*`; deprecated `NEXCRM_*` still read with warning — `lib/jacms-env.ts`, `mobile/scripts/api-proxy.mjs`.
 
-#### Server migration checklist (ops)
+#### Cloudflare tunnel
 
-Execute on maintenance window; adjust paths for your host.
+Public hostname **`server.bluraymaldives.site`** unchanged. Installer default tunnel name is **`jacms`** (`deploy/install-cloudflare-tunnel.sh`). Rename the tunnel object in Cloudflare only if you want the dashboard label to match; routing can stay as-is.
 
-- [ ] `cd web && npm run build` on current tree; `npm run check` in CI.
-- [ ] Copy or rename checkout: `mv /home/server/dev/nexcrm /home/server/dev/jacms` (or fresh clone).
-- [ ] Install new unit: `sudo cp deploy/jacms.service /etc/systemd/system/` (after file exists in repo).
-- [ ] `sudo systemctl disable --now nexcrm`; `sudo systemctl enable --now jacms`.
-- [ ] Update nginx site name if changed; `sudo nginx -t && sudo systemctl reload nginx`.
-- [ ] Update `/etc/cloudflared/config.yml` only if origin path or tunnel ID changes — hostname stays `server.bluraymaldives.site`.
-- [ ] `sudo bash deploy/ensure-boot.sh` (or JACMS successor script).
-- [ ] Verify: local + `https://server.bluraymaldives.site/health`.
-- [ ] Grep for stale `nexcrm` in cron, autostart `.desktop`, backups.
-
-#### Database rename options
-
-**Option A — keep DB identifiers (recommended short term)**  
-Leave role `nexcrm` and database `nexcrm_dev`; only change product strings. Zero data migration.
-
-**Option B — rename database**
+#### Verification
 
 ```bash
-### Example only — plan downtime, verify backups
-sudo -u postgres psql -c "ALTER DATABASE nexcrm_dev RENAME TO jacms_dev;"
-### Role rename is trickier; often create jacms SUPERUSER/owner and reassign
+rg -i 'nexcrm' --glob '!node_modules' --glob '!package-lock.json'
 ```
 
-Update `.env`:
-
-```text
-DATABASE_URL=postgresql:///jacms_dev?host=/var/run/postgresql&user=nexcrm
-```
-
-**Option C — new DB + dump/restore**  
-Safest for permission cleanup; longer outage.
-
-#### Cloudflare tunnel rename
-
-Hostname **`server.bluraymaldives.site`** does not need to change.
-
-To rename tunnel object only:
-
-```bash
-### After login; names illustrative
-cloudflared tunnel create jacms
-### Update route DNS if needed (same hostname → new tunnel)
-sudo bash deploy/install-cloudflare-tunnel.sh \
-  --hostname server.bluraymaldives.site \
-  --tunnel-name jacms
-sudo systemctl restart cloudflared
-```
-
-Retire old tunnel in Cloudflare dashboard when connectors are zero.
-
-#### Verification grep (after code PR)
-
-```bash
-rg -i 'nexcrm' --glob '!node_modules' --glob '!*.lock'
-```
-
-Triage: keep historical migration SQL filenames; change user-facing and ops surfaces.
-
-#### What this PR did not do
-
-- No `package.json`, systemd, nginx, tunnel, or database renames in application code.
-- Guides refer to **JACMS** as the planned name while commands still use **`nexcrm`** where that matches the repo today.
+Expect matches only in compat code, `deploy/migrate-rebrand.sh`, `deploy/ensure-boot.sh` (legacy unit retirement), and changelog lines.
 
 #### Related guides
 
@@ -2052,7 +1982,7 @@ Triage: keep historical migration SQL filenames; change user-facing and ops surf
 
 ## Mobile Expo app
 
-Standalone Expo client for any reachable NEXCRM office server.
+Standalone Expo client for any reachable JACMS office server.
 
 On connect you enter **API URL**, **email**, and **password**. The app only opens after the server answers and login returns a Bearer token.
 
@@ -2171,7 +2101,7 @@ Production API base URL for field devices: **`https://server.bluraymaldives.site
 On a dev machine (or the Debian server):
 
 ```bash
-cd /home/server/dev/nexcrm/mobile
+cd /home/server/dev/jacms/mobile
 npm install
 npx expo start
 ```
@@ -2195,10 +2125,10 @@ Use case: Android phone on the **office LAN** loads JS from Metro on the server 
 | Metro | `0.0.0.0:8081` (Expo default) | LAN `http://<LAN_IP>:8081` |
 | API | `127.0.0.1:3000` / public tunnel URL | Phone uses **tunnel HTTPS**, not Metro for API |
 
-Start on server (manual or separate systemd **user** unit — **do not** conflate with `nexcrm.service`):
+Start on server (manual or separate systemd **user** unit — **do not** conflate with `jacms.service`):
 
 ```bash
-cd /home/server/dev/nexcrm/mobile
+cd /home/server/dev/jacms/mobile
 npx expo start --host lan
 ```
 
@@ -2246,7 +2176,7 @@ Requires Android SDK/NDK on the build machine (heavy on Debian desktop — CI or
 
 | Service | Boot autostart? |
 | --- | --- |
-| `nexcrm` / `jacms` | Yes |
+| `jacms` / `jacms` | Yes |
 | `cloudflared` | Yes |
 | Expo Metro | **No** (dev-only; start manually) |
 | EAS build | **No** (cloud or ad-hoc CI) |

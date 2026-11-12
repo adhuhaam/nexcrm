@@ -271,7 +271,7 @@ export function DashboardPage() {
 
   return (
     <Shell
-      title="NEXCRM · Dashboard"
+      title="JACMS · Dashboard"
       greet
       description={description}
       actions={

@@ -73,7 +73,7 @@ export default function CompaniesScreen() {
           />
         }
         ListEmptyComponent={
-          <Empty title="No companies" body="Employer companies from NEXCRM will show here." icon="business-outline" />
+          <Empty title="No companies" body="Employer companies from JACMS will show here." icon="business-outline" />
         }
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (

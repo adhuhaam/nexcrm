@@ -29,7 +29,7 @@ export function tabFromPath(path: string): AccessTab {
 
 const meta: Record<AccessTab, { description: string }> = {
   settings: {
-    description: "Full NEXCRM system settings — office identity, region defaults, AI OCR, and setup shortcuts.",
+    description: "Full JACMS system settings — office identity, region defaults, AI OCR, and setup shortcuts.",
   },
   users: { description: "Create office accounts, assign roles, and reset passwords." },
   roles: {
@@ -49,7 +49,7 @@ export function AccessPage() {
   const copy = meta[tab];
 
   return (
-    <Shell title="NEXCRM · Settings" eyebrow="System" description={copy.description} surface={false}>
+    <Shell title="JACMS · Settings" eyebrow="System" description={copy.description} surface={false}>
       <div className="nx-access">
         <nav className="nx-access-tabs" aria-label="System settings sections">
           {TABS.map((item) => {

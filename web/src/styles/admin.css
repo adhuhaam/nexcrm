@@ -1,4 +1,4 @@
-/* NEXCRM admin layout — Busza-inspired (dark nav + light workspace) */
+/* JACMS admin layout — Busza-inspired (dark nav + light workspace) */
 
 .nx-admin {
   --nx-blue: #2d5cfe;
@@ -794,7 +794,7 @@
 }
 
 /* Shared module panel (employees / documents directory chrome) */
-.nx-admin .nexcrm-surface {
+.nx-admin .jacms-surface {
   border: 0;
   border-radius: 1.1rem;
   background: var(--nx-card);

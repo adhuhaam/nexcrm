@@ -38,8 +38,8 @@ export default function LoginScreen() {
         <View style={styles.heroOrb} />
         <View style={styles.heroOrbSecondary} />
         <Text style={styles.brandMark}>NEX</Text>
-        <Text style={styles.brand}>NEXCRM</Text>
-        <Text style={styles.heroCopy}>Standalone office app. Connect any reachable NEXCRM API, then sign in.</Text>
+        <Text style={styles.brand}>JACMS</Text>
+        <Text style={styles.heroCopy}>Standalone office app. Connect any reachable JACMS API, then sign in.</Text>
       </View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>

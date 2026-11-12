@@ -3,7 +3,8 @@ import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import { loadApiBase, normalizeApiBase, requireApiBase, saveApiBase } from "./config";
 
-const SESSION_KEY = "nexcrm_session";
+const SESSION_KEY = "jacms_session";
+const LEGACY_SESSION_KEY = "nexcrm_session";
 
 type ApiError = Error & { status?: number };
 
@@ -11,8 +12,15 @@ let memoryToken: string | null = null;
 let authListener: ((authed: boolean) => void) | null = null;
 
 async function getStoredSession(): Promise<string | null> {
-  if (Platform.OS === "web") return AsyncStorage.getItem(SESSION_KEY);
-  return SecureStore.getItemAsync(SESSION_KEY);
+  const read = Platform.OS === "web" ? AsyncStorage.getItem.bind(AsyncStorage) : SecureStore.getItemAsync.bind(SecureStore);
+  const primary = await read(SESSION_KEY);
+  if (primary) return primary;
+  const legacy = await read(LEGACY_SESSION_KEY);
+  if (!legacy) return null;
+  await setStoredSession(legacy);
+  if (Platform.OS === "web") await AsyncStorage.removeItem(LEGACY_SESSION_KEY);
+  else await SecureStore.deleteItemAsync(LEGACY_SESSION_KEY);
+  return legacy;
 }
 
 async function setStoredSession(token: string): Promise<void> {
@@ -81,8 +89,8 @@ function networkError(reason: unknown, base?: string | null): never {
     fail(
       0,
       base
-        ? `Cannot reach ${base}. Check the API URL, network, and that the NEXCRM server is running.`
-        : "Cannot reach the NEXCRM server. Check the API URL and network.",
+        ? `Cannot reach ${base}. Check the API URL, network, and that the JACMS server is running.`
+        : "Cannot reach the JACMS server. Check the API URL and network.",
     );
   }
   fail(0, message || "Network request failed.");
@@ -121,12 +129,12 @@ export async function probeApiBase(input: string): Promise<string> {
       networkError(reason, base);
     }
     if (!response.ok) {
-      fail(response.status, `Server at ${base} did not respond like NEXCRM.`);
+      fail(response.status, `Server at ${base} did not respond like JACMS.`);
     }
   } else {
     const body = (await response.json().catch(() => null)) as { ok?: boolean } | null;
     if (body && body.ok === false) {
-      fail(503, `NEXCRM at ${base} reported unhealthy.`);
+      fail(503, `JACMS at ${base} reported unhealthy.`);
     }
   }
   return base;
@@ -192,7 +200,7 @@ export async function login(
   }
   const payload = (await response.json().catch(() => ({}))) as { error?: string; token?: string };
   if (!response.ok) fail(response.status, payload.error ?? "Sign-in failed.");
-  if (!payload.token) fail(500, "Server did not return a session token. Is this a NEXCRM API?");
+  if (!payload.token) fail(500, "Server did not return a session token. Is this a JACMS API?");
   await saveSession(payload.token);
   return base;
 }

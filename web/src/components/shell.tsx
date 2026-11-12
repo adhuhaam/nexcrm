@@ -147,7 +147,7 @@ function initials(name: string): string {
 }
 
 function openCommandPalette() {
-  window.dispatchEvent(new Event("nexcrm:open-command"));
+  window.dispatchEvent(new Event("jacms:open-command"));
 }
 
 function greetingFor(name: string, now = new Date()): string {
@@ -176,7 +176,7 @@ function AppSidebar({
         <a href="/" className="nx-brand group-data-[collapsible=icon]:justify-center">
           <span className="nx-brand-mark">NX</span>
           <span className="nx-brand-copy group-data-[collapsible=icon]:hidden">
-            <strong>NEXCRM</strong>
+            <strong>JACMS</strong>
             <span>Admin</span>
           </span>
         </a>
@@ -359,7 +359,7 @@ export function Shell({
     };
   }, []);
 
-  const pageTitle = title.replace(/^NEXCRM · /, "");
+  const pageTitle = title.replace(/^JACMS · /, "");
 
   if (!session?.user || !session.role) {
     return (

@@ -170,7 +170,7 @@ function routeFor(path: string): ReactNode {
 function Missing() {
   return (
     <Shell
-      title="NEXCRM · Not found"
+      title="JACMS · Not found"
       description="That page is not in this office. Use search or head back to the dashboard."
       actions={
         <Button asChild>

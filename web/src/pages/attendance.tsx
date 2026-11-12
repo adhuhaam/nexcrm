@@ -180,7 +180,7 @@ function allocationOverlapsMonth(row: AllocationLink, year: number, month: numbe
   return true;
 }
 
-const MONTH_SHEET_PREFS_KEY = "nexcrm.attendance.monthSheet";
+const MONTH_SHEET_PREFS_KEY = "jacms.attendance.monthSheet";
 
 type MonthSheetPrefs = {
   year: number;
@@ -870,7 +870,7 @@ export function AttendancePage() {
 
   return (
     <Shell
-      title="NEXCRM · Attendance"
+      title="JACMS · Attendance"
       eyebrow="Operations"
       description="Monthly P / AB / OD sheet per employee, attendance log, and overtime with adjustable rates."
       actions={

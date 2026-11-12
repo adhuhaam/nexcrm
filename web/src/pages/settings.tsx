@@ -80,7 +80,7 @@ export function SettingsPanel() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [section, setSection] = useState<SectionId>("office");
-  const [officeName, setOfficeName] = useState("NEXCRM");
+  const [officeName, setOfficeName] = useState("JACMS");
   const [supportEmail, setSupportEmail] = useState("");
   const [timeZone, setTimeZone] = useState("Indian/Maldives");
   const [currency, setCurrency] = useState("MVR");
@@ -93,7 +93,7 @@ export function SettingsPanel() {
 
   function apply(data: SettingsView) {
     setModel(data);
-    setOfficeName(data.officeName || "NEXCRM");
+    setOfficeName(data.officeName || "JACMS");
     setSupportEmail(data.supportEmail || "");
     setTimeZone(data.timeZone || "Indian/Maldives");
     setCurrency(data.currency || "MVR");
@@ -160,12 +160,12 @@ export function SettingsPanel() {
   }
 
   return (
-    <div className="nexcrm-settings">
+    <div className="jacms-settings">
       <Banner message={error} error />
 
       <div className="settings-hero">
         <div>
-          <p className="settings-kicker">NEXCRM system</p>
+          <p className="settings-kicker">JACMS system</p>
           <h2>{model.officeName || "Office settings"}</h2>
           <p>One place for office identity, region defaults, AI passport OCR, and setup shortcuts.</p>
         </div>
@@ -218,7 +218,7 @@ export function SettingsPanel() {
                   <div>
                     <CardTitle>Office identity</CardTitle>
                     <CardDescription className="mt-1">
-                      How NEXCRM introduces this office in the shell and emails. Keep it short and recognisable.
+                      How JACMS introduces this office in the shell and emails. Keep it short and recognisable.
                     </CardDescription>
                   </div>
                 </div>

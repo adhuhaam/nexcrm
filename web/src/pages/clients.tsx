@@ -110,7 +110,7 @@ export function ClientsPage() {
 
   return (
     <Shell
-      title="NEXCRM · Clients"
+      title="JACMS · Clients"
       eyebrow="Operations"
       description="Bill and place staff here — open a client for employees, details, and monthly rates."
       actions={

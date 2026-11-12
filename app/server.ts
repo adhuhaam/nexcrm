@@ -38,7 +38,7 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`NEXCRM listening on http://${host}:${port}`);
+  console.log(`JACMS listening on http://${host}:${port}`);
 });
 
 function shutdown(): void {

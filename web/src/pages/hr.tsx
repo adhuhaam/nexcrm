@@ -138,7 +138,7 @@ export function HrPage() {
   };
 
   return (
-    <Shell title="NEXCRM HR">
+    <Shell title="JACMS HR">
       <div className="grid gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">HR</h1>
         <p className="text-sm text-muted-foreground">

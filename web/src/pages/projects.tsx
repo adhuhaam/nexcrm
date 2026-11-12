@@ -190,7 +190,7 @@ export function ProjectList() {
 
   return (
     <Shell
-      title="NEXCRM · Projects"
+      title="JACMS · Projects"
       eyebrow="Operations"
       description="Legal employer → project → site → pool → slot → employee. Open a project to manage placement."
       actions={
@@ -463,7 +463,7 @@ export function ProjectDetail({ id }: { id: string }) {
 
   return (
     <Shell
-      title={view ? `NEXCRM · ${view.project.name}` : "NEXCRM · Project"}
+      title={view ? `JACMS · ${view.project.name}` : "JACMS · Project"}
       eyebrow="Project"
       description="Site → pool → slot → employee. Use the tabs; filters stay linked across them."
       actions={

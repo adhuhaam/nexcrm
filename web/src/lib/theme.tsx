@@ -9,7 +9,8 @@ type ThemeContextValue = {
   cycleTheme: () => void;
 };
 
-const storageKey = "nexcrm-theme";
+const storageKey = "jacms-theme";
+const legacyThemeKey = "nexcrm-theme";
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function systemTheme(): "light" | "dark" {
@@ -29,7 +30,14 @@ function applyTheme(theme: Theme): "light" | "dark" {
 
 export function readStoredTheme(): Theme {
   try {
-    const value = localStorage.getItem(storageKey);
+    let value = localStorage.getItem(storageKey);
+    if (!value) {
+      value = localStorage.getItem(legacyThemeKey);
+      if (value === "light" || value === "dark" || value === "system") {
+        localStorage.setItem(storageKey, value);
+        localStorage.removeItem(legacyThemeKey);
+      }
+    }
     if (value === "light" || value === "dark" || value === "system") return value;
   } catch {
     /* ignore */

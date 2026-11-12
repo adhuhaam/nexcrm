@@ -1,6 +1,6 @@
 /** Soft in-app navigation — skip full document reloads for same-origin links. */
 
-export const NAV_EVENT = "nexcrm:navigate";
+export const NAV_EVENT = "jacms:navigate";
 
 export function currentPath(): string {
   return window.location.pathname;

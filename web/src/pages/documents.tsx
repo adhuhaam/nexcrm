@@ -25,7 +25,7 @@ import { PageSkeleton } from "@/components/ux";
 import { getJson, sendJson, uploadForm } from "@/lib/api";
 import { formatDateTime } from "@/lib/dates";
 import { cn } from "@/lib/utils";
-import "@/styles/nexcrm-surface.css";
+import "@/styles/jacms-surface.css";
 import "./documents.css";
 
 type Employee = { id: string; legalName: string; companyName: string };
@@ -61,8 +61,8 @@ type ViewMode = "list" | "grid";
 type SortKey = "name" | "date" | "size" | "type";
 type FolderRow = { id: string; label: string; count: number; icon: "users" | "folder" };
 
-const VIEW_KEY = "nexcrm.documents.view";
-const SORT_KEY = "nexcrm.documents.sort";
+const VIEW_KEY = "jacms.documents.view";
+const SORT_KEY = "jacms.documents.sort";
 
 function readView(): ViewMode {
   try {
@@ -456,7 +456,7 @@ export function DocumentsPage() {
 
   return (
     <Shell
-      title="NEXCRM · Documents"
+      title="JACMS · Documents"
       eyebrow="Drive"
       description="Interactive company file drive — browse, search, drop files, and manage employee documents."
       surface={false}
@@ -480,14 +480,14 @@ export function DocumentsPage() {
     >
       <Banner message={error} error />
 
-      <div className="nexcrm-drive">
+      <div className="jacms-drive">
         {pending ? (
           <div className="drive-upload-bar" aria-hidden>
             <span />
           </div>
         ) : null}
 
-        <div className="nexcrm-drive-layout">
+        <div className="jacms-drive-layout">
           <aside className="drive-rail">
             <p className="drive-rail-label">Browse</p>
             <button

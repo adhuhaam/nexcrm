@@ -1,6 +1,6 @@
 [Unit]
-Description=NEXCRM office API and web
-Documentation=file:///home/server/dev/nexcrm/docs/DEPLOY.md
+Description=JACMS office API and web
+Documentation=file:///home/server/dev/jacms/docs/DEPLOY.md
 After=network.target postgresql.service
 Wants=postgresql.service
 
@@ -8,9 +8,9 @@ Wants=postgresql.service
 Type=simple
 User=server
 Group=server
-WorkingDirectory=/home/server/dev/nexcrm
-EnvironmentFile=-/home/server/dev/nexcrm/.env
-ExecStart=/usr/bin/node --experimental-strip-types /home/server/dev/nexcrm/app/server.ts
+WorkingDirectory=/home/server/dev/jacms
+EnvironmentFile=-/home/server/dev/jacms/.env
+ExecStart=/usr/bin/node --experimental-strip-types /home/server/dev/jacms/app/server.ts
 Restart=on-failure
 RestartSec=3
 # Bind stays on 127.0.0.1 — nginx / Tailscale Serve publish the app

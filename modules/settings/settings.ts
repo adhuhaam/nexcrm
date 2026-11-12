@@ -104,7 +104,7 @@ export async function resolveOfficeSettings(): Promise<OfficeSettings> {
     getRaw(SETTING_WEEK_STARTS_ON),
   ]);
   return {
-    officeName: officeName || "NEXCRM",
+    officeName: officeName || "JACMS",
     supportEmail: supportEmail || "",
     timeZone: normalizeTimeZone(timeZone),
     currency: normalizeCurrency(currency || process.env.DEFAULT_CURRENCY),
@@ -162,7 +162,7 @@ export async function saveSystemSettings(input: {
     await setSetting(SETTING_OPENAI_OCR_MODEL, input.model.trim() || "gpt-4o-mini");
   }
   if (typeof input.officeName === "string") {
-    await setSetting(SETTING_OFFICE_NAME, input.officeName.trim().slice(0, 120) || "NEXCRM");
+    await setSetting(SETTING_OFFICE_NAME, input.officeName.trim().slice(0, 120) || "JACMS");
   }
   if (typeof input.supportEmail === "string") {
     const email = input.supportEmail.trim().toLowerCase().slice(0, 200);

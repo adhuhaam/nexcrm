@@ -1,11 +1,11 @@
-.nexcrm-access {
+.jacms-access {
   display: grid;
   gap: 0;
   padding: 0;
   overflow: visible;
 }
 
-.nexcrm-access .access-tabs {
+.jacms-access .access-tabs {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(4.75rem, 1fr);
@@ -19,12 +19,12 @@
   scrollbar-width: none;
 }
 
-.nexcrm-access .access-tabs::-webkit-scrollbar {
+.jacms-access .access-tabs::-webkit-scrollbar {
   display: none;
 }
 
 @media (min-width: 768px) {
-  .nexcrm-access .access-tabs {
+  .jacms-access .access-tabs {
     grid-auto-flow: unset;
     grid-auto-columns: unset;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -33,7 +33,7 @@
   }
 }
 
-.nexcrm-access .access-tab {
+.jacms-access .access-tab {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -52,7 +52,7 @@
 }
 
 @media (min-width: 768px) {
-  .nexcrm-access .access-tab {
+  .jacms-access .access-tab {
     flex-direction: row;
     justify-content: flex-start;
     gap: 0.55rem;
@@ -63,30 +63,30 @@
   }
 }
 
-.nexcrm-access .access-tab:hover {
+.jacms-access .access-tab:hover {
   background: color-mix(in oklch, var(--card) 80%, transparent);
 }
 
-.nexcrm-access .access-tab.is-active {
+.jacms-access .access-tab.is-active {
   border-color: color-mix(in oklch, var(--primary) 28%, var(--border));
   background: var(--card);
   color: var(--primary);
   box-shadow: 0 8px 20px -16px color-mix(in oklch, var(--foreground) 30%, transparent);
 }
 
-.nexcrm-access .access-tab-copy {
+.jacms-access .access-tab-copy {
   display: grid;
   gap: 0.05rem;
   min-width: 0;
 }
 
-.nexcrm-access .access-tab-copy strong {
+.jacms-access .access-tab-copy strong {
   font-size: 0.84rem;
   font-weight: 650;
   line-height: 1.2;
 }
 
-.nexcrm-access .access-tab-copy em {
+.jacms-access .access-tab-copy em {
   display: none;
   color: var(--muted-foreground);
   font-size: 0.68rem;
@@ -98,33 +98,33 @@
 }
 
 @media (min-width: 768px) {
-  .nexcrm-access .access-tab-copy em {
+  .jacms-access .access-tab-copy em {
     display: block;
   }
 }
 
-.nexcrm-access .access-panel {
+.jacms-access .access-panel {
   min-width: 0;
   padding: 0.85rem;
 }
 
 @media (min-width: 768px) {
-  .nexcrm-access .access-panel {
+  .jacms-access .access-panel {
     padding: 1.1rem;
   }
 }
 
-.nexcrm-access .access-panel > .nexcrm-admin .nx-layout {
+.jacms-access .access-panel > .jacms-admin .nx-layout {
   max-height: none;
 }
 
 @media (min-width: 1024px) {
-  .nexcrm-access .access-panel > .nexcrm-admin .nx-layout {
+  .jacms-access .access-panel > .jacms-admin .nx-layout {
     max-height: min(72vh, 860px);
   }
 }
 
-.nexcrm-access .access-panel > .nexcrm-admin {
+.jacms-access .access-panel > .jacms-admin {
   border: 0;
   border-radius: 0;
   background: transparent;

@@ -74,7 +74,7 @@ export default function EmployeesScreen() {
           />
         }
         ListEmptyComponent={
-          <Empty title="No employees" body="People records from NEXCRM will show here." icon="people-outline" />
+          <Empty title="No employees" body="People records from JACMS will show here." icon="people-outline" />
         }
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (

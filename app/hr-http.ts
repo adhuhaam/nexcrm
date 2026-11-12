@@ -25,9 +25,9 @@ import { headcountByClient } from "../modules/hr/allocations.ts";
 import { getDashboardFinance } from "../modules/hr/dashboard-finance.ts";
 import { readMultipart, storeBuffer } from "../modules/files/storage.ts";
 import { userForToken } from "../modules/access/access.ts";
+import { readSessionToken } from "../lib/session-cookie.ts";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const cookieName = "nexcrm_session";
 
 function sendJson(response: ServerResponse, status: number, body: unknown): void {
   response.writeHead(status, { "content-type": "application/json; charset=utf-8" });
@@ -72,18 +72,7 @@ function idFromPath(pathname: string, prefix: string): string | null {
 }
 
 function readCookie(request: IncomingMessage): string | null {
-  const auth = request.headers.authorization;
-  if (typeof auth === "string" && auth.toLowerCase().startsWith("bearer ")) {
-    const token = auth.slice(7).trim();
-    if (token) return token;
-  }
-  const header = request.headers.cookie;
-  if (!header) return null;
-  for (const part of header.split(";")) {
-    const [name, ...rest] = part.trim().split("=");
-    if (name === cookieName) return decodeURIComponent(rest.join("="));
-  }
-  return null;
+  return readSessionToken(request);
 }
 
 async function actorId(request: IncomingMessage): Promise<string | null> {
