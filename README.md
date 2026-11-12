@@ -42,7 +42,14 @@ Stubs: [AGENTS.md](AGENTS.md), [mobile/AGENTS.md](mobile/AGENTS.md), [.cursor/ru
 - [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives)
 - [Remote / Tailscale](#remote-access-tailscale)
 - [JACMS rename plan](#jacms-rename-plan)
-- [Grok Bot plan](#grok-bot-plan)
+- [Grok Bot MCP guide](#grok-bot-plan)
+  - [Architecture](#grok-bot-architecture)
+  - [MCP server (Node)](#grok-bot-mcp-server)
+  - [Auth & `grokbot` user](#grok-bot-auth)
+  - [Tool catalog](#grok-bot-tools)
+  - [nginx & tunnel](#grok-bot-nginx)
+  - [Connect Grok Bot](#connect-grok-bot)
+  - [Troubleshooting](#grok-bot-troubleshooting)
 - [UI redesign plan](#ui-redesign-plan)
 - [Mobile app](#mobile-expo-app)
 - [Mobile agent notes](#mobile-expo-agents)
@@ -121,6 +128,7 @@ Field API base URL: `https://server.bluraymaldives.site`
 
 | Date | Note |
 | --- | --- |
+| 2026-11-13 | **PR #6:** Grok Bot MCP integration — full development guide in README (Streamable HTTP `/mcp`, `grokbot` service user + API keys, tool catalog, nginx/tunnel, security, testing, owner connect steps, troubleshooting). Docs only — no runtime MCP code. |
 | 2026-11-13 | **PR #5:** Full rebrand NEXCRM → JACMS — packages `jacms` / `jacms-mobile`, `jacms.service`, cookie `jacms_session`, DB role/db `jacms` / `jacms_dev`, `deploy/migrate-rebrand.sh`, repo URLs `github.com/adhuhaam/jacms`. |
 | 2026-11-12 | **PR #4:** Employee self-service web (`/ess/*`) + mobile (`(ess)` tabs), phone login, `/api/v1/ess/*`, HR self-service account, Xpat portal adapter placeholders, migration `031_employee_self_service.sql`. |
 | 2026-11-12 | **PR #3:** `FILES_DIR` / `JACMS-Files` per-employee folders, `scripts/migrate-jacms-files-layout.ts`, `deploy/setup-fresh-debian.sh`, `deploy/verify-server.sh`, README agent quick start. |
@@ -335,13 +343,21 @@ Items below are **not done** in code unless marked 🚧. Breakdown supports mile
 
 #### P4 — Grok Bot connectivity
 
-- [ ] Dedicated **Grok Bot** user + role + **revocable API key** (system_admin UI)
-- [ ] **MCP server** at `https://server.bluraymaldives.site/mcp` (via tunnel)
-- [ ] **REST** `/api/v1` with same API key
-- [ ] Bot actions respect RBAC; audit entries as "Grok Bot"
-- [ ] **Approval gate**: mutating/server actions require owner approval in Grok chat; reads immediate
-- [ ] **Down alerts**: webhook on partial failure; external ping on full outage
-- [ ] Key storage server-side only; never in repo
+Implementation spec: [Grok Bot MCP guide](#grok-bot-plan). Grok Bot calls the MCP endpoint from **its backend** — the URL must be **public HTTPS** (tunnel), not LAN-only.
+
+- [ ] **`grokbot` service user** + dedicated role; permissions via existing `role_permissions` matrix
+- [ ] **`api_keys` table** — hashed secrets, label, scopes, per-key rate limit, created/rotated/revoked in **Settings → API keys** (system_admin)
+- [ ] **MCP route** — `@modelcontextprotocol/sdk` TypeScript server, **Streamable HTTP** transport, mounted at **`/mcp`** on the Node API (`app/mcp-server.ts` or `app/mcp-http.ts`)
+- [ ] **nginx `location /mcp`** — streaming/SSE-friendly proxy (`proxy_buffering off`, long `proxy_read_timeout`) in `deploy/jacms.nginx.conf`
+- [ ] **Public URL** — `https://server.bluraymaldives.site/mcp` via existing Cloudflare tunnel → nginx (see [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives))
+- [ ] **REST parity** — same Bearer API key on `/api/v1/*` as MCP (shared auth middleware)
+- [ ] **RBAC + audit** — every tool/REST call runs normal permission checks; `audit_log.actor = grokbot` (display name "Grok Bot")
+- [ ] **Write tools** — Zod input schemas; destructive tools annotated + require `confirm: true`; Grok Bot **owner approval in chat** before any write (client policy — JACMS still enforces RBAC)
+- [ ] **Read tool catalog** — `search_employees`, `get_employee`, `list_clients`, `get_attendance`, `get_payroll_summary`, `get_xpat_status`, `get_server_health`
+- [ ] **Write tool catalog** — employee create/update, record attendance, allocate to client, upload/link document, trigger Xpat sync, whitelisted server actions (restart service, backup)
+- [ ] **Optional** — MCP resources + prompts (employee summary, payroll period) — phase 2
+- [ ] **Health alerts** — webhook on partial stack failure; Grok Bot scheduled routine pings `GET /api/health` or public `/health` for down alerts
+- [ ] **Secrets** — API key only on server + Grok Bot connector; **never** in git; document in `.env.example` as `GROKBOT_*` placeholders only
 
 #### P5 — Full UI redesign
 
@@ -455,13 +471,18 @@ Pick the next unchecked task in the earliest incomplete milestone.
 
 **Goal:** Owner-approved agent automation against production with audit trail.
 
+**Spec:** [Grok Bot MCP guide](#grok-bot-plan) — Cursor agents implement P4 checkboxes in order (auth → `/mcp` handler → tools → nginx → deploy).
+
 **Checklist**
 
-- [ ] All **P4** tasks
-- [ ] MCP route deployed behind tunnel
-- [ ] Approval UX documented in README
+- [ ] All **P4** tasks completed in code + deploy
+- [ ] MCP Inspector smoke: `npx @modelcontextprotocol/inspector` against tunnel URL with Bearer key
+- [ ] Owner [Connect Grok Bot](#connect-grok-bot) steps verified on production hostname
+- [ ] Read tools return data scoped to `grokbot` role; write tools reject without `confirm: true`
+- [ ] Grok Bot approval policy documented (writes need owner OK in Grok chat — not enforced server-side)
+- [ ] Troubleshooting table in README matches observed failure modes
 
-**Acceptance:** Read works with key; write blocked until approval; audit row exists.
+**Acceptance:** Read works with key; destructive write rejected without `confirm`; audit row per mutating call; `curl` + Inspector pass; Grok Bot lists tools after next message.
 
 ---
 
@@ -1956,16 +1977,348 @@ Expect matches only in compat code, `deploy/migrate-rebrand.sh`, `deploy/ensure-
 
 <a id="grok-bot-plan"></a>
 
-## Grok Bot plan
+## Grok Bot MCP integration — development guide
 
-📝 PLANNED (milestone [M6](#m6--grok-bot)) — owner decisions.
+📝 **PLANNED** — milestone [M6 — Grok Bot](#m6--grok-bot) · task list [P4 — Grok Bot connectivity](#p4--grok-bot-connectivity).  
+This section is the **implementation spec** for Cursor agents. **PR #6 is docs-only**; ship runtime code in follow-up PRs against the checkboxes below.
 
-- Dedicated **Grok Bot** user + role + **revocable API key** (system admin UI).
-- **MCP** at `https://server.bluraymaldives.site/mcp` (via tunnel).
-- **REST** `/api/v1` with same key; RBAC + audit as "Grok Bot".
-- **Approval:** mutating/server actions need owner approval in Grok chat; reads immediate.
-- **Down alerts:** webhook on partial failure; external health ping when tunnel/host down.
-- Keys only on server + bot connector; never in git.
+Grok Bot is the **xAI Grok** chat client with **custom remote MCP servers**. JACMS exposes manpower-agency operations as MCP tools so the owner can query and (with approval) mutate production data through natural language.
+
+### Grok Bot client capabilities (verified)
+
+| Capability | Detail |
+| --- | --- |
+| Transport | **Streamable HTTP** MCP (HTTPS URL) |
+| Static auth | HTTP headers, e.g. `Authorization: Bearer <api_key>` |
+| OAuth | Optional; pre-registered OAuth client ID |
+| Private CA TLS | Optional CA bundle upload in Grok Bot settings |
+| Reachability | Remote MCP is invoked from **Grok Bot’s backend** — endpoint must be **internet-reachable** (`https://server.bluraymaldives.site/mcp`), not LAN-only |
+| Tool discovery | New tools appear on the bot’s **next message** after server update |
+| Writes | Grok Bot asks the **owner for approval in chat** before executing write tools (agreed policy; JACMS still enforces RBAC + `confirm` on destructive tools) |
+
+### Implementation checklist (master)
+
+- [ ] Dependencies: `@modelcontextprotocol/sdk`, `zod` (if not already root deps)
+- [ ] DB migration: `api_keys`, link to `users.id` for `grokbot`, optional `rate_limit_rpm`
+- [ ] Seed: user `grokbot@system.local` (or similar), role `grokbot_agent`, permission rows mirroring scoped HR/ops read + agreed writes
+- [ ] Admin UI: create / rotate / revoke API keys (show secret **once**)
+- [ ] `app/mcp-http.ts`: Streamable HTTP handler at `POST /mcp` (+ session lifecycle per SDK)
+- [ ] Shared `lib/mcp-auth.ts`: validate Bearer → key row → user → session context
+- [ ] Tool modules under `modules/mcp/tools/*.ts` calling existing domain services (no duplicate business logic)
+- [ ] `deploy/jacms.nginx.conf`: `location /mcp` block committed + documented
+- [ ] Deploy + `curl` / MCP Inspector against tunnel URL
+- [ ] Owner completes [Connect Grok Bot](#connect-grok-bot)
+
+<a id="grok-bot-architecture"></a>
+
+<details open>
+<summary><strong>Architecture</strong></summary>
+
+```mermaid
+flowchart LR
+  GB[Grok Bot backend] -->|HTTPS Bearer MCP| CF[Cloudflare edge]
+  CF --> T[cloudflared on Debian]
+  T --> N[nginx :80]
+  N -->|/mcp Streamable HTTP| API[Node JACMS :3000]
+  N -->|/api/v1 REST| API
+  API --> PG[(PostgreSQL)]
+  API --> FS[FILES_DIR]
+```
+
+| Hop | Responsibility |
+| --- | --- |
+| Grok Bot | MCP client; owner approval for writes; stores connector URL + API key |
+| Cloudflare Tunnel | TLS termination at edge; outbound-only from server |
+| nginx | Reverse proxy, body size, **streaming headers for `/mcp`** |
+| Node `/mcp` | MCP SDK server — tools map to `modules/*` |
+| Node `/api/v1` | Same Bearer keys for REST parity |
+| PostgreSQL | RBAC, audit log, hashed API keys |
+
+**Do not** expose Postgres or raw `:3000` on the public hostname — tunnel targets nginx on `127.0.0.1:80` ([Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives)).
+
+</details>
+
+<a id="grok-bot-mcp-server"></a>
+
+<details>
+<summary><strong>MCP server (Node + official SDK)</strong></summary>
+
+Use the official **`@modelcontextprotocol/sdk`** TypeScript server with the **Streamable HTTP** transport (not stdio). Mount on the existing HTTP server in `app/server.ts`.
+
+**Suggested layout**
+
+| File | Role |
+| --- | --- |
+| `app/mcp-http.ts` | Express/Fastify-style route registration for `/mcp` |
+| `lib/mcp-server.ts` | `McpServer` instance, tool registration |
+| `modules/mcp/auth.ts` | Bearer API key → `grokbot` user context |
+| `modules/mcp/tools/*.ts` | One file per tool group (employees, attendance, …) |
+| `modules/mcp/schemas/*.ts` | Zod input/output schemas shared with validation |
+
+**Wire-up sketch** (implement in a follow-up PR — not in repo yet):
+
+```typescript
+// Pseudocode — match existing app/http patterns
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+
+// On each MCP request: authenticate Bearer, attach req.jacmsActor = { userId, role, keyId }
+// Register tools with server.tool(name, { description, inputSchema }, handler)
+// handler: check role_permissions, call domain module, write audit_log
+```
+
+**Conventions**
+
+- Tool names: `snake_case` matching catalog below (MCP name stability).
+- Errors: return MCP tool error content with safe message (no stack traces to client).
+- Idempotency: write tools accept optional `idempotency_key` (store dedupe window 24h).
+- Reads: no `confirm` flag required.
+- Destructive / irreversible writes: `destructive: true` in tool metadata + input `confirm: z.literal(true)`.
+
+</details>
+
+<a id="grok-bot-auth"></a>
+
+<details>
+<summary><strong>Auth — <code>grokbot</code> user, role, API keys</strong></summary>
+
+#### Service identity
+
+| Item | Value |
+| --- | --- |
+| User | Dedicated **`grokbot`** system user (not a human login) |
+| Role | e.g. **`grokbot_agent`** — custom permission matrix via `role_permissions` |
+| Display name | Audit log actor label **`Grok Bot`** (`actor = grokbot` or fk to user) |
+| Human login | Disabled or unknown password — API key only |
+
+#### API keys
+
+- [ ] Table `api_keys`: `id`, `user_id`, `label`, `secret_hash`, `prefix` (for UI), `scopes_json` or role fk, `rate_limit_rpm`, `revoked_at`, `created_at`, `last_used_at`
+- [ ] Hash: scrypt or argon2 (match existing password hashing in `modules/access`)
+- [ ] **Create / rotate / revoke** in **Settings → API keys** (system_admin only)
+- [ ] On create: show full key once; store hash only
+- [ ] Rotation: revoke old + issue new; Grok Bot connector updated by owner
+- [ ] Per-key **rate limiting** (token bucket or sliding window in middleware)
+
+#### Permission mapping
+
+- Keys inherit the **`grokbot_agent`** role’s `role_permissions` rows (same as web UI matrix).
+- Narrow write scope in DB until owner trusts automation (e.g. reads on payroll, writes only attendance).
+- Every MCP tool declares required module permission (`view` / `create` / `edit` / `delete`) — reuse `modules/access/permissions.ts`.
+
+#### REST parity
+
+Same `Authorization: Bearer <key>` on `/api/v1/*` as MCP. Prefer one middleware:
+
+```http
+Authorization: Bearer jacms_grok_xxxxxxxxxxxxxxxx
+```
+
+Mobile session cookies are unrelated — keys are machine-to-machine only.
+
+</details>
+
+<a id="grok-bot-tools"></a>
+
+<details>
+<summary><strong>Tool catalog</strong> (Zod schemas · resources optional)</summary>
+
+Implement tools as thin wrappers over existing HTTP/domain layers. Validate all inputs with **Zod**; export JSON Schema for MCP where the SDK expects it.
+
+#### Read tools (no `confirm`)
+
+| Tool | Purpose | Key inputs (Zod) |
+| --- | --- | --- |
+| `search_employees` | Directory search | `query?: string`, `client_id?: uuid`, `limit?: number` (max 50) |
+| `get_employee` | Profile + allocations summary | `employee_id: uuid` |
+| `list_clients` | Client companies | `kind?: 'client'`, `active_only?: boolean` |
+| `get_attendance` | Month grid | `employee_id?: uuid`, `client_id?: uuid`, `month: YYYY-MM` |
+| `get_payroll_summary` | Pay run summary (no bank secrets) | `pay_run_id: uuid` |
+| `get_xpat_status` | XPAT sync state for employee | `employee_id: uuid` |
+| `get_server_health` | Same signals as admin health (redacted) | `detail?: 'brief' \| 'full'` |
+
+- [ ] Each read tool: permission check → domain call → audit optional (read logging policy: log tool name + actor, omit PII payload)
+
+#### Write tools (destructive flagged · `confirm: true`)
+
+| Tool | Destructive | Key inputs (Zod) |
+| --- | --- | --- |
+| `create_employee` | no | `payload` (onboard fields), `idempotency_key?` |
+| `update_employee` | no | `employee_id`, `patch`, `idempotency_key?` |
+| `record_attendance` | no | `employee_id`, `date`, `code` P\|AB\|OD, `confirm: true` |
+| `allocate_to_client` | no | `employee_id`, `client_id`, `start_date`, `confirm: true` |
+| `upload_link_document` | no | `employee_id`, `file_id` or upload handle, `doc_type`, `confirm: true` |
+| `trigger_xpat_sync` | no | `employee_id`, `confirm: true` |
+| `run_server_action` | **yes** | `action: enum(restart_jacms, backup_db, ...)`, `confirm: true` |
+
+- [ ] Whitelist `run_server_action` actions in code — reject unknown enums
+- [ ] Grok Bot owner approval happens **in Grok chat** before the write RPC; JACMS requires `confirm: true` anyway
+- [ ] Return structured success + ids for audit correlation
+
+#### Resources & prompts (optional · phase 2)
+
+| Kind | Example | Notes |
+| --- | --- | --- |
+| Resource | `jacms://employee/{id}/summary` | Markdown summary for context |
+| Resource | `jacms://payroll/{run_id}/summary` | Locked-run aware |
+| Prompt | `payroll-period-review` | Injects month + client scope |
+
+- [ ] Defer until core tools stable
+
+</details>
+
+<a id="grok-bot-nginx"></a>
+
+<details>
+<summary><strong>nginx, tunnel, health alerts</strong></summary>
+
+#### nginx `location /mcp`
+
+Add to `deploy/jacms.nginx.conf` inside the `server` block(s) that proxy to Node:
+
+```nginx
+location /mcp {
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Connection "";
+
+    # Streamable HTTP / SSE — do not buffer
+    proxy_buffering off;
+    proxy_cache off;
+    chunked_transfer_encoding on;
+
+    proxy_read_timeout 3600s;
+    proxy_send_timeout 3600s;
+
+    proxy_pass http://jacms_upstream;
+}
+```
+
+- [ ] Reload nginx after deploy: `sudo nginx -t && sudo systemctl reload nginx`
+- [ ] Confirm tunnel still points at `http://127.0.0.1:80` (not direct `:3000`)
+
+#### Cloudflare tunnel
+
+No extra ingress rule — `/mcp` is another path on `server.bluraymaldives.site`. Optional: Cloudflare **Access** policy in front of `/mcp` (adds second auth layer; Grok Bot must still send Bearer).
+
+#### Health webhook + Grok Bot monitoring
+
+| Signal | Endpoint | Use |
+| --- | --- | --- |
+| Liveness | `GET https://server.bluraymaldives.site/health` | Public; no auth |
+| Rich status | `GET /api/v1/admin/health` | system_admin session or scoped key if exposed |
+| Partial failure | JACMS emits webhook (future) when DB up but tunnel/nginx down | P4 checkbox |
+| External ping | Owner configures **Grok Bot routine** to ping `/health` on interval | Alert when tunnel/host down |
+
+- [ ] Document webhook URL in Settings (no secrets in README)
+- [ ] Health JSON must not leak API keys or `.admin-password`
+
+</details>
+
+<a id="grok-bot-security"></a>
+
+<details>
+<summary><strong>Security</strong></summary>
+
+| Control | Requirement |
+| --- | --- |
+| Transport | **HTTPS only** on public URL; tunnel handles edge TLS |
+| Secrets | API key in Grok Bot connector + server DB hash — **never** commit to git |
+| Network | Optional IP allowlist at nginx or Cloudflare; optional Cloudflare Access |
+| Validation | Zod on every tool input; reject oversize payloads |
+| PII | Minimize tool responses (no passport images base64 in chat); use ids + summaries |
+| RBAC | Same checks as web — keys cannot escalate past `grokbot_agent` role |
+| Audit | Every write + sensitive read logs actor **Grok Bot**, tool name, resource ids |
+| Idempotency | Writes accept `idempotency_key` to prevent duplicate commits on retry |
+| Rate limit | Per API key RPM; 429 with retry-after |
+
+</details>
+
+<a id="grok-bot-testing"></a>
+
+<details>
+<summary><strong>Testing</strong> (MCP Inspector · curl)</summary>
+
+#### MCP Inspector
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+Connect to:
+
+```text
+https://server.bluraymaldives.site/mcp
+```
+
+Headers:
+
+```text
+Authorization: Bearer <your_jacms_api_key>
+```
+
+- [ ] List tools after connect
+- [ ] Invoke `get_server_health` with `detail: brief`
+- [ ] Verify 401 without header
+
+#### curl (smoke)
+
+```bash
+# Health (no auth)
+curl -fsS https://server.bluraymaldives.site/health
+
+# REST parity (example — adjust route)
+curl -fsS -H "Authorization: Bearer $JACMS_GROKBOT_KEY" \
+  "https://server.bluraymaldives.site/api/v1/employees?limit=1"
+```
+
+Streamable HTTP may use session IDs — follow SDK docs for raw curl; prefer Inspector for MCP.
+
+</details>
+
+<a id="connect-grok-bot"></a>
+
+<details open>
+<summary><strong>Connect Grok Bot</strong> (owner steps)</summary>
+
+1. **Issue API key** — system_admin → Settings → API keys → create key for **`grokbot`** role; copy secret once.
+2. In **Grok Bot**, add a **custom remote MCP server**:
+   - **URL:** `https://server.bluraymaldives.site/mcp`
+   - **Transport:** Streamable HTTP (HTTPS)
+   - **Auth:** Static header — `Authorization: Bearer <api_key>`
+   - (Optional) OAuth client ID if you later switch auth mode
+   - (Optional) CA bundle if using private TLS on a custom hostname
+3. Save connector. Send a **new message** in Grok Bot — tools should appear on that turn.
+4. Test a **read**: e.g. “Search employees named …” → `search_employees`.
+5. Test a **write**: Grok Bot should **ask you to approve** before `record_attendance` or `run_server_action`.
+6. Verify **audit log** in JACMS shows actor **Grok Bot**.
+
+**Never** paste the API key into git, Slack logs, or this README.
+
+</details>
+
+<a id="grok-bot-troubleshooting"></a>
+
+<details>
+<summary><strong>Troubleshooting</strong></summary>
+
+| Symptom | Likely cause | Fix |
+| --- | --- | --- |
+| Grok Bot: cannot connect to MCP | Tunnel down, nginx down, or wrong URL | `systemctl status cloudflared nginx jacms`; `curl https://server.bluraymaldives.site/health` |
+| 401 on MCP | Missing/wrong Bearer, revoked key | Rotate key in admin UI; update Grok Bot header |
+| Tools missing after deploy | Grok Bot caches tool list per session | Send a **new message**; restart connector |
+| 502 / 1033 on hostname | cloudflared disconnected | `journalctl -u cloudflared -n 50`; [Tunnel errors](#cloudflare-tunnel-serverbluraymaldives) |
+| MCP hangs / disconnects | nginx buffering or short timeout | Add [`location /mcp`](#grok-bot-nginx) settings; reload nginx |
+| Write rejected | RBAC or missing `confirm: true` | Check `grokbot_agent` permissions; tool args must include `confirm: true` |
+| Duplicate writes | Retries without idempotency | Pass same `idempotency_key` on retry |
+| LAN URL in connector | Grok backend cannot reach LAN | Use **tunnel HTTPS URL only** |
+| TLS / custom CA errors | Private cert chain | Upload CA bundle in Grok Bot MCP settings |
+| Rate limited | Per-key RPM exceeded | Wait or raise limit in admin UI |
+
+</details>
 
 <a id="ui-redesign-plan"></a>
 
