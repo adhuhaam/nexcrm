@@ -106,7 +106,7 @@ async function pageModel(search: URLSearchParams, error: string | null, draft: C
       ? { ...existing }
       : {
           id: null,
-          kind: "employer",
+          kind: "employer" as const,
           legalName: "",
           registrationNumber: null,
           tinNumber: null,

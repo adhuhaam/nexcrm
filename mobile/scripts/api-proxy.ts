@@ -1,11 +1,10 @@
 /**
- * Local CORS proxy for Expo web → Tailscale JACMS API.
+ * Local CORS proxy for Expo web → JACMS API.
  * Strips Origin so login works before server CORS is deployed.
  */
 import http from "node:http";
 import https from "node:https";
-
-function jacmsEnv(suffix, fallback) {
+function jacmsEnv(suffix: string, fallback: string): string {
   const primary = process.env[`JACMS_${suffix}`];
   if (primary) return primary;
   const legacy = process.env[`NEXCRM_${suffix}`];
@@ -16,7 +15,11 @@ function jacmsEnv(suffix, fallback) {
   return fallback;
 }
 
-const TARGET = jacmsEnv("API_ORIGIN", "https://server-1.snowy-pride.ts.net");
+const DEFAULT_ORIGIN =
+  process.env.EXPO_PUBLIC_JACMS_API_URL?.trim() ||
+  process.env.APP_URL?.trim() ||
+  "https://jacms.bluraymaldives.site";
+const TARGET = jacmsEnv("API_ORIGIN", DEFAULT_ORIGIN);
 const PORT = Number(jacmsEnv("API_PROXY_PORT", "8787"));
 const target = new URL(TARGET);
 
@@ -34,16 +37,17 @@ const server = http.createServer((req, res) => {
   }
 
   const upstreamPath = req.url ?? "/";
-  const headers = { ...req.headers, host: target.host };
+  const headers: http.OutgoingHttpHeaders = { ...req.headers, host: target.host };
   delete headers.origin;
   delete headers.host;
   headers.host = target.host;
 
-  const upstream = https.request(
+  const transport = target.protocol === "http:" ? http : https;
+  const upstream = transport.request(
     {
       protocol: target.protocol,
       hostname: target.hostname,
-      port: target.port || 443,
+      port: target.port || (target.protocol === "https:" ? 443 : 80),
       path: upstreamPath,
       method: req.method,
       headers,

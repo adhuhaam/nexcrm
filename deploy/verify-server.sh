@@ -4,7 +4,8 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SERVER_USER="${JACMS_SERVER_USER:-server}"
-REPO_DIR="${JACMS_REPO_DIR:-/home/${SERVER_USER}/dev/jacms}"
+REPO_DIR="${JACMS_REPO_DIR:-$ROOT}"
+REQUIRE_TUNNEL="${JACMS_REQUIRE_TUNNEL:-0}"
 FILES_DIR="${JACMS_FILES_DIR:-/home/${SERVER_USER}/JACMS-Files}"
 NODE_MIN_MAJOR="${JACMS_NODE_MIN_MAJOR:-22}"
 
@@ -60,7 +61,16 @@ else
   FAIL=$((FAIL + 1))
 fi
 check "npm installed" check_cmd npm
-check "cloudflared installed" check_cmd cloudflared
+if [[ "$REQUIRE_TUNNEL" == "1" ]]; then
+  check "cloudflared installed" check_cmd cloudflared
+else
+  if check_cmd cloudflared; then
+    check "cloudflared installed" true
+  else
+    green "PASS  cloudflared (optional — not installed)"
+    PASS=$((PASS + 1))
+  fi
+fi
 check "ImageMagick (convert)" check_cmd convert
 check "ghostscript (gs)" check_cmd gs
 check "poppler (pdftotext)" check_cmd pdftotext
@@ -76,9 +86,12 @@ check "jacms enabled" check_systemd_enabled jacms
 if systemctl list-unit-files cloudflared.service &>/dev/null; then
   check "cloudflared enabled" check_systemd_enabled cloudflared
   check "cloudflared active" check_systemd_active cloudflared
-else
-  red "FAIL  cloudflared unit (not installed — optional until tunnel configured)"
+elif [[ "$REQUIRE_TUNNEL" == "1" ]]; then
+  red "FAIL  cloudflared unit (required — set JACMS_REQUIRE_TUNNEL=0 to skip)"
   FAIL=$((FAIL + 1))
+else
+  green "PASS  cloudflared unit (optional — not configured)"
+  PASS=$((PASS + 1))
 fi
 
 if systemctl list-unit-files tailscaled.service &>/dev/null; then

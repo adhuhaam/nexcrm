@@ -1,0 +1,10 @@
+[Unit]
+Description=JACMS PostgreSQL backup
+After=postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=oneshot
+Environment=JACMS_ENV_FILE=/home/server/dev/jacms/.env
+Environment=JACMS_BACKUP_DIR=/var/backups/jacms
+ExecStart=/bin/bash /home/server/dev/jacms/deploy/jacms-backup.sh

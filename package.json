@@ -7,6 +7,8 @@
     "check": "node --experimental-strip-types tests/health.test.ts && node --experimental-strip-types tests/files-storage.test.ts && node --experimental-strip-types tests/companies.test.ts && node --experimental-strip-types tests/projects.test.ts && node --experimental-strip-types tests/work-permits.test.ts && node --experimental-strip-types tests/access.test.ts && node --experimental-strip-types tests/employee-self.test.ts && node --experimental-strip-types tests/letters.test.ts && node --experimental-strip-types tests/agency.test.ts && node --experimental-strip-types tests/allocation-end.test.ts && node --experimental-strip-types tests/payroll-lop.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit && npm --prefix web run build",
     "migrate:files": "node --experimental-strip-types scripts/migrate-jacms-files-layout.ts",
+    "create-admin": "node --experimental-strip-types scripts/create-admin.ts",
+    "migrate": "node --experimental-strip-types scripts/migrate-only.ts",
     "mobile": "npm --prefix mobile start",
     "mobile:install": "npm --prefix mobile install"
   },

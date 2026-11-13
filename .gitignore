@@ -1,6 +1,7 @@
 data/jacms-files/
 node_modules/
 .env
+.postgres-password
 .admin-password
 .cursor/
 deploy/lan-root.crt

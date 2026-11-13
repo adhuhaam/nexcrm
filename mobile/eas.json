@@ -10,12 +10,18 @@
     },
     "preview": {
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_JACMS_API_URL": "https://jacms.bluraymaldives.site"
+      },
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_JACMS_API_URL": "https://jacms.bluraymaldives.site"
+      }
     }
   },
   "submit": {

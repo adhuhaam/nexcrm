@@ -1,0 +1,10 @@
+.git
+node_modules
+web/node_modules
+mobile/node_modules
+web/dist
+.env
+.postgres-password
+.admin-password
+*.sql.gz
+/var

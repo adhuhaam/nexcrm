@@ -1,6 +1,6 @@
 # JACMS
 
-[![Production](https://img.shields.io/badge/production-server.bluraymaldives.site-blue)](https://server.bluraymaldives.site)
+[![Production](https://img.shields.io/badge/production-jacms.bluraymaldives.site-blue)](https://jacms.bluraymaldives.site)
 [![Stack](https://img.shields.io/badge/stack-Node%2022%20%C2%B7%20PostgreSQL%20%C2%B7%20nginx%20%C2%B7%20cloudflared-informational)](#debian-server-architecture)
 [![Docs](https://img.shields.io/badge/docs-README%20master-green)](#development-roadmap)
 [![Agent rule](https://img.shields.io/badge/agents-maintain%20README-orange)](#agent-quick-start)
@@ -27,6 +27,7 @@ Stubs: [AGENTS.md](AGENTS.md), [mobile/AGENTS.md](mobile/AGENTS.md), [.cursor/ru
 
 - [Overview](#overview)
 - [Quick start](#quick-start)
+- [Fresh install (native & Docker)](#fresh-install)
 - [Development roadmap](#development-roadmap)
 - [Product map](#product-map)
 - [Architecture](#architecture)
@@ -39,7 +40,7 @@ Stubs: [AGENTS.md](AGENTS.md), [mobile/AGENTS.md](mobile/AGENTS.md), [.cursor/ru
 - [Debian server setup](#debian-server-setup)
 - [Autostart on boot](#autostart-on-boot)
 - [Cloudflare Tunnel](#cloudflare-tunnel)
-- [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives)
+- [Tunnel: jacms.bluraymaldives.site](#cloudflare-tunnel-jacms)
 - [Remote / Tailscale](#remote-access-tailscale)
 - [JACMS rename plan](#jacms-rename-plan)
 - [Grok Bot MCP guide](#grok-bot-plan)
@@ -66,7 +67,7 @@ Stubs: [AGENTS.md](AGENTS.md), [mobile/AGENTS.md](mobile/AGENTS.md), [.cursor/ru
 
 | | |
 | --- | --- |
-| **Production URL** | https://server.bluraymaldives.site (Cloudflare Tunnel → nginx → Node) |
+| **Production URL** | https://jacms.bluraymaldives.site (Cloudflare Tunnel → nginx → Node) |
 | **Repo** | https://github.com/adhuhaam/jacms |
 | **Rebrand** | PR #5 — code, deploy, and PWA use **JACMS** / `jacms`; existing servers run `deploy/migrate-rebrand.sh` once ([M3](#m3--jacms-rename-code--ops)) |
 | **Status legend** | ✅ DONE · 🚧 IN PROGRESS · 📝 PLANNED |
@@ -98,7 +99,7 @@ Stubs: [AGENTS.md](AGENTS.md), [mobile/AGENTS.md](mobile/AGENTS.md), [.cursor/ru
 3. Commands: `npm install`, `npm start`, `npm run check`, `npm run migrate:files` (file layout migration on server).
 4. Env: `DATABASE_URL`, `FILES_DIR` (or legacy `FILE_ROOT`), `HOST`, `PORT` — see `.env.example`.
 5. **Every commit that changes behavior** must update **this README** (checkboxes, changelog date, affected sections). Rule: [AGENTS.md](AGENTS.md), [.cursor/rules/docs-maintenance.mdc](.cursor/rules/docs-maintenance.mdc).
-6. Server greenfield: `sudo bash deploy/setup-fresh-debian.sh` then `sudo bash deploy/verify-server.sh`.
+6. Server greenfield: `sudo bash install.sh` (or legacy wrapper `deploy/setup-fresh-debian.sh`) then `deploy/verify-server.sh`.
 7. Status legend: ✅ DONE · 🚧 IN PROGRESS · 📝 PLANNED.
 
 </details>
@@ -117,7 +118,80 @@ npm run check                         # backend smoke tests
 npm run mobile:install && npm run mobile
 ```
 
-Field API base URL: `https://server.bluraymaldives.site`
+Field API base URL: `https://jacms.bluraymaldives.site` (override with `PUBLIC_DOMAIN` / `APP_URL` in `.env`).
+
+---
+
+<a id="fresh-install"></a>
+
+## Fresh install (native & Docker)
+
+JACMS is a **single office instance** (one API + one Postgres database + one file store). After cloning on a **fresh Debian 13** machine, choose **native** (systemd + host Postgres) or **Docker Compose**.
+
+### Native — one command
+
+```bash
+git clone https://github.com/adhuhaam/jacms.git
+cd jacms
+sudo bash install.sh
+```
+
+`install.sh` is **idempotent** and safe to re-run. It:
+
+| Step | Action |
+| --- | --- |
+| OS | Node 22 LTS, PostgreSQL, nginx, build tools, ImageMagick/vips |
+| Database | Role `jacms`, database `jacms`, generated password in `.postgres-password` (gitignored) + `DATABASE_URL` in `.env` |
+| App | `npm install`, build `web/`, `npm run migrate`, **empty data** (roles only) |
+| Admin | Prompts for name / email / password — or `JACMS_ADMIN_NAME`, `JACMS_ADMIN_EMAIL`, `JACMS_ADMIN_PASSWORD` |
+| Services | `jacms.service` (API on `127.0.0.1:3000`), nginx on `:80` → API |
+| Tunnel | Optional paste of `CLOUDFLARE_TUNNEL_TOKEN` — public hostname **`jacms.bluraymaldives.site`** must route to `http://localhost:80` in Cloudflare |
+| Backups | `jacms-backup.timer` — nightly `pg_dump` to `/var/backups/jacms`, **14-day** rotation |
+| Finish | `deploy/verify-server.sh` + URL summary |
+
+**Public URL env:** `PUBLIC_DOMAIN` (default `jacms.bluraymaldives.site`) and `APP_URL` (default `https://$PUBLIC_DOMAIN`) — used in CORS, docs, and mobile EAS defaults.
+
+**Restore from backup:**
+
+```bash
+gunzip -c /var/backups/jacms/jacms-YYYYMMDDTHHMMSSZ.sql.gz | psql "$DATABASE_URL"
+```
+
+(`DATABASE_URL` from `.env`; stop `jacms` during restore if needed.)
+
+### Docker Compose
+
+```bash
+cp .env.compose.example .env   # set POSTGRES_PASSWORD
+docker compose up -d --build
+docker compose run --rm \
+  -e JACMS_ADMIN_NAME="Office Admin" \
+  -e JACMS_ADMIN_EMAIL=admin@yourdomain.com \
+  -e JACMS_ADMIN_PASSWORD='your-secure-password' \
+  api npm run create-admin
+```
+
+| Service | Role |
+| --- | --- |
+| `postgres` | Database volume `jacms_pgdata` |
+| `api` | Migrations on boot, files volume `jacms_files` |
+| `web` | nginx serves `web/dist`, proxies `/api`, `/mcp`, `/health`, `/login` → `api` |
+| `cloudflared` | Profile `tunnel` — set `CLOUDFLARE_TUNNEL_TOKEN` |
+| `backup` | Profile `ops` — daily dumps in volume `jacms_backups` |
+
+Local URL: `http://127.0.0.1:${HTTP_PORT:-8080}/` (default port **8080**). Point the Cloudflare tunnel at the host port nginx publishes (or run the `tunnel` profile against `web:80` on an internal network).
+
+### Mobile (not built on the server)
+
+Build on your workstation with [EAS](https://docs.expo.dev/eas/):
+
+```bash
+cd mobile && npm install
+npm run eas:preview    # APK — EXPO_PUBLIC_JACMS_API_URL=https://jacms.bluraymaldives.site
+```
+
+The app stores the API URL on device; production default is **`https://jacms.bluraymaldives.site`**.
+
 ---
 
 <a id="development-roadmap"></a>
@@ -128,6 +202,7 @@ Field API base URL: `https://server.bluraymaldives.site`
 
 | Date | Note |
 | --- | --- |
+| 2026-11-13 | **Fresh install PR:** `install.sh` one-shot Debian installer, Docker Compose stack, `PUBLIC_DOMAIN`/`APP_URL`, hostname **jacms.bluraymaldives.site**, `npm run create-admin`, nightly backups, typecheck fix, no auto admin seed. |
 | 2026-11-13 | **PR #6:** Grok Bot MCP integration — full development guide in README (Streamable HTTP `/mcp`, `grokbot` service user + API keys, tool catalog, nginx/tunnel, security, testing, owner connect steps, troubleshooting). Docs only — no runtime MCP code. |
 | 2026-11-13 | **PR #5:** Full rebrand NEXCRM → JACMS — packages `jacms` / `jacms-mobile`, `jacms.service`, cookie `jacms_session`, DB role/db `jacms` / `jacms_dev`, `deploy/migrate-rebrand.sh`, repo URLs `github.com/adhuhaam/jacms`. |
 | 2026-11-12 | **PR #4:** Employee self-service web (`/ess/*`) + mobile (`(ess)` tabs), phone login, `/api/v1/ess/*`, HR self-service account, Xpat portal adapter placeholders, migration `031_employee_self_service.sql`. |
@@ -152,16 +227,19 @@ Each item is **implemented today** unless noted. Use pointers for implementation
 #### Platform, API, and deploy
 
 - [x] **Monorepo layout** — Node API `app/`, domain `modules/`, Drizzle `lib/schema.ts`, SQL `db/migrations/`, React `web/`, Expo `mobile/` — [ARCHITECTURE.md](#architecture)
-- [x] **HTTP server** — `app/server.ts`: migrate on boot, seed admin if empty, static SPA, `/health` — `app/server.ts`
+- [x] **HTTP server** — `app/server.ts`: migrate on boot, seed roles only, static SPA, `/health` — `app/server.ts`
 - [x] **Shared JSON API** — `/api/v1/*` contract — [API.md](#api-reference)
-- [x] **Env config** — `DATABASE_URL`, `FILES_DIR` (alias `FILE_ROOT`), `HOST=127.0.0.1`, `PORT=3000`, `DISPLAY_TIME_ZONE`, OpenAI OCR vars — `.env.example`
+- [x] **Env config** — `DATABASE_URL`, `FILES_DIR`, `PUBLIC_DOMAIN`, `APP_URL`, `HOST`, `PORT`, `DISPLAY_TIME_ZONE`, OpenAI OCR — `.env.example`
 - [x] **Migrations 001–027+** — applied on API start under advisory lock — `db/migrations/`, [MASTER_PLAN historical table in git history]
 - [x] **Smoke tests** — `npm run check` — `tests/*.test.ts`
 - [x] **systemd unit `jacms.service`** — Node serves app on loopback — `deploy/jacms.service`, [DEPLOY.md](#deploy)
 - [x] **nginx reverse proxy** — local/LAN `:80` → app `:3000` — `deploy/install-web-nginx.sh`, `deploy/jacms.nginx.conf`
 - [x] **Postgres network install helper** — `deploy/install-postgres-network.sh`, `deploy/database-network.env` (not in git)
 - [x] **Boot stack script** — `deploy/ensure-boot.sh` enables postgresql, nginx, jacms
-- [x] **Fresh Debian setup (idempotent)** — `deploy/setup-fresh-debian.sh`
+- [x] **Native one-shot installer** — `install.sh` (wrapper: `deploy/setup-fresh-debian.sh`)
+- [x] **Docker Compose stack** — `docker-compose.yml`, `Dockerfile.api`, `Dockerfile.web`
+- [x] **First admin CLI** — `npm run create-admin` (install prompts or env)
+- [x] **Nightly Postgres backups** — `deploy/jacms-backup.{sh,service,timer}`
 - [x] **Server verification script** — `deploy/verify-server.sh` (pass/fail per component)
 - [x] **NexCRM → JACMS server migration** — idempotent `deploy/migrate-rebrand.sh` (PR #5)
 - [x] **Cloudflare Tunnel installer** — `deploy/install-cloudflare-tunnel.sh` → nginx origin — [CLOUDFLARE_TUNNEL.md](#cloudflare-tunnel)
@@ -184,7 +262,7 @@ Each item is **implemented today** unless noted. Use pointers for implementation
 - [x] **Users CRUD** — Settings → People — `app/access-http.ts`, `web/src/pages/users.tsx`
 - [x] **Client assignment table** — `user_clients` + `setUserClients` — `modules/access/client-scope.ts` (enforcement **incomplete** on many routes — see Planned)
 - [x] **System admin-only modules** — users, roles, settings, health flags — `ACCESS_ONLY_MODULES` in `permissions.ts`
-- [x] **First-boot admin seed** — random password → `.admin-password` — `modules/access/seed.ts`
+- [x] **First admin** — `npm run create-admin` / `install.sh` prompt — optional dev `JACMS_AUTO_SEED_ADMIN=1` → `.admin-password`
 
 #### Companies, clients, designations, branding
 
@@ -349,7 +427,7 @@ Implementation spec: [Grok Bot MCP guide](#grok-bot-plan). Grok Bot calls the MC
 - [ ] **`api_keys` table** — hashed secrets, label, scopes, per-key rate limit, created/rotated/revoked in **Settings → API keys** (system_admin)
 - [ ] **MCP route** — `@modelcontextprotocol/sdk` TypeScript server, **Streamable HTTP** transport, mounted at **`/mcp`** on the Node API (`app/mcp-server.ts` or `app/mcp-http.ts`)
 - [ ] **nginx `location /mcp`** — streaming/SSE-friendly proxy (`proxy_buffering off`, long `proxy_read_timeout`) in `deploy/jacms.nginx.conf`
-- [ ] **Public URL** — `https://server.bluraymaldives.site/mcp` via existing Cloudflare tunnel → nginx (see [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives))
+- [ ] **Public URL** — `https://jacms.bluraymaldives.site/mcp` via existing Cloudflare tunnel → nginx (see [Tunnel: jacms.bluraymaldives.site](#cloudflare-tunnel-jacms))
 - [ ] **REST parity** — same Bearer API key on `/api/v1/*` as MCP (shared auth middleware)
 - [ ] **RBAC + audit** — every tool/REST call runs normal permission checks; `audit_log.actor = grokbot` (display name "Grok Bot")
 - [ ] **Write tools** — Zod input schemas; destructive tools annotated + require `confirm: true`; Grok Bot **owner approval in chat** before any write (client policy — JACMS still enforces RBAC)
@@ -378,7 +456,7 @@ Implementation spec: [Grok Bot MCP guide](#grok-bot-plan). Grok Bot calls the MC
 
 #### P8 — Mobile Android preview
 
-- [ ] EAS **preview** APK with base URL `https://server.bluraymaldives.site`
+- [ ] EAS **preview** APK with base URL `https://jacms.bluraymaldives.site`
 - [ ] Office Metro on Debian LAN (dev-only) — [Android preview roadmap](#mobile-expo-android-preview)
 - [ ] Attendance + permissions parity milestones (separate tasks under P2/P5)
 
@@ -420,7 +498,7 @@ Pick the next unchecked task in the earliest incomplete milestone.
 - [x] `deploy/ensure-boot.sh` for unit enablement on existing hosts
 - [x] Guides match scripts: [Autostart on boot](#autostart-on-boot), [Debian server setup](#debian-server-setup)
 
-**Acceptance:** Reboot test: `curl https://server.bluraymaldives.site/health` within N minutes without typing password; `systemctl is-active` all green.
+**Acceptance:** Reboot test: `curl https://jacms.bluraymaldives.site/health` within N minutes without typing password; `systemctl is-active` all green.
 
 ---
 
@@ -432,7 +510,7 @@ Pick the next unchecked task in the earliest incomplete milestone.
 
 - [x] Execute [JACMS rename plan](#jacms-rename-plan) — **PR #5**
 - [x] Update README checkboxes for renamed paths
-- [x] Tunnel hostname unchanged (`server.bluraymaldives.site`)
+- [x] Public hostname **jacms.bluraymaldives.site** (`PUBLIC_DOMAIN` / `APP_URL`)
 
 **Acceptance:** PWA title JACMS; `systemctl status jacms` on upgraded hosts; docs and commands consistent. Production: run `sudo bash deploy/migrate-rebrand.sh` after pull + repo rename.
 
@@ -509,7 +587,7 @@ Pick the next unchecked task in the earliest incomplete milestone.
 - [ ] Permission-aware mobile (depends M4)
 - [ ] [mobile-expo-android-preview.md](#mobile-expo-android-preview) updated with actual artifact flow
 
-**Acceptance:** APK installs; login to `https://server.bluraymaldives.site`; smoke list screens.
+**Acceptance:** APK installs; login to `https://jacms.bluraymaldives.site`; smoke list screens.
 
 ---
 
@@ -556,7 +634,7 @@ Step-by-step guides for running **JACMS** (JA CRM — the planned product name f
 | --- | --- |
 | New Debian 16 GB RAM desktop as the office server; dev in **Cursor** on the same machine | [Debian server setup](#debian-server-setup) |
 | Survive reboot / power loss without manual steps | [Autostart on boot](#autostart-on-boot) |
-| Public URL `https://server.bluraymaldives.site` (no router port-forward) | [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives) |
+| Public URL `https://jacms.bluraymaldives.site` (no router port-forward) | [Tunnel: jacms.bluraymaldives.site](#cloudflare-tunnel-jacms) |
 | Planned rename JACMS → JACMS (checklist only — no code change yet) | [JACMS rename plan](#jacms-rename-plan) |
 | Future Expo Android preview APK / Metro on this host | [Android preview roadmap](#mobile-expo-android-preview) |
 
@@ -1045,7 +1123,7 @@ Manpower-agency office **super app**: legal **employers** second workers to **cl
 - React web SPA (`web/`) — full office UI / PWA
 - Expo mobile (`mobile/`) — field ops against the **same** `/api/v1`
 
-**Public API:** https://server.bluraymaldives.site
+**Public API:** https://jacms.bluraymaldives.site
 
 #### Locked rules (do not invent alternatives)
 
@@ -1103,7 +1181,7 @@ Migrations apply on API boot. Do not commit `.env`, passwords, or `deploy/databa
 | nginx HTTP | `127.0.0.1`, `192.168.100.10`, `100.77.125.102` `:80` | Local, LAN, Tailscale |
 | nginx HTTPS | `192.168.100.10:443` | Office LAN (LAN TLS cert) |
 | Tailscale Serve | `https://server-1.snowy-pride.ts.net` | Tailnet (admin SSH / optional) |
-| Cloudflare Tunnel | `https://<your-hostname>` | Public managers (preferred internet HTTPS) — see [CLOUDFLARE_TUNNEL.md](#cloudflare-tunnel); walkthrough for `server.bluraymaldives.site`: [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives) |
+| Cloudflare Tunnel | `https://<your-hostname>` | Public managers (preferred internet HTTPS) — see [CLOUDFLARE_TUNNEL.md](#cloudflare-tunnel); walkthrough for `jacms.bluraymaldives.site`: [Tunnel: jacms.bluraymaldives.site](#cloudflare-tunnel-jacms) |
 | PostgreSQL | `*:5432` (auth-limited) | Local, `192.168.100.0/24`, Tailscale `100.64.0.0/10` — never via Tunnel |
 
 ```mermaid
@@ -1225,7 +1303,7 @@ Caddy was used previously for LAN HTTPS; the nginx installer stops it so ports d
 <details>
 <summary><strong>Debian server setup</strong> (expand)</summary>
 
-Prepare a **16 GB RAM Debian desktop** as the office server: OS packages, Node.js, PostgreSQL, optional nginx, firewall, and **Cursor** for on-machine development. Public internet access comes later via [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives).
+Prepare a **16 GB RAM Debian desktop** as the office server: OS packages, Node.js, PostgreSQL, optional nginx, firewall, and **Cursor** for on-machine development. Public internet access comes later via [Tunnel: jacms.bluraymaldives.site](#cloudflare-tunnel-jacms).
 
 #### Assumptions
 
@@ -1233,7 +1311,7 @@ Prepare a **16 GB RAM Debian desktop** as the office server: OS packages, Node.j
 - One primary admin Unix account, e.g. `server`, with the repo at `/home/server/dev/jacms` (path may change after [JACMS rename plan](#jacms-rename-plan)).
 - **Development on the server** with **Cursor**; GNOME **auto-login** (no password) + Cursor autostart per [Autostart on boot](#autostart-on-boot).
 - App listens on `127.0.0.1:3000`; nginx on `127.0.0.1:80` when installed — see [Deploy](#deploy).
-- Public URL **https://server.bluraymaldives.site** — [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives).
+- Public URL **https://jacms.bluraymaldives.site** — [Tunnel: jacms.bluraymaldives.site](#cloudflare-tunnel-jacms).
 
 #### 1. Base system
 
@@ -1364,7 +1442,7 @@ sudo ufw allow from 192.168.0.0/16 to any port 22 proto tcp
 sudo ufw enable
 ```
 
-Do **not** open WAN 80/443 when using Cloudflare Tunnel only — see [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives).
+Do **not** open WAN 80/443 when using Cloudflare Tunnel only — see [Tunnel: jacms.bluraymaldives.site](#cloudflare-tunnel-jacms).
 
 Port `5432` rules for LAN/Tailscale are applied by `install-postgres-network.sh` when UFW is present.
 
@@ -1390,7 +1468,7 @@ Schedule Postgres/app backups via your policy; the deploy tree may include `jacm
 | Step | Guide |
 | --- | --- |
 | Boot recovery stack | [Autostart on boot](#autostart-on-boot) |
-| Public `https://server.bluraymaldives.site` | [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives) |
+| Public `https://jacms.bluraymaldives.site` | [Tunnel: jacms.bluraymaldives.site](#cloudflare-tunnel-jacms) |
 | Rename planning | [JACMS rename plan](#jacms-rename-plan) |
 
 </details>
@@ -1400,7 +1478,7 @@ Schedule Postgres/app backups via your policy; the deploy tree may include `jacm
 <details>
 <summary><strong>Autostart on boot</strong> (expand)</summary>
 
-Goal: after **any** reboot or AC power return, **PostgreSQL**, **nginx**, the **app service** (`jacms` today), **cloudflared**, and optional timers come up **without** a desktop login or manual `sudo` — so `https://server.bluraymaldives.site` recovers once DNS, Tunnel, and internet are up.
+Goal: after **any** reboot or AC power return, **PostgreSQL**, **nginx**, the **app service** (`jacms` today), **cloudflared**, and optional timers come up **without** a desktop login or manual `sudo` — so `https://jacms.bluraymaldives.site` recovers once DNS, Tunnel, and internet are up.
 
 **Owner decisions (Adhuhaam):**
 
@@ -1455,7 +1533,7 @@ Enable the instance unit that matches your cluster.
 
 #### cloudflared ordering & retries
 
-Install and enable the tunnel **after** nginx and jacms are healthy — [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives).
+Install and enable the tunnel **after** nginx and jacms are healthy — [Tunnel: jacms.bluraymaldives.site](#cloudflare-tunnel-jacms).
 
 `deploy/install-cloudflare-tunnel.sh` runs `systemctl enable --now cloudflared`. Recommended drop-ins on the **server** (placeholders — apply on host, not necessarily committed to repo yet):
 
@@ -1536,7 +1614,7 @@ curl -fsS http://127.0.0.1:3000/health && echo OK-app
 curl -fsS http://127.0.0.1/health && echo OK-nginx
 
 ### 4) Public (if tunnel configured)
-curl -fsS https://server.bluraymaldives.site/health && echo OK-public
+curl -fsS https://jacms.bluraymaldives.site/health && echo OK-public
 
 ### 5) Recent errors
 journalctl -u jacms -n 30 --no-pager
@@ -1620,7 +1698,7 @@ When JACMS rename changes the unit name to `jacms.service`, update commands acco
 
 Expose this office app on the internet **without** opening router ports or using Tailscale for managers.
 
-**Hostname walkthrough** (`https://server.bluraymaldives.site`): [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives).
+**Hostname walkthrough** (`https://jacms.bluraymaldives.site`): [Tunnel: jacms.bluraymaldives.site](#cloudflare-tunnel-jacms).
 
 #### Why Tunnel
 
@@ -1699,12 +1777,12 @@ Prints a random `*.trycloudflare.com` URL (ephemeral — not for restaurant mana
 
 </details>
 
-<a id="cloudflare-tunnel-serverbluraymaldives"></a>
+<a id="cloudflare-tunnel-jacms"></a>
 
 <details>
-<summary><strong>Cloudflare Tunnel — `server.bluraymaldives.site`</strong> (expand)</summary>
+<summary><strong>Cloudflare Tunnel — `jacms.bluraymaldives.site`</strong> (expand)</summary>
 
-Expose JACMS (today **JACMS** in code) at **`https://server.bluraymaldives.site`** without ISP port-forwarding. Traffic path matches [Cloudflare Tunnel](#cloudflare-tunnel): **Cloudflare edge → cloudflared → nginx `http://127.0.0.1:80` → Node `http://127.0.0.1:3000`**.
+Expose JACMS (today **JACMS** in code) at **`https://jacms.bluraymaldives.site`** without ISP port-forwarding. Traffic path matches [Cloudflare Tunnel](#cloudflare-tunnel): **Cloudflare edge → cloudflared → nginx `http://127.0.0.1:80` → Node `http://127.0.0.1:3000`**.
 
 #### Prerequisites
 
@@ -1717,7 +1795,7 @@ Expose JACMS (today **JACMS** in code) at **`https://server.bluraymaldives.site`
 
 ```mermaid
 flowchart LR
-  M[Manager browser] -->|HTTPS server.bluraymaldives.site| CF[Cloudflare]
+  M[Manager browser] -->|HTTPS jacms.bluraymaldives.site| CF[Cloudflare]
   CF --> C[cloudflared on Debian]
   C --> N[nginx 127.0.0.1:80]
   N --> A[Node 127.0.0.1:3000]
@@ -1725,7 +1803,7 @@ flowchart LR
 
 | Item | Value |
 | --- | --- |
-| Public hostname | `server.bluraymaldives.site` |
+| Public hostname | `jacms.bluraymaldives.site` |
 | Tunnel name (default in script) | `jacms` → planned `jacms` — [JACMS rename plan](#jacms-rename-plan) |
 | Origin | `http://127.0.0.1:80` (not `:3000` directly) |
 | Credentials | `/etc/cloudflared/config.yml` + JSON under `/root/.cloudflared/` — **never commit** |
@@ -1758,7 +1836,7 @@ Use the repo installer with your hostname:
 ```bash
 cd /home/server/dev/jacms
 sudo bash deploy/install-cloudflare-tunnel.sh \
-  --hostname server.bluraymaldives.site \
+  --hostname jacms.bluraymaldives.site \
   --tunnel-name jacms
 ```
 
@@ -1773,12 +1851,12 @@ tunnel: <TUNNEL_UUID>
 credentials-file: /root/.cloudflared/<TUNNEL_UUID>.json
 
 ingress:
-  - hostname: server.bluraymaldives.site
+  - hostname: jacms.bluraymaldives.site
     service: http://127.0.0.1:80
   - service: http_status:404
 ```
 
-4. Runs `cloudflared tunnel route dns jacms server.bluraymaldives.site` (CNAME to `*.cfargotunnel.com`).
+4. Runs `cloudflared tunnel route dns jacms jacms.bluraymaldives.site` (CNAME to `*.cfargotunnel.com`).
 5. `cloudflared service install`, `systemctl enable --now cloudflared`.
 
 Placeholders: real `TUNNEL_UUID` and JSON credentials are generated by Cloudflare — not documented here.
@@ -1797,17 +1875,17 @@ journalctl -u cloudflared -n 50 --no-pager
 Public:
 
 ```bash
-curl -fsS https://server.bluraymaldives.site/health
+curl -fsS https://jacms.bluraymaldives.site/health
 ```
 
-Browser: open `https://server.bluraymaldives.site/` — JACMS/JACMS login page.
+Browser: open `https://jacms.bluraymaldives.site/` — JACMS/JACMS login page.
 
 ##### Mobile / API base URL
 
 Point Expo and other clients at:
 
 ```text
-https://server.bluraymaldives.site
+https://jacms.bluraymaldives.site
 ```
 
 (No trailing path; API is `/api/v1`.)
@@ -1841,7 +1919,7 @@ sudo systemctl restart jacms
 | --- | --- |
 | **Cloudflare Error 1033** | Connector down — see [Autostart on boot](#autostart-on-boot) |
 | 502 at public URL | Fix `curl http://127.0.0.1/health`; restart `jacms` and `nginx` |
-| Wrong site / 404 | Check `hostname` in `/etc/cloudflared/config.yml` matches `server.bluraymaldives.site` |
+| Wrong site / 404 | Check `hostname` in `/etc/cloudflared/config.yml` matches `jacms.bluraymaldives.site` |
 | DNS not proxied | In Cloudflare DNS, CNAME should be **Proxied** (orange cloud) |
 
 #### Ephemeral test (no DNS)
@@ -1957,7 +2035,7 @@ After keys work from every device you use, you can set `PasswordAuthentication n
 
 #### Cloudflare tunnel
 
-Public hostname **`server.bluraymaldives.site`** unchanged. Installer default tunnel name is **`jacms`** (`deploy/install-cloudflare-tunnel.sh`). Rename the tunnel object in Cloudflare only if you want the dashboard label to match; routing can stay as-is.
+Public hostname **`jacms.bluraymaldives.site`** unchanged. Installer default tunnel name is **`jacms`** (`deploy/install-cloudflare-tunnel.sh`). Rename the tunnel object in Cloudflare only if you want the dashboard label to match; routing can stay as-is.
 
 #### Verification
 
@@ -1970,7 +2048,7 @@ Expect matches only in compat code, `deploy/migrate-rebrand.sh`, `deploy/ensure-
 #### Related guides
 
 - [README.md](#table-of-contents)
-- [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives)
+- [Tunnel: jacms.bluraymaldives.site](#cloudflare-tunnel-jacms)
 - [../DEPLOY.md](../DEPLOY.md)
 
 </details>
@@ -1992,7 +2070,7 @@ Grok Bot is the **xAI Grok** chat client with **custom remote MCP servers**. JAC
 | Static auth | HTTP headers, e.g. `Authorization: Bearer <api_key>` |
 | OAuth | Optional; pre-registered OAuth client ID |
 | Private CA TLS | Optional CA bundle upload in Grok Bot settings |
-| Reachability | Remote MCP is invoked from **Grok Bot’s backend** — endpoint must be **internet-reachable** (`https://server.bluraymaldives.site/mcp`), not LAN-only |
+| Reachability | Remote MCP is invoked from **Grok Bot’s backend** — endpoint must be **internet-reachable** (`https://jacms.bluraymaldives.site/mcp`), not LAN-only |
 | Tool discovery | New tools appear on the bot’s **next message** after server update |
 | Writes | Grok Bot asks the **owner for approval in chat** before executing write tools (agreed policy; JACMS still enforces RBAC + `confirm` on destructive tools) |
 
@@ -2034,7 +2112,7 @@ flowchart LR
 | Node `/api/v1` | Same Bearer keys for REST parity |
 | PostgreSQL | RBAC, audit log, hashed API keys |
 
-**Do not** expose Postgres or raw `:3000` on the public hostname — tunnel targets nginx on `127.0.0.1:80` ([Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives)).
+**Do not** expose Postgres or raw `:3000` on the public hostname — tunnel targets nginx on `127.0.0.1:80` ([Tunnel: jacms.bluraymaldives.site](#cloudflare-tunnel-jacms)).
 
 </details>
 
@@ -2202,13 +2280,13 @@ location /mcp {
 
 #### Cloudflare tunnel
 
-No extra ingress rule — `/mcp` is another path on `server.bluraymaldives.site`. Optional: Cloudflare **Access** policy in front of `/mcp` (adds second auth layer; Grok Bot must still send Bearer).
+No extra ingress rule — `/mcp` is another path on `jacms.bluraymaldives.site`. Optional: Cloudflare **Access** policy in front of `/mcp` (adds second auth layer; Grok Bot must still send Bearer).
 
 #### Health webhook + Grok Bot monitoring
 
 | Signal | Endpoint | Use |
 | --- | --- | --- |
-| Liveness | `GET https://server.bluraymaldives.site/health` | Public; no auth |
+| Liveness | `GET https://jacms.bluraymaldives.site/health` | Public; no auth |
 | Rich status | `GET /api/v1/admin/health` | system_admin session or scoped key if exposed |
 | Partial failure | JACMS emits webhook (future) when DB up but tunnel/nginx down | P4 checkbox |
 | External ping | Owner configures **Grok Bot routine** to ping `/health` on interval | Alert when tunnel/host down |
@@ -2251,7 +2329,7 @@ npx @modelcontextprotocol/inspector
 Connect to:
 
 ```text
-https://server.bluraymaldives.site/mcp
+https://jacms.bluraymaldives.site/mcp
 ```
 
 Headers:
@@ -2268,11 +2346,11 @@ Authorization: Bearer <your_jacms_api_key>
 
 ```bash
 # Health (no auth)
-curl -fsS https://server.bluraymaldives.site/health
+curl -fsS https://jacms.bluraymaldives.site/health
 
 # REST parity (example — adjust route)
 curl -fsS -H "Authorization: Bearer $JACMS_GROKBOT_KEY" \
-  "https://server.bluraymaldives.site/api/v1/employees?limit=1"
+  "https://jacms.bluraymaldives.site/api/v1/employees?limit=1"
 ```
 
 Streamable HTTP may use session IDs — follow SDK docs for raw curl; prefer Inspector for MCP.
@@ -2286,7 +2364,7 @@ Streamable HTTP may use session IDs — follow SDK docs for raw curl; prefer Ins
 
 1. **Issue API key** — system_admin → Settings → API keys → create key for **`grokbot`** role; copy secret once.
 2. In **Grok Bot**, add a **custom remote MCP server**:
-   - **URL:** `https://server.bluraymaldives.site/mcp`
+   - **URL:** `https://jacms.bluraymaldives.site/mcp`
    - **Transport:** Streamable HTTP (HTTPS)
    - **Auth:** Static header — `Authorization: Bearer <api_key>`
    - (Optional) OAuth client ID if you later switch auth mode
@@ -2307,10 +2385,10 @@ Streamable HTTP may use session IDs — follow SDK docs for raw curl; prefer Ins
 
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
-| Grok Bot: cannot connect to MCP | Tunnel down, nginx down, or wrong URL | `systemctl status cloudflared nginx jacms`; `curl https://server.bluraymaldives.site/health` |
+| Grok Bot: cannot connect to MCP | Tunnel down, nginx down, or wrong URL | `systemctl status cloudflared nginx jacms`; `curl https://jacms.bluraymaldives.site/health` |
 | 401 on MCP | Missing/wrong Bearer, revoked key | Rotate key in admin UI; update Grok Bot header |
 | Tools missing after deploy | Grok Bot caches tool list per session | Send a **new message**; restart connector |
-| 502 / 1033 on hostname | cloudflared disconnected | `journalctl -u cloudflared -n 50`; [Tunnel errors](#cloudflare-tunnel-serverbluraymaldives) |
+| 502 / 1033 on hostname | cloudflared disconnected | `journalctl -u cloudflared -n 50`; [Tunnel errors](#cloudflare-tunnel-jacms) |
 | MCP hangs / disconnects | nginx buffering or short timeout | Add [`location /mcp`](#grok-bot-nginx) settings; reload nginx |
 | Write rejected | RBAC or missing `confirm: true` | Check `grokbot_agent` permissions; tool args must include `confirm: true` |
 | Duplicate writes | Retries without idempotency | Pass same `idempotency_key` on retry |
@@ -2427,7 +2505,7 @@ Docs: https://docs.expo.dev/eas/index.md
 <details>
 <summary><strong>Mobile Android preview roadmap</strong> (expand)</summary>
 
-**Story for another day:** the Debian server guide set focuses on web + API at `https://server.bluraymaldives.site`. Mobile work will likely happen in a **separate Cursor workspace/session** (same monorepo `mobile/` or a dedicated repo — recommendation below). This document is **forward-looking**; it does not require changes on the server today.
+**Story for another day:** the Debian server guide set focuses on web + API at `https://jacms.bluraymaldives.site`. Mobile work will likely happen in a **separate Cursor workspace/session** (same monorepo `mobile/` or a dedicated repo — recommendation below). This document is **forward-looking**; it does not require changes on the server today.
 
 #### What exists today
 
@@ -2438,7 +2516,7 @@ Docs: https://docs.expo.dev/eas/index.md
 | Agent notes | [mobile/AGENTS.md](#mobile-expo-app) |
 | Preview APK (EAS) | `npx eas-cli@latest build --profile preview --platform android` — [mobile/README.md](#mobile-expo-app) |
 
-Production API base URL for field devices: **`https://server.bluraymaldives.site`** (after tunnel setup).
+Production API base URL for field devices: **`https://jacms.bluraymaldives.site`** (after tunnel setup).
 
 #### Recommendation: monorepo vs separate mobile repo
 
@@ -2462,7 +2540,7 @@ npx expo start
 In the app, set **API URL** to:
 
 ```text
-https://server.bluraymaldives.site
+https://jacms.bluraymaldives.site
 ```
 
 Expo Go or a **development build** is required when using native modules not in Expo Go — see [mobile/AGENTS.md](#mobile-expo-app).
@@ -2523,7 +2601,7 @@ Requires Android SDK/NDK on the build machine (heavy on Debian desktop — CI or
 
 1. Build preview/production APK with API URL baked or entered at first launch (today: user-entered URL in app).
 2. Distribute APK via link, MDM, or Play internal testing.
-3. Document that API is always `https://server.bluraymaldives.site`; rotates only if DNS changes.
+3. Document that API is always `https://jacms.bluraymaldives.site`; rotates only if DNS changes.
 
 #### Debian server: what not to autostart
 
@@ -2536,7 +2614,7 @@ Requires Android SDK/NDK on the build machine (heavy on Debian desktop — CI or
 
 #### Checklist before first field pilot
 
-- [ ] Tunnel health: `https://server.bluraymaldives.site/health`
+- [ ] Tunnel health: `https://jacms.bluraymaldives.site/health`
 - [ ] Mobile login tested on Android with real account
 - [ ] Preview APK installed; API URL set
 - [ ] Module gaps acceptable vs web — table in [mobile/README.md](#mobile-expo-app)
@@ -2545,7 +2623,7 @@ Requires Android SDK/NDK on the build machine (heavy on Debian desktop — CI or
 #### Related
 
 - [README.md](#table-of-contents) — server guides index
-- [Tunnel: server.bluraymaldives.site](#cloudflare-tunnel-serverbluraymaldives) — public API URL
+- [Tunnel: jacms.bluraymaldives.site](#cloudflare-tunnel-jacms) — public API URL
 - [JACMS rename plan](#jacms-rename-plan) — mobile display name JACMS
 
 </details>

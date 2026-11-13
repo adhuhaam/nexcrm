@@ -15,6 +15,7 @@ function freeze(company: CompanyRecord): CompanySnapshot {
     companyId: company.id,
     legalName: company.legalName,
     registrationNumber: company.registrationNumber,
+    tinNumber: company.tinNumber,
     registeredAddress: company.registeredAddress,
     country: company.country,
     businessActivity: company.businessActivity,
@@ -23,6 +24,9 @@ function freeze(company: CompanyRecord): CompanySnapshot {
     documentPrefix: company.documentPrefix,
     signatoryName: company.signatoryName,
     signatoryTitle: company.signatoryTitle,
+    letterheadFileId: company.letterheadFileId,
+    sealFileId: company.sealFileId,
+    signatureFileId: company.signatureFileId,
   };
 }
 

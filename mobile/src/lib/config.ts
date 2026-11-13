@@ -2,8 +2,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const API_BASE_KEY = "jacms_api_base";
 
-/** Suggested default for this office — user can replace with any reachable JACMS origin. */
-export const DEFAULT_API_HINT = "http://server-1.snowy-pride.ts.net";
+/** Suggested production API — override with EXPO_PUBLIC_JACMS_API_URL at EAS build time. */
+export const DEFAULT_API_HINT =
+  (typeof process !== "undefined" && process.env?.EXPO_PUBLIC_JACMS_API_URL?.trim()) ||
+  "https://jacms.bluraymaldives.site";
 
 let memoryBase: string | null = null;
 
