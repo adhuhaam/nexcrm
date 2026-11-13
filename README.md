@@ -754,7 +754,7 @@ sequenceDiagram
 #### Auth
 
 - Cookie session: `jacms_session` (HttpOnly, SameSite=Lax).
-- `POST /login` — body `{ email, password }` (office) or `{ phone, password }` (employee). Returns `location` (`/` or `/ess`), `token`, `mustChangePassword`.
+- `POST /login` — body `{ email, password }` (office, employer portal, client portal) or `{ phone, password }` (employee). Returns `location` (`/`, `/ess`, `/employer`, or `/client`), `token`, `mustChangePassword`.
 - `POST /logout`, `GET /api/v1/session` (includes `employeeId`, `mustChangePassword` for staff).
 - Roles in `roles` / `users` (`system_admin`, `hr_manager`, …). Coarse flags plus per-module View/Create/Edit/Delete in `role_permissions` (`modules/access/permissions.ts`).
 - Settings hub routes: `/settings` (also `/users`, `/admin`) → General / People / Roles / Health.
