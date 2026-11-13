@@ -21,6 +21,7 @@ function person(slug: string, canPreview: boolean, canEdit: boolean, canDelete: 
     email: "test@jacms.local",
     phone: null,
     employeeId: null,
+    portalCompanyId: null,
     mustChangePassword: false,
     active: true,
     scopedClientIds: slug === "system_admin" ? null : [],
@@ -50,6 +51,16 @@ assert.equal(await verifyPassword("wrong-password", stored), false);
 const employee = person("employee_self_service", true, false, false);
 assert.equal(authorize("GET", "/api/v1/ess/dashboard", employee), null);
 assert.match(authorize("GET", "/api/v1/hr", employee) ?? "", /self-service portal/);
+
+const employerPortal = person("legal_employer", true, false, false);
+employerPortal.portalCompanyId = "00000000-0000-4000-8000-000000000010";
+assert.equal(authorize("GET", "/api/v1/portal/employer/dashboard", employerPortal), null);
+assert.match(authorize("GET", "/api/v1/hr", employerPortal) ?? "", /employer portal/);
+
+const clientPortal = person("portal_client", true, false, false);
+clientPortal.portalCompanyId = "00000000-0000-4000-8000-000000000011";
+assert.equal(authorize("GET", "/api/v1/portal/client/workers", clientPortal), null);
+assert.match(authorize("GET", "/companies", clientPortal) ?? "", /client portal/);
 
 const guest = person("investor_guest", true, false, false);
 assert.equal(authorize("GET", "/api/v1/hr", guest), null);

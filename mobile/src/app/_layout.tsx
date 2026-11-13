@@ -17,7 +17,19 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     const onLogin = segments[0] === "login";
     if (!session && !onLogin) router.replace("/login");
     if (session && onLogin) {
-      router.replace(session.role.slug === "employee_self_service" ? "/(ess)" : "/(tabs)");
+      if (session.role.slug === "employee_self_service") {
+        router.replace(session.mustChangePassword ? "/(ess)/change-password" : "/(ess)");
+        return;
+      }
+      if (session.role.slug === "legal_employer") {
+        router.replace(session.mustChangePassword ? "/(employer)/change-password" : "/(employer)");
+        return;
+      }
+      if (session.role.slug === "portal_client") {
+        router.replace(session.mustChangePassword ? "/(client)/change-password" : "/(client)");
+        return;
+      }
+      router.replace("/(tabs)");
     }
   }, [ready, session, segments, router]);
 
@@ -52,6 +64,8 @@ export default function RootLayout() {
               <Stack.Screen name="login" />
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="(ess)" />
+              <Stack.Screen name="(employer)" />
+              <Stack.Screen name="(client)" />
               <Stack.Screen name="companies/[id]" options={{ headerShown: true, title: "Company" }} />
               <Stack.Screen name="companies/form" options={{ headerShown: true, title: "Company form" }} />
               <Stack.Screen name="employees/[id]" options={{ headerShown: true, title: "Employee" }} />

@@ -128,6 +128,7 @@ Field API base URL: `https://server.bluraymaldives.site`
 
 | Date | Note |
 | --- | --- |
+| 2026-11-13 | **Company portals:** Legal employer + client read-only portals — roles `legal_employer` and `portal_client` (office `client` unchanged), `users.portal_company_id`, migration `032_company_portals.sql`, `/api/v1/portal/employer/*`, `/api/v1/portal/client/*`, web `/employer/*` · `/client/*`, mobile `(employer)` / `(client)` tabs, admin portal logins on company/client detail, `tests/portal-scope.test.ts`. |
 | 2026-11-13 | **PR #6:** Grok Bot MCP integration — full development guide in README (Streamable HTTP `/mcp`, `grokbot` service user + API keys, tool catalog, nginx/tunnel, security, testing, owner connect steps, troubleshooting). Docs only — no runtime MCP code. |
 | 2026-11-13 | **PR #5:** Full rebrand NEXCRM → JACMS — packages `jacms` / `jacms-mobile`, `jacms.service`, cookie `jacms_session`, DB role/db `jacms` / `jacms_dev`, `deploy/migrate-rebrand.sh`, repo URLs `github.com/adhuhaam/jacms`. |
 | 2026-11-12 | **PR #4:** Employee self-service web (`/ess/*`) + mobile (`(ess)` tabs), phone login, `/api/v1/ess/*`, HR self-service account, Xpat portal adapter placeholders, migration `031_employee_self_service.sql`. |
@@ -172,7 +173,11 @@ Each item is **implemented today** unless noted. Use pointers for implementation
 
 - [x] **Email + password login** — scrypt, ~12h session — `modules/access/access.ts`, `POST /login`, cookie `jacms_session`
 - [x] **Bearer token for mobile** — `Authorization: Bearer` on same session token — `app/*-http.ts`
-- [x] **Ten built-in system roles** — above nine plus `employee_self_service` for staff portal — `modules/access/access.ts` (`seedRoles`), migration `031_employee_self_service.sql`
+- [x] **Twelve built-in system roles** — office nine plus `employee_self_service`, `legal_employer`, `portal_client` — `modules/access/access.ts` (`seedRoles`), migrations `031_employee_self_service.sql`, `032_company_portals.sql`
+- [x] **Legal employer portal** — admin-provisioned email login linked to employer company, read-only `/employer/*` + `/api/v1/portal/employer/*` — `modules/portal/*`, `web/src/pages/employer-portal.tsx`, `mobile/src/app/(employer)/`
+- [x] **Client company portal** — admin-provisioned email login linked to client company (`portal_client` role; distinct from office `client` role), read-only `/client/*` + `/api/v1/portal/client/*` — `web/src/pages/client-portal.tsx`, `mobile/src/app/(client)/`
+- [x] **Portal account admin** — create/reset/disable on company detail — `POST/GET /api/v1/companies/:id/portal-accounts`, `PATCH /api/v1/portal-accounts/:userId`, `web/src/components/portal-accounts-panel.tsx`
+- [x] **Portal scope tests** — employer/client data isolation — `tests/portal-scope.test.ts`
 - [x] **Employee self-service auth** — phone + admin-set password, forced change on first login, scrypt sessions — `lib/phone.ts`, `POST /login` (`phone` or `email`), `users.phone` / `users.employee_id`
 - [x] **Employee self-service API** — server-enforced own data only — `modules/employee-self/*`, `app/employee-self-http.ts`, `/api/v1/ess/*`
 - [x] **HR: self-service account + Xpat sync** — `POST /api/v1/employees/:id/self-service-account`, `POST /api/v1/employees/:id/xpat-sync` (manual only), `modules/integrations/xpat-portal-adapter.ts` for future portal credentials
@@ -848,6 +853,39 @@ Responses are JSON. Errors: `{ "error": "…" }` with 4xx/5xx.
 | POST | `/api/v1/ess/change-password` | Same as password (first-login gate) |
 
 HR (office roles with employee edit): `POST /api/v1/employees/:id/self-service-account` `{ phone, password }` — admin-set password; employee must change on first login. XPAT data: `POST /api/v1/employees/:id/xpat-sync` (manual **Sync from Xpat**; no auto sync). Optional future portal: `XPAT_PORTAL_*` in `.env.example` + `modules/integrations/xpat-portal-adapter.ts`.
+
+#### Legal employer portal (`legal_employer` role only)
+
+Sign-in: office-style `{ email, password }` on `POST /login` → `/employer` (forced change at `/employer/change-password`). Every query is scoped to `users.portal_company_id` (must match employer `companies.id`).
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| GET | `/api/v1/portal/employer/dashboard` | Headline counts |
+| GET | `/api/v1/portal/employer/employees` | Workforce + XPAT |
+| GET | `/api/v1/portal/employer/quota` | Quota pools + work permits |
+| GET | `/api/v1/portal/employer/invoices` | Locked pay runs / invoice numbers |
+| GET | `/api/v1/portal/employer/payments` | Client payment expenses (read-only) |
+| GET | `/api/v1/portal/employer/employees/:id/documents` | Visa/medical/insurance dates + file list |
+| GET | `/api/v1/portal/employer/files/:fileId/download` | Download when file belongs to employer’s employee |
+| GET | `/api/v1/portal/employer/payroll?month=YYYY-MM` | Monthly locked payroll lines |
+| GET | `/api/v1/portal/employer/attendance?month=YYYY-MM` | Monthly attendance for employer’s staff |
+| POST | `/api/v1/portal/employer/change-password` | `{ currentPassword, newPassword }` |
+
+Admin (companies module edit): `GET/POST /api/v1/companies/:id/portal-accounts` — employer **or** client company (role picked from `companies.kind`). `PATCH /api/v1/portal-accounts/:userId` — `{ password }` and/or `{ active: false }`.
+
+#### Client company portal (`portal_client` role only)
+
+Sign-in: `{ email, password }` → `/client` (forced change at `/client/change-password`). Scoped to linked client company only.
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| GET | `/api/v1/portal/client/dashboard` | Workers / invoices / placements |
+| GET | `/api/v1/portal/client/workers` | Active allocations |
+| GET | `/api/v1/portal/client/recruitment` | Allocation + LOA progress (read-only) |
+| GET | `/api/v1/portal/client/invoices` | Pay runs billed to this client |
+| GET | `/api/v1/portal/client/payments` | Recorded client payments |
+| GET | `/api/v1/portal/client/attendance?month=YYYY-MM` | Attendance for allocated workers |
+| POST | `/api/v1/portal/client/change-password` | `{ currentPassword, newPassword }` |
 
 #### Admin (system_admin)
 

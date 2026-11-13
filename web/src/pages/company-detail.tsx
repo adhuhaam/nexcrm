@@ -14,6 +14,7 @@ import { Banner, Shell, ShellEmpty, WhenEditing } from "@/components/shell";
 import { PageSkeleton, SearchField } from "@/components/ux";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { CompanyBrandingPanel } from "@/components/company-branding";
+import { PortalAccountsPanel } from "@/components/portal-accounts-panel";
 import { getJson, sendJson } from "@/lib/api";
 
 type Detail = {
@@ -264,6 +265,12 @@ export function CompanyDetailPage({ id }: { id: string }) {
               ) : null}
             </CardContent>
           </Card>
+
+          {detail.kind === "employer" ? (
+            <WhenEditing>
+              <PortalAccountsPanel companyId={detail.id} />
+            </WhenEditing>
+          ) : null}
 
           <Card>
             <CardHeader className="pb-0">
