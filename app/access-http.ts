@@ -25,6 +25,7 @@ import {
 } from "../modules/settings/settings.ts";
 import { ExpenseError } from "../modules/expenses/expenses.ts";
 import { handleEmployeeSelfApi } from "./employee-self-http.ts";
+import { handlePortalAdmin, handlePortalApi } from "./portal-http.ts";
 import {
   getFinanceFeeSettings,
   listDepositRates,
@@ -126,6 +127,7 @@ function publicView(user: OfficeUser | null) {
     role: user.role,
     scopedClientIds: user.scopedClientIds,
     employeeId: user.employeeId,
+    portalCompanyId: user.portalCompanyId,
     mustChangePassword: user.mustChangePassword,
   };
 }
@@ -159,12 +161,14 @@ export async function guardAccess(request: IncomingMessage, response: ServerResp
         sendJson(response, 401, { error: "Sign-in details were not recognised." });
         return true;
       }
-      const location =
-        opened.user.role.slug === "employee_self_service"
-          ? opened.user.mustChangePassword
-            ? "/ess/change-password"
-            : "/ess"
-          : "/";
+      let location = "/";
+      if (opened.user.role.slug === "employee_self_service") {
+        location = opened.user.mustChangePassword ? "/ess/change-password" : "/ess";
+      } else if (opened.user.role.slug === "legal_employer") {
+        location = opened.user.mustChangePassword ? "/employer/change-password" : "/employer";
+      } else if (opened.user.role.slug === "portal_client") {
+        location = opened.user.mustChangePassword ? "/client/change-password" : "/client";
+      }
       sendJson(
         response,
         200,
@@ -210,12 +214,18 @@ export async function guardAccess(request: IncomingMessage, response: ServerResp
     return true;
   }
 
+  if (path.startsWith("/api/v1/portal/")) {
+    await handlePortalApi(request, response, url, user);
+    return true;
+  }
+
   const refusal = authorize(method, path, user);
   if (refusal) {
     denied(request, response, 403, refusal);
     return true;
   }
 
+  if (await handlePortalAdmin(request, response, url)) return true;
   if (path.startsWith("/api/v1/admin")) return handleAdmin(request, response, url, user);
   return false;
 }

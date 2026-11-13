@@ -236,6 +236,7 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   phone: text("phone"),
   employeeId: uuid("employee_id").references(() => employees.id, { onDelete: "cascade" }),
+  portalCompanyId: uuid("portal_company_id").references(() => companies.id, { onDelete: "cascade" }),
   mustChangePassword: boolean("must_change_password").notNull().default(false),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

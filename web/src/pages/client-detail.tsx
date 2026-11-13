@@ -18,6 +18,7 @@ import { AreaField, TextField } from "@/components/field";
 import { Banner, Shell, ShellEmpty, WhenEditing } from "@/components/shell";
 import { PageSkeleton, SearchField } from "@/components/ux";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { PortalAccountsPanel } from "@/components/portal-accounts-panel";
 import { getJson, sendJson } from "@/lib/api";
 import { formatDate, formatDateRange } from "@/lib/dates";
 import { formatAmount, formatMoneyPair } from "@/lib/money";
@@ -427,6 +428,9 @@ export function ClientDetailPage({ id }: { id: string }) {
                   </div>
                 </CardContent>
               </Card>
+              <WhenEditing>
+                <PortalAccountsPanel companyId={id} />
+              </WhenEditing>
             </TabsContent>
 
             <TabsContent value="rates" className="mt-0 outline-none">

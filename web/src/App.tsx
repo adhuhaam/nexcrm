@@ -16,6 +16,25 @@ import {
   EmployeeSelfSalaryPage,
   EmployeeSelfXpatPage,
 } from "@/pages/employee-self";
+import {
+  ClientPortalAttendancePage,
+  ClientPortalChangePasswordPage,
+  ClientPortalDashboardPage,
+  ClientPortalGate,
+  ClientPortalInvoicesPage,
+  ClientPortalRecruitmentPage,
+  ClientPortalWorkersPage,
+} from "@/pages/client-portal";
+import {
+  EmployerPortalAttendancePage,
+  EmployerPortalChangePasswordPage,
+  EmployerPortalDashboardPage,
+  EmployerPortalEmployeesPage,
+  EmployerPortalGate,
+  EmployerPortalInvoicesPage,
+  EmployerPortalPayrollPage,
+  EmployerPortalQuotaPage,
+} from "@/pages/employer-portal";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -106,6 +125,74 @@ function routeFor(path: string): ReactNode {
       <EmployeeSelfGate>
         <EmployeeSelfProfilePage />
       </EmployeeSelfGate>
+    );
+  if (path === "/employer/change-password") return <EmployerPortalChangePasswordPage />;
+  if (path === "/employer" || path === "/employer/")
+    return (
+      <EmployerPortalGate>
+        <EmployerPortalDashboardPage />
+      </EmployerPortalGate>
+    );
+  if (path === "/employer/employees")
+    return (
+      <EmployerPortalGate>
+        <EmployerPortalEmployeesPage />
+      </EmployerPortalGate>
+    );
+  if (path === "/employer/quota")
+    return (
+      <EmployerPortalGate>
+        <EmployerPortalQuotaPage />
+      </EmployerPortalGate>
+    );
+  if (path === "/employer/invoices")
+    return (
+      <EmployerPortalGate>
+        <EmployerPortalInvoicesPage />
+      </EmployerPortalGate>
+    );
+  if (path === "/employer/payroll")
+    return (
+      <EmployerPortalGate>
+        <EmployerPortalPayrollPage />
+      </EmployerPortalGate>
+    );
+  if (path === "/employer/attendance")
+    return (
+      <EmployerPortalGate>
+        <EmployerPortalAttendancePage />
+      </EmployerPortalGate>
+    );
+  if (path === "/client/change-password") return <ClientPortalChangePasswordPage />;
+  if (path === "/client" || path === "/client/")
+    return (
+      <ClientPortalGate>
+        <ClientPortalDashboardPage />
+      </ClientPortalGate>
+    );
+  if (path === "/client/workers")
+    return (
+      <ClientPortalGate>
+        <ClientPortalWorkersPage />
+      </ClientPortalGate>
+    );
+  if (path === "/client/recruitment")
+    return (
+      <ClientPortalGate>
+        <ClientPortalRecruitmentPage />
+      </ClientPortalGate>
+    );
+  if (path === "/client/invoices")
+    return (
+      <ClientPortalGate>
+        <ClientPortalInvoicesPage />
+      </ClientPortalGate>
+    );
+  if (path === "/client/attendance")
+    return (
+      <ClientPortalGate>
+        <ClientPortalAttendancePage />
+      </ClientPortalGate>
     );
   if (path === "/users" || path === "/admin" || path === "/settings" || path.startsWith("/settings/")) {
     return <AccessPage />;

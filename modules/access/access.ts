@@ -41,6 +41,8 @@ export type OfficeUser = {
   role: RoleRecord;
   /** null = unrestricted (system admin). Otherwise assigned restaurant client ids. */
   scopedClientIds: string[] | null;
+  /** Linked employer or client company for external portal roles. */
+  portalCompanyId: string | null;
 };
 
 const builtInRoles: Array<Omit<RoleRecord, "id" | "permissions"> & { accessModules?: "full" | "none" | "view" }> = [
@@ -56,6 +58,24 @@ const builtInRoles: Array<Omit<RoleRecord, "id" | "permissions"> & { accessModul
   {
     slug: "employee_self_service",
     name: "Employee self-service",
+    canPreview: true,
+    canEdit: false,
+    canDelete: false,
+    systemRole: true,
+    accessModules: "none",
+  },
+  {
+    slug: "legal_employer",
+    name: "Legal employer portal",
+    canPreview: true,
+    canEdit: false,
+    canDelete: false,
+    systemRole: true,
+    accessModules: "none",
+  },
+  {
+    slug: "portal_client",
+    name: "Client portal",
     canPreview: true,
     canEdit: false,
     canDelete: false,
@@ -195,6 +215,10 @@ export async function seedMissingRolePermissions(): Promise<void> {
         { module: "employee_self", canView: true, canCreate: false, canEdit: false, canDelete: false },
         ...ALL_MODULE_KEYS.filter((module) => module !== "employee_self").map((module) => emptyModulePermission(module)),
       ]);
+      continue;
+    }
+    if (role.slug === "legal_employer" || role.slug === "portal_client") {
+      await replaceRolePermissions(role.id, ALL_MODULE_KEYS.map((module) => emptyModulePermission(module)));
       continue;
     }
     const builtIn = builtInRoles.find((item) => item.slug === role.slug);
@@ -360,12 +384,13 @@ export async function listUsers(): Promise<OfficeUser[]> {
       email: string;
       phone: string | null;
       employee_id: string | null;
+      portal_company_id: string | null;
       must_change_password: boolean;
       active: boolean;
     }
   >(
     `select users.id as user_id, users.name as user_name, users.email, users.phone, users.employee_id,
-            users.must_change_password, users.active,
+            users.portal_company_id, users.must_change_password, users.active,
             roles.id, roles.slug, roles.name, roles.can_preview, roles.can_edit, roles.can_delete, roles.system_role
      from users join roles on roles.id = users.role_id
      order by users.name`,
@@ -380,6 +405,7 @@ export async function listUsers(): Promise<OfficeUser[]> {
       email: row.email,
       phone: row.phone,
       employeeId: row.employee_id,
+      portalCompanyId: row.portal_company_id,
       mustChangePassword: row.must_change_password,
       active: row.active,
       role: roleFrom(row, permissions.get(row.id) ?? []),
@@ -484,6 +510,7 @@ type UserAuthRow = RoleRow & {
   email: string;
   phone: string | null;
   employee_id: string | null;
+  portal_company_id: string | null;
   must_change_password: boolean;
   active: boolean;
   password_hash: string;
@@ -496,6 +523,7 @@ function mapOfficeUser(row: UserAuthRow, permissions: ModulePermission[]): Offic
     email: row.email,
     phone: row.phone,
     employeeId: row.employee_id,
+    portalCompanyId: row.portal_company_id,
     mustChangePassword: row.must_change_password,
     active: row.active,
     role: roleFrom(row, permissions),
@@ -518,7 +546,7 @@ export async function openSession(identifier: string, password: string): Promise
 
   const result = await pool.query<UserAuthRow>(
     `select users.id as user_id, users.name as user_name, users.email, users.phone, users.employee_id,
-            users.must_change_password, users.active, users.password_hash,
+            users.portal_company_id, users.must_change_password, users.active, users.password_hash,
             roles.id, roles.slug, roles.name, roles.can_preview, roles.can_edit, roles.can_delete, roles.system_role
      from users join roles on roles.id = users.role_id
      where ($1::text is not null and lower(users.email) = lower($1))
@@ -546,7 +574,7 @@ export async function userForToken(token: string): Promise<OfficeUser | null> {
   const tokenHash = createHash("sha256").update(token).digest("hex");
   const result = await pool.query<UserAuthRow>(
     `select users.id as user_id, users.name as user_name, users.email, users.phone, users.employee_id,
-            users.must_change_password, users.active, users.password_hash,
+            users.portal_company_id, users.must_change_password, users.active, users.password_hash,
             roles.id, roles.slug, roles.name, roles.can_preview, roles.can_edit, roles.can_delete, roles.system_role
      from sessions
      join users on users.id = sessions.user_id
@@ -585,6 +613,24 @@ export function authorize(method: string, path: string, user: OfficeUser): strin
     if (path.startsWith("/api/v1/ess")) return null;
     if (path.startsWith("/ess")) return null;
     return "Employee accounts can only use the self-service portal.";
+  }
+
+  if (user.role.slug === "legal_employer") {
+    const verb = method.toUpperCase();
+    if (path === "/api/v1/session") return null;
+    if (verb === "POST" && path === "/logout") return null;
+    if (path.startsWith("/api/v1/portal/employer")) return null;
+    if (path.startsWith("/employer")) return null;
+    return "Legal employer accounts can only use the employer portal.";
+  }
+
+  if (user.role.slug === "portal_client") {
+    const verb = method.toUpperCase();
+    if (path === "/api/v1/session") return null;
+    if (verb === "POST" && path === "/logout") return null;
+    if (path.startsWith("/api/v1/portal/client")) return null;
+    if (path.startsWith("/client")) return null;
+    return "Client accounts can only use the client portal.";
   }
 
   const module = moduleForPath(path);
