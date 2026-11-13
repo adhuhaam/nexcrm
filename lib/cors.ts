@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { publicAppUrl } from "./public-url.ts";
 
-/** Expo web / Metro origins allowed to call the Tailscale API with Bearer tokens. */
+/** Origins allowed to call the API with Bearer tokens (Expo dev + configured public app URL). */
 export function isExpoDevOrigin(origin: string): boolean {
   try {
     const url = new URL(origin);
@@ -8,6 +9,12 @@ export function isExpoDevOrigin(origin: string): boolean {
     if (url.hostname === "localhost" || url.hostname === "127.0.0.1") return true;
     // Expo tunnel / Go web previews
     if (url.hostname.endsWith(".exp.direct") || url.hostname.endsWith(".expo.dev")) return true;
+    try {
+      const allowed = new URL(publicAppUrl());
+      if (url.protocol === allowed.protocol && url.host === allowed.host) return true;
+    } catch {
+      /* ignore invalid APP_URL */
+    }
     return false;
   } catch {
     return false;

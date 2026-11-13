@@ -1,0 +1,22 @@
+FROM node:22-bookworm-slim
+
+RUN apt-get update -qq \
+  && apt-get install -y -qq --no-install-recommends ca-certificates imagemagick ghostscript poppler-utils libvips-tools \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY app app
+COPY db db
+COPY lib lib
+COPY modules modules
+COPY scripts scripts
+COPY drizzle.config.ts tsconfig.json ./
+COPY .env.example .env.example
+
+ENV HOST=0.0.0.0
+ENV PORT=3000
+
+EXPOSE 3000
+CMD ["node", "--experimental-strip-types", "app/server.ts"]

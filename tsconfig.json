@@ -7,8 +7,18 @@
     "noEmit": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["node"],
-    "skipLibCheck": true
+    "types": [
+      "node"
+    ],
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true
   },
-  "include": ["app", "lib", "tests", "drizzle.config.ts"]
+  "include": [
+    "app",
+    "lib",
+    "modules",
+    "scripts",
+    "tests",
+    "drizzle.config.ts"
+  ]
 }
